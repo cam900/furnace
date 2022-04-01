@@ -42,8 +42,8 @@
 #define BUSY_BEGIN_SOFT softLocked=true; isBusy.lock();
 #define BUSY_END isBusy.unlock(); softLocked=false;
 
-#define DIV_VERSION "dev73"
-#define DIV_ENGINE_VERSION 73
+#define DIV_VERSION "dev75"
+#define DIV_ENGINE_VERSION 75
 
 // for imports
 #define DIV_VERSION_MOD 0xff01
@@ -86,6 +86,8 @@ struct DivChannelState {
   bool doNote, legato, portaStop, keyOn, keyOff, nowYouCanStop, stopOnOff;
   bool arpYield, delayLocked, inPorta, scheduledSlideReset, shorthandPorta, noteOnInhibit, resetArp;
 
+  int midiNote, curMidiNote;
+
   DivChannelState():
     note(-1),
     oldNote(-1),
@@ -126,7 +128,9 @@ struct DivChannelState {
     scheduledSlideReset(false),
     shorthandPorta(false),
     noteOnInhibit(false),
-    resetArp(false) {}
+    resetArp(false),
+    midiNote(-1),
+    curMidiNote(-1) {}
 };
 
 struct DivNoteEvent {
@@ -191,6 +195,8 @@ class DivEngine {
   bool cmdStreamEnabled;
   bool softLocked;
   bool firstTick;
+  bool skipping;
+  bool midiIsDirect;
   int softLockCount;
   int ticks, curRow, curOrder, remainingLoops, nextSpeed;
   double divider;
@@ -233,6 +239,7 @@ class DivEngine {
   short vibTable[64];
   int reversePitchTable[4096];
   int pitchTable[4096];
+  int midiBaseChan;
 
   blip_buffer_t* samp_bb;
   size_t samp_bbInLen;
@@ -247,7 +254,7 @@ class DivEngine {
   size_t totalProcessed;
 
   // MIDI stuff
-  std::function<int(const TAMidiMessage&)> midiCallback=[](const TAMidiMessage&) -> int {return -1;};
+  std::function<int(const TAMidiMessage&)> midiCallback=[](const TAMidiMessage&) -> int {return -2;};
 
   DivSystem systemFromFile(unsigned char val);
   unsigned char systemToFile(DivSystem val);
@@ -541,6 +548,9 @@ class DivEngine {
     // stop note
     void noteOff(int chan);
 
+    void autoNoteOn(int chan, int ins, int note, int vol=-1);
+    void autoNoteOff(int chan, int note, int vol=-1);
+
     // go to order
     void setOrder(unsigned char order);
 
@@ -640,6 +650,12 @@ class DivEngine {
     // switch master
     bool switchMaster();
 
+    // set MIDI base channel
+    void setMidiBaseChan(int chan);
+
+    // set MIDI direct channel map
+    void setMidiDirect(bool value);
+
     // set MIDI input callback
     // if the specified function returns -2, note feedback will be inhibited.
     void setMidiCallback(std::function<int(const TAMidiMessage&)> what);
@@ -706,6 +722,8 @@ class DivEngine {
       cmdStreamEnabled(false),
       softLocked(false),
       firstTick(false),
+      skipping(false),
+      midiIsDirect(false),
       softLockCount(0),
       ticks(0),
       curRow(0),
@@ -730,6 +748,7 @@ class DivEngine {
       view(DIV_STATUS_NOTHING),
       haltOn(DIV_HALT_NONE),
       audioEngine(DIV_AUDIO_NULL),
+      midiBaseChan(0),
       samp_bbInLen(0),
       samp_temp(0),
       samp_prevSample(0),

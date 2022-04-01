@@ -32,6 +32,7 @@ struct DivMacroIntStruct {
   void init() {
     has=had=finished=will=true;
   }
+	template<typename T> void doMacro(DivMacroSTD<T>& source);
   DivMacroIntStruct():
     pos(0),
     val(0),

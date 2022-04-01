@@ -21,26 +21,26 @@
 #include "instrument.h"
 
 template<typename T>
-void DivMacroInt::doMacro(DivMacroIntStruct& macro, DivMacroSTD<T>& source) {
-  if (macro.finished) macro.finished=false;
-  if (macro.had!=macro.has) {
-    macro.finished=true;
+void DivMacroIntStruct::doMacro(DivMacroSTD<T>& source) {
+  if (finished) finished=false;
+  if (had!=has) {
+    finished=true;
   }
-  macro.had=macro.has;
-  if (macro.has) {
-    macro.val=source.val[macro.pos++];
-    if (source.rel>=0 && macro.pos>source.rel && !released) {
+  had=has;
+  if (has) {
+    val=source.val[pos++];
+    if (source.rel>=0 && pos>source.rel && !released) {
       if (source.loop<source.len && source.loop>=0 && source.loop<source.rel) {
-        macro.pos=source.loop;
+        pos=source.loop;
       } else {
-        macro.pos--;
+        pos--;
       }
     }
-    if (macro.pos>=source.len) {
+    if (pos>=source.len) {
       if (source.loop<source.len && source.loop>=0 && (source.loop>=source.rel || source.rel>=source.len)) {
-        macro.pos=source.loop;
+        pos=source.loop;
       } else {
-        macro.has=false;
+        has=false;
       }
     }
   }
@@ -50,48 +50,48 @@ void DivMacroInt::doMacro(DivMacroIntStruct& macro, DivMacroSTD<T>& source) {
 void DivMacroInt::next() {
   if (ins==NULL) return;
 
-  doMacro(vol,ins->std.volMacro);
-  doMacro(arp,ins->std.arpMacro);
-  doMacro(duty,ins->std.dutyMacro);
-  doMacro(wave,ins->std.waveMacro);
+  vol.doMacro(ins->std.volMacro);
+  arp.doMacro(ins->std.arpMacro);
+  duty.doMacro(ins->std.dutyMacro);
+  wave.doMacro(ins->std.waveMacro);
   
-  doMacro(pitch,ins->std.pitchMacro);
-  doMacro(ex1,ins->std.ex1Macro);
-  doMacro(ex2,ins->std.ex2Macro);
-  doMacro(ex3,ins->std.ex3Macro);
+  pitch.doMacro(ins->std.pitchMacro);
+  ex1.doMacro(ins->std.ex1Macro);
+  ex2.doMacro(ins->std.ex2Macro);
+  ex3.doMacro(ins->std.ex3Macro);
 
-  doMacro(alg,ins->std.algMacro);
-  doMacro(fb,ins->std.fbMacro);
-  doMacro(fms,ins->std.fmsMacro);
-  doMacro(ams,ins->std.amsMacro);
+  alg.doMacro(ins->std.algMacro);
+  fb.doMacro(ins->std.fbMacro);
+  fms.doMacro(ins->std.fmsMacro);
+  ams.doMacro(ins->std.amsMacro);
 
   for (int i=0; i<4; i++) {
     DivInstrumentSTD::OpMacro& m=ins->std.opMacros[i];
     IntOp& o=op[i];
-    doMacro(o.am,m.amMacro);
-    doMacro(o.ar,m.arMacro);
-    doMacro(o.dr,m.drMacro);
-    doMacro(o.mult,m.multMacro);
+    o.am.doMacro(m.amMacro);
+    o.ar.doMacro(m.arMacro);
+    o.dr.doMacro(m.drMacro);
+    o.mult.doMacro(m.multMacro);
 
-    doMacro(o.rr,m.rrMacro);
-    doMacro(o.sl,m.slMacro);
-    doMacro(o.tl,m.tlMacro);
-    doMacro(o.dt2,m.dt2Macro);
+    o.rr.doMacro(m.rrMacro);
+    o.sl.doMacro(m.slMacro);
+    o.tl.doMacro(m.tlMacro);
+    o.dt2.doMacro(m.dt2Macro);
 
-    doMacro(o.rs,m.rsMacro);
-    doMacro(o.dt,m.dtMacro);
-    doMacro(o.d2r,m.d2rMacro);
-    doMacro(o.ssg,m.ssgMacro);
+    o.rs.doMacro(m.rsMacro);
+    o.dt.doMacro(m.dtMacro);
+    o.d2r.doMacro(m.d2rMacro);
+    o.ssg.doMacro(m.ssgMacro);
 
-    doMacro(o.dam,m.damMacro);
-    doMacro(o.dvb,m.dvbMacro);
-    doMacro(o.egt,m.egtMacro);
-    doMacro(o.ksl,m.kslMacro);
+    o.dam.doMacro(m.damMacro);
+    o.dvb.doMacro(m.dvbMacro);
+    o.egt.doMacro(m.egtMacro);
+    o.ksl.doMacro(m.kslMacro);
 
-    doMacro(o.sus,m.susMacro);
-    doMacro(o.vib,m.vibMacro);
-    doMacro(o.ws,m.wsMacro);
-    doMacro(o.ksr,m.ksrMacro);
+    o.sus.doMacro(m.susMacro);
+    o.vib.doMacro(m.vibMacro);
+    o.ws.doMacro(m.wsMacro);
+    o.ksr.doMacro(m.ksrMacro);
   }
 }
 

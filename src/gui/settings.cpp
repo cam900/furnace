@@ -87,7 +87,15 @@ const char* valueInputStyles[]={
   "Raw (note number is value)",
   "Two octaves alternate (lower keys are 0-9, upper keys are A-F)",
   "Use dual control change (one for each nibble)",
-  "Use 14-bit control change"
+  "Use 14-bit control change",
+  "Use single control change (imprecise)"
+};
+
+const char* valueSInputStyles[]={
+  "Disabled/custom",
+  "Use dual control change (one for each nibble)",
+  "Use 14-bit control change",
+  "Use single control change (imprecise)"
 };
 
 const char* messageTypes[]={
@@ -111,6 +119,27 @@ const char* messageTypes[]={
 
 const char* messageChannels[]={
   "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "Any"
+};
+
+const char* specificControls[18]={
+  "Instrument",
+  "Volume",
+  "Effect 1 type",
+  "Effect 1 value",
+  "Effect 2 type",
+  "Effect 2 value",
+  "Effect 3 type",
+  "Effect 3 value",
+  "Effect 4 type",
+  "Effect 4 value",
+  "Effect 5 type",
+  "Effect 5 value",
+  "Effect 6 type",
+  "Effect 6 value",
+  "Effect 7 type",
+  "Effect 7 value",
+  "Effect 8 type",
+  "Effect 8 value"
 };
 
 #define SAMPLE_RATE_SELECTABLE(x) \
@@ -334,16 +363,24 @@ void FurnaceGUI::drawSettings() {
         ImGui::Text("MIDI input");
         ImGui::SameLine();
         String midiInName=settings.midiInDevice.empty()?"<disabled>":settings.midiInDevice;
+        bool hasToReloadMidi=false;
         if (ImGui::BeginCombo("##MidiInDevice",midiInName.c_str())) {
           if (ImGui::Selectable("<disabled>",settings.midiInDevice.empty())) {
             settings.midiInDevice="";
+            hasToReloadMidi=true;
           }
           for (String& i: e->getMidiIns()) {
             if (ImGui::Selectable(i.c_str(),i==settings.midiInDevice)) {
               settings.midiInDevice=i;
+              hasToReloadMidi=true;
             }
           }
           ImGui::EndCombo();
+        }
+
+        if (hasToReloadMidi) {
+          midiMap.read(e->getConfigPath()+DIR_SEPARATOR_STR+"midiIn_"+stripName(settings.midiInDevice)+".cfg"); 
+          midiMap.compile();
         }
 
         ImGui::Text("MIDI output");
@@ -364,22 +401,57 @@ void FurnaceGUI::drawSettings() {
         if (ImGui::TreeNode("MIDI input settings")) {
           ImGui::Checkbox("Note input",&midiMap.noteInput);
           ImGui::Checkbox("Velocity input",&midiMap.volInput);
-          ImGui::Checkbox("Use raw velocity value (don't map from linear to log)",&midiMap.rawVolume);
-          ImGui::Checkbox("Polyphonic/chord input",&midiMap.polyInput);
+          // TODO
+          //ImGui::Checkbox("Use raw velocity value (don't map from linear to log)",&midiMap.rawVolume);
+          //ImGui::Checkbox("Polyphonic/chord input",&midiMap.polyInput);
           ImGui::Checkbox("Map MIDI channels to direct channels",&midiMap.directChannel);
           ImGui::Checkbox("Program change is instrument selection",&midiMap.programChange);
-          ImGui::Checkbox("Listen to MIDI clock",&midiMap.midiClock);
-          ImGui::Checkbox("Listen to MIDI time code",&midiMap.midiTimeCode);
-          ImGui::Combo("Value input style",&midiMap.valueInputStyle,valueInputStyles,6);
+          //ImGui::Checkbox("Listen to MIDI clock",&midiMap.midiClock);
+          //ImGui::Checkbox("Listen to MIDI time code",&midiMap.midiTimeCode);
+          ImGui::Combo("Value input style",&midiMap.valueInputStyle,valueInputStyles,7);
           if (midiMap.valueInputStyle>3) {
-            if (ImGui::InputInt((midiMap.valueInputStyle==4)?"CC of upper nibble##valueCC1":"MSB CC##valueCC1",&midiMap.valueInputControlMSB,1,16)) {
-              if (midiMap.valueInputControlMSB<0) midiMap.valueInputControlMSB=0;
-              if (midiMap.valueInputControlMSB>127) midiMap.valueInputControlMSB=127;
+            if (midiMap.valueInputStyle==6) {
+              if (ImGui::InputInt("Control##valueCCS",&midiMap.valueInputControlSingle,1,16)) {
+                if (midiMap.valueInputControlSingle<0) midiMap.valueInputControlSingle=0;
+                if (midiMap.valueInputControlSingle>127) midiMap.valueInputControlSingle=127;
+              }
+            } else {
+              if (ImGui::InputInt((midiMap.valueInputStyle==4)?"CC of upper nibble##valueCC1":"MSB CC##valueCC1",&midiMap.valueInputControlMSB,1,16)) {
+                if (midiMap.valueInputControlMSB<0) midiMap.valueInputControlMSB=0;
+                if (midiMap.valueInputControlMSB>127) midiMap.valueInputControlMSB=127;
+              }
+              if (ImGui::InputInt((midiMap.valueInputStyle==4)?"CC of lower nibble##valueCC2":"LSB CC##valueCC2",&midiMap.valueInputControlLSB,1,16)) {
+                if (midiMap.valueInputControlLSB<0) midiMap.valueInputControlLSB=0;
+                if (midiMap.valueInputControlLSB>127) midiMap.valueInputControlLSB=127;
+              }
             }
-            if (ImGui::InputInt((midiMap.valueInputStyle==4)?"CC of lower nibble##valueCC2":"LSB CC##valueCC2",&midiMap.valueInputControlLSB,1,16)) {
-              if (midiMap.valueInputControlLSB<0) midiMap.valueInputControlLSB=0;
-              if (midiMap.valueInputControlLSB>127) midiMap.valueInputControlLSB=127;
+          }
+          if (ImGui::TreeNode("Per-column control change")) {
+            for (int i=0; i<18; i++) {
+              ImGui::PushID(i);
+              ImGui::Combo(specificControls[i],&midiMap.valueInputSpecificStyle[i],valueSInputStyles,4);
+              if (midiMap.valueInputSpecificStyle[i]>0) {
+                ImGui::Indent();
+                if (midiMap.valueInputSpecificStyle[i]==3) {
+                  if (ImGui::InputInt("Control##valueCCS",&midiMap.valueInputSpecificSingle[i],1,16)) {
+                    if (midiMap.valueInputSpecificSingle[i]<0) midiMap.valueInputSpecificSingle[i]=0;
+                    if (midiMap.valueInputSpecificSingle[i]>127) midiMap.valueInputSpecificSingle[i]=127;
+                  }
+                } else {
+                  if (ImGui::InputInt((midiMap.valueInputSpecificStyle[i]==4)?"CC of upper nibble##valueCC1":"MSB CC##valueCC1",&midiMap.valueInputSpecificMSB[i],1,16)) {
+                    if (midiMap.valueInputSpecificMSB[i]<0) midiMap.valueInputSpecificMSB[i]=0;
+                    if (midiMap.valueInputSpecificMSB[i]>127) midiMap.valueInputSpecificMSB[i]=127;
+                  }
+                  if (ImGui::InputInt((midiMap.valueInputSpecificStyle[i]==4)?"CC of lower nibble##valueCC2":"LSB CC##valueCC2",&midiMap.valueInputSpecificLSB[i],1,16)) {
+                    if (midiMap.valueInputSpecificLSB[i]<0) midiMap.valueInputSpecificLSB[i]=0;
+                    if (midiMap.valueInputSpecificLSB[i]>127) midiMap.valueInputSpecificLSB[i]=127;
+                  }
+                }
+                ImGui::Unindent();
+              }
+              ImGui::PopID();
             }
+            ImGui::TreePop();
           }
           if (ImGui::SliderFloat("Volume curve",&midiMap.volExp,0.01,8.0,"%.2f")) {
             if (midiMap.volExp<0.01) midiMap.volExp=0.01;
@@ -396,8 +468,25 @@ void FurnaceGUI::drawSettings() {
           if (ImGui::Button(ICON_FA_PLUS "##AddAction")) {
             midiMap.binds.push_back(MIDIBind());
           }
+          ImGui::SameLine();
+          if (ImGui::Button(ICON_FA_EXTERNAL_LINK "##AddLearnAction")) {
+            midiMap.binds.push_back(MIDIBind());
+            learning=midiMap.binds.size()-1;
+          }
+          if (learning!=-1) {
+            ImGui::SameLine();
+            ImGui::Text("(learning! press a button or move a slider/knob/something on your device.)");
+          }
 
           if (ImGui::BeginTable("MIDIActions",7)) {
+            ImGui::TableSetupColumn("c0",ImGuiTableColumnFlags_WidthStretch,0.2);
+            ImGui::TableSetupColumn("c1",ImGuiTableColumnFlags_WidthStretch,0.1);
+            ImGui::TableSetupColumn("c2",ImGuiTableColumnFlags_WidthStretch,0.3);
+            ImGui::TableSetupColumn("c3",ImGuiTableColumnFlags_WidthStretch,0.2);
+            ImGui::TableSetupColumn("c4",ImGuiTableColumnFlags_WidthStretch,0.5);
+            ImGui::TableSetupColumn("c5",ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("c6",ImGuiTableColumnFlags_WidthFixed);
+
             ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
             ImGui::TableNextColumn();
             ImGui::Text("Type");
@@ -410,7 +499,7 @@ void FurnaceGUI::drawSettings() {
             ImGui::TableNextColumn();
             ImGui::Text("Action");
             ImGui::TableNextColumn();
-            ImGui::Text("Detect");
+            ImGui::Text("Learn");
             ImGui::TableNextColumn();
             ImGui::Text("Remove");
 
@@ -506,12 +595,18 @@ void FurnaceGUI::drawSettings() {
               }
 
               ImGui::TableNextColumn();
-              ImGui::Button(ICON_FA_SQUARE_O "##BLearn");
-              // TODO!
+              if (ImGui::Button((learning==(int)i)?("waiting...##BLearn"):(ICON_FA_SQUARE_O "##BLearn"))) {
+                if (learning==(int)i) {
+                  learning=-1;
+                } else {
+                  learning=i;
+                }
+              }
 
               ImGui::TableNextColumn();
               if (ImGui::Button(ICON_FA_TIMES "##BRemove")) {
                 midiMap.binds.erase(midiMap.binds.begin()+i);
+                if (learning==(int)i) learning=-1;
                 i--;
               }
 
@@ -803,6 +898,7 @@ void FurnaceGUI::drawSettings() {
             UI_COLOR_CONFIG(GUI_COLOR_INSTR_VIC,"VIC");
             UI_COLOR_CONFIG(GUI_COLOR_INSTR_PET,"PET");
             UI_COLOR_CONFIG(GUI_COLOR_INSTR_VRC6,"VRC6");
+            UI_COLOR_CONFIG(GUI_COLOR_INSTR_VRC6_SAW,"VRC6 (saw)");
             UI_COLOR_CONFIG(GUI_COLOR_INSTR_OPLL,"FM (OPLL)");
             UI_COLOR_CONFIG(GUI_COLOR_INSTR_OPL,"FM (OPL)");
             UI_COLOR_CONFIG(GUI_COLOR_INSTR_FDS,"FDS");
@@ -1483,6 +1579,8 @@ void FurnaceGUI::syncSettings() {
 
   midiMap.read(e->getConfigPath()+DIR_SEPARATOR_STR+"midiIn_"+stripName(settings.midiInDevice)+".cfg"); 
   midiMap.compile();
+
+  e->setMidiDirect(midiMap.directChannel);
 }
 
 #define PUT_UI_COLOR(source) e->setConf(#source,(int)ImGui::GetColorU32(uiColors[source]));
@@ -1581,6 +1679,7 @@ void FurnaceGUI::commitSettings() {
   PUT_UI_COLOR(GUI_COLOR_INSTR_VIC);
   PUT_UI_COLOR(GUI_COLOR_INSTR_PET);
   PUT_UI_COLOR(GUI_COLOR_INSTR_VRC6);
+  PUT_UI_COLOR(GUI_COLOR_INSTR_VRC6_SAW);
   PUT_UI_COLOR(GUI_COLOR_INSTR_OPLL);
   PUT_UI_COLOR(GUI_COLOR_INSTR_OPL);
   PUT_UI_COLOR(GUI_COLOR_INSTR_FDS);
@@ -1972,6 +2071,7 @@ void FurnaceGUI::applyUISettings() {
   GET_UI_COLOR(GUI_COLOR_INSTR_VIC,ImVec4(0.2f,1.0f,0.6f,1.0f));
   GET_UI_COLOR(GUI_COLOR_INSTR_PET,ImVec4(1.0f,1.0f,0.8f,1.0f));
   GET_UI_COLOR(GUI_COLOR_INSTR_VRC6,ImVec4(1.0f,0.9f,0.5f,1.0f));
+  GET_UI_COLOR(GUI_COLOR_INSTR_VRC6_SAW,ImVec4(0.8f,0.3f,0.0f,1.0f));
   GET_UI_COLOR(GUI_COLOR_INSTR_OPLL,ImVec4(0.6f,0.7f,1.0f,1.0f));
   GET_UI_COLOR(GUI_COLOR_INSTR_OPL,ImVec4(0.3f,1.0f,0.9f,1.0f));
   GET_UI_COLOR(GUI_COLOR_INSTR_FDS,ImVec4(0.8f,0.5f,1.0f,1.0f));

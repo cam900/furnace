@@ -149,7 +149,7 @@ void DivPlatformVRC6::tick() {
           chWrite(i,0,chan[i].outVol);
         }
       } else { // pulse
-        chan[i].outVol=((chan[i].vol&15)*MIN(63,chan[i].std.vol.val))/63;
+        chan[i].outVol=((chan[i].vol&15)*MIN(15,chan[i].std.vol.val))/15;
         if (chan[i].outVol<0) chan[i].outVol=0;
         if (chan[i].outVol>15) chan[i].outVol=15;
         if ((!isMuted[i]) && (!chan[i].pcm)) {
@@ -430,6 +430,9 @@ void DivPlatformVRC6::reset() {
   for (int i=0; i<3; i++) {
     chan[i]=DivPlatformVRC6::Channel();
   }
+  // a poll may be necessary to decide the default
+  chan[2].vol=30;
+  chan[2].outVol=30;
   if (dumpWrites) {
     addWrite(0xffffffff,0);
   }

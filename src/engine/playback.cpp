@@ -172,7 +172,49 @@ int DivEngine::dispatchCmd(DivCommand c) {
   if (cmdStreamEnabled && cmdStream.size()<2000) {
     cmdStream.push_back(c);
   }
+
+  if (!skipping && output->midiOut!=NULL) {
+    if (output->midiOut->isDeviceOpen()) {
+      int scaledVol=(chan[c.chan].volume*127)/MAX(1,chan[c.chan].volMax);
+      if (scaledVol<0) scaledVol=0;
+      if (scaledVol>127) scaledVol=127;
+      switch (c.cmd) {
+        case DIV_CMD_NOTE_ON:
+        case DIV_CMD_LEGATO:
+          if (chan[c.chan].curMidiNote>=0) {
+            output->midiOut->send(TAMidiMessage(0x80|(c.chan&15),chan[c.chan].curMidiNote,scaledVol));
+          }
+          if (c.value!=DIV_NOTE_NULL) chan[c.chan].curMidiNote=c.value+12;
+          output->midiOut->send(TAMidiMessage(0x90|(c.chan&15),chan[c.chan].curMidiNote,scaledVol));
+          break;
+        case DIV_CMD_NOTE_OFF:
+        case DIV_CMD_NOTE_OFF_ENV:
+          if (chan[c.chan].curMidiNote>=0) {
+            output->midiOut->send(TAMidiMessage(0x80|(c.chan&15),chan[c.chan].curMidiNote,scaledVol));
+          }
+          chan[c.chan].curMidiNote=-1;
+          break;
+        case DIV_CMD_INSTRUMENT:
+          output->midiOut->send(TAMidiMessage(0xc0|(c.chan&15),c.value,0));
+          break;
+        case DIV_CMD_VOLUME:
+          //output->midiOut->send(TAMidiMessage(0xb0|(c.chan&15),0x07,scaledVol));
+          break;
+        case DIV_CMD_PITCH: {
+          int pitchBend=8192+(c.value<<5);
+          if (pitchBend<0) pitchBend=0;
+          if (pitchBend>16383) pitchBend=16383;
+          output->midiOut->send(TAMidiMessage(0xe0|(c.chan&15),pitchBend&0x7f,pitchBend>>7));
+          break;
+        }
+        default:
+          break;
+      }
+    }
+  }
+
   c.chan=dispatchChanOfChan[c.dis];
+
   return disCont[dispatchOfChan[c.dis]].dispatch->dispatch(c);
 }
 
@@ -688,6 +730,9 @@ bool DivEngine::perSystemPostEffect(int ch, unsigned char effect, unsigned char 
         case 0x29: // auto-envelope
           dispatchCmd(DivCommand(DIV_CMD_AY_AUTO_ENVELOPE,ch,effectVal));
           break;
+        case 0x2d: // TEST
+          dispatchCmd(DivCommand(DIV_CMD_AY_IO_WRITE,ch,255,effectVal));
+          break;
         case 0x2e: // I/O port A
           dispatchCmd(DivCommand(DIV_CMD_AY_IO_WRITE,ch,0,effectVal));
           break;
@@ -815,13 +860,12 @@ void DivEngine::processRow(int i, bool afterDelay) {
   if (chan[i].delayLocked) return;
 
   // instrument
+  bool insChanged=false;
   if (pat->data[whatRow][2]!=-1) {
     dispatchCmd(DivCommand(DIV_CMD_INSTRUMENT,i,pat->data[whatRow][2]));
     if (chan[i].lastIns!=pat->data[whatRow][2]) {
       chan[i].lastIns=pat->data[whatRow][2];
-      if (chan[i].inPorta && song.newInsTriggersInPorta) {
-        dispatchCmd(DivCommand(DIV_CMD_NOTE_ON,i,DIV_NOTE_NULL));
-      }
+      insChanged=true;
     }
   }
   // note
@@ -894,6 +938,7 @@ void DivEngine::processRow(int i, bool afterDelay) {
   chan[i].retrigSpeed=0;
 
   short lastSlide=-1;
+  bool calledPorta=false;
 
   // effects
   for (int j=0; j<song.pat[i].effectRows; j++) {
@@ -970,6 +1015,7 @@ void DivEngine::processRow(int i, bool afterDelay) {
           chan[i].inPorta=false;
           dispatchCmd(DivCommand(DIV_CMD_PRE_PORTA,i,false,0));
         } else {
+          calledPorta=true;
           if (chan[i].note==chan[i].oldNote && !chan[i].inPorta && song.buggyPortaAfterSlide) {
             chan[i].portaNote=chan[i].note;
             chan[i].portaSpeed=-1;
@@ -1173,6 +1219,10 @@ void DivEngine::processRow(int i, bool afterDelay) {
         sPreview.dir=false;
         break;
     }
+  }
+
+  if (insChanged && (chan[i].inPorta || calledPorta) && song.newInsTriggersInPorta) {
+    dispatchCmd(DivCommand(DIV_CMD_NOTE_ON,i,DIV_NOTE_NULL));
   }
 
   if (chan[i].doNote) {
@@ -1548,7 +1598,11 @@ void DivEngine::nextBuf(float** in, float** out, int inChans, int outChans, unsi
       switch (msg.type&0xf0) {
         case TA_MIDI_NOTE_OFF: {
           if (chan<0 || chan>=chans) break;
-          pendingNotes.push(DivNoteEvent(msg.type&15,-1,-1,-1,false));
+          if (midiIsDirect) {
+            pendingNotes.push(DivNoteEvent(chan,-1,-1,-1,false));
+          } else {
+            autoNoteOff(msg.type&15,msg.data[0]-12,msg.data[1]);
+          }
           if (!playing) {
             reset();
             freelance=true;
@@ -1559,14 +1613,17 @@ void DivEngine::nextBuf(float** in, float** out, int inChans, int outChans, unsi
         case TA_MIDI_NOTE_ON: {
           if (chan<0 || chan>=chans) break;
           if (msg.data[1]==0) {
-            pendingNotes.push(DivNoteEvent(msg.type&15,-1,-1,-1,false));
+            if (midiIsDirect) {
+              pendingNotes.push(DivNoteEvent(chan,-1,-1,-1,false));
+            } else {
+              autoNoteOff(msg.type&15,msg.data[0]-12,msg.data[1]);
+            }
           } else {
-            pendingNotes.push(DivNoteEvent(msg.type&15,ins,(int)msg.data[0]-12,msg.data[1],true));
-          }
-          if (!playing) {
-            reset();
-            freelance=true;
-            playing=true;
+            if (midiIsDirect) {
+              pendingNotes.push(DivNoteEvent(chan,ins,msg.data[0]-12,msg.data[1],true));
+            } else {
+              autoNoteOn(msg.type&15,ins,msg.data[0]-12,msg.data[1]);
+            }
           }
           break;
         }

@@ -95,6 +95,7 @@ enum FurnaceGUIColors {
   GUI_COLOR_INSTR_VIC,
   GUI_COLOR_INSTR_PET,
   GUI_COLOR_INSTR_VRC6,
+  GUI_COLOR_INSTR_VRC6_SAW,
   GUI_COLOR_INSTR_OPLL,
   GUI_COLOR_INSTR_OPL,
   GUI_COLOR_INSTR_FDS,
@@ -538,10 +539,26 @@ struct MIDIMap {
   //
   // 4: use dual CC for value input (nibble)
   // 5: use 14-bit CC for value input (MSB/LSB)
+  // 6: use single CC for value input (may be imprecise)
   int valueInputStyle;
   int valueInputControlMSB; // on 4
   int valueInputControlLSB; // on 4
+  int valueInputControlSingle;
+
+  // 0: disabled
+  // 1: use dual CC (nibble)
+  // 2: use 14-bit CC (MSB/LSB)
+  // 3: use single CC (may be imprecise)
+  int valueInputSpecificStyle[18];
+  int valueInputSpecificMSB[18];
+  int valueInputSpecificLSB[18];
+  int valueInputSpecificSingle[18];
   float volExp;
+
+  int valueInputCurMSB, valueInputCurLSB, valueInputCurSingle;
+  int valueInputCurMSBS[18];
+  int valueInputCurLSBS[18];
+  int valueInputCurSingleS[18];
 
   void compile();
   void deinit();
@@ -559,7 +576,19 @@ struct MIDIMap {
     midiClock(false),
     midiTimeCode(false),
     valueInputStyle(1),
-    volExp(1.0f) {}
+    volExp(1.0f),
+    valueInputCurMSB(0),
+    valueInputCurLSB(0),
+    valueInputCurSingle(0) {
+    memset(valueInputSpecificStyle,0,18*sizeof(int));
+    memset(valueInputSpecificMSB,0,18*sizeof(int));
+    memset(valueInputSpecificLSB,0,18*sizeof(int));
+    memset(valueInputSpecificSingle,0,18*sizeof(int));
+
+    memset(valueInputCurMSBS,0,18*sizeof(int));
+    memset(valueInputCurLSBS,0,18*sizeof(int));
+    memset(valueInputCurSingleS,0,18*sizeof(int));
+  }
 };
 
 struct Particle {
@@ -635,6 +664,7 @@ class FurnaceGUI {
   std::mutex midiLock;
   std::queue<TAMidiMessage> midiQueue;
   MIDIMap midiMap;
+  int learning;
 
   ImFont* mainFont;
   ImFont* iconFont;
@@ -770,7 +800,7 @@ class FurnaceGUI {
   bool pianoOpen, notesOpen, channelsOpen, regViewOpen;
   SelectionPoint selStart, selEnd, cursor;
   bool selecting, curNibble, orderNibble, followOrders, followPattern, changeAllOrders;
-  bool collapseWindow, demandScrollX, fancyPattern, wantPatName, firstFrame, tempoView;
+  bool collapseWindow, demandScrollX, fancyPattern, wantPatName, firstFrame, tempoView, waveHex;
   FurnaceGUIWindows curWindow, nextWindow;
   float peak[2];
   float patChanX[DIV_MAX_CHANS+1];
@@ -981,6 +1011,8 @@ class FurnaceGUI {
   void doUndo();
   void doRedo();
   void editOptions(bool topMenu);
+  void noteInput(int num, int key, int vol=-1);
+  void valueInput(int num, bool direct=false, int target=-1);
 
   void doUndoSample();
   void doRedoSample();
@@ -988,8 +1020,8 @@ class FurnaceGUI {
   void play(int row=0);
   void stop();
 
-  void previewNote(int refChan, int note);
-  void stopPreviewNote(SDL_Scancode scancode);
+  void previewNote(int refChan, int note, bool autoNote=false);
+  void stopPreviewNote(SDL_Scancode scancode, bool autoNote=false);
 
   void keyDown(SDL_Event& ev);
   void keyUp(SDL_Event& ev);
@@ -1002,9 +1034,10 @@ class FurnaceGUI {
   void applyUISettings();
   void initSystemPresets();
 
+  template<typename T> void encodeMMLStr(String& target, DivMacroSTD<T>& macro, bool hex=false);
   template<typename T> void encodeMMLStr(String& target, DivMacroSTD<T>& macro);
   template<typename T> void decodeMMLStr(String& source, DivMacroSTD<T>& macro, int macroMin, int macroMax);
-  void decodeMMLStrW(String& source, DivMacroSTD<int>& macro, int macroMax);
+  template<typename T> void decodeMMLStrW(String& source, DivMacroSTD<T>& macro, int macroMax, bool hex=false);
 
   String encodeKeyMap(std::map<int,int>& map);
   void decodeKeyMap(std::map<int,int>& map, String source);

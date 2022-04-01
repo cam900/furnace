@@ -73,6 +73,7 @@ int DivPlatformGenesisExt::dispatch(DivCommand c) {
 
       if (c.value!=DIV_NOTE_NULL) {
         opChan[ch].baseFreq=NOTE_FREQUENCY(c.value);
+        opChan[ch].portaPause=false;
         opChan[ch].freqChanged=true;
       }
       opChan[ch].keyOn=true;
@@ -156,6 +157,11 @@ int DivPlatformGenesisExt::dispatch(DivCommand c) {
     case DIV_CMD_LEGATO: {
       opChan[ch].baseFreq=NOTE_FREQUENCY(c.value);
       opChan[ch].freqChanged=true;
+      break;
+    }
+    case DIV_CMD_FM_LFO: {
+      lfoValue=(c.value&7)|((c.value>>4)<<3);
+      rWrite(0x22,lfoValue);
       break;
     }
     case DIV_CMD_FM_MULT: { // TODO

@@ -202,7 +202,30 @@ template<typename T> void FurnaceGUI::encodeMMLStr(String& target, DivMacroSTD<T
   }
 }
 
-void FurnaceGUI::decodeMMLStrW(String& source, DivMacroSTD<int>& macro, int macroMax) {
+template<typename T> void FurnaceGUI::encodeMMLStr(String& target, DivMacroSTD<T>& macro, bool hex) {
+  target="";
+  char buf[32];
+  for (int i=0; i<macro.len; i++) {
+    if (i==macro.loop) target+="| ";
+    if (i==macro.rel) target+="/ ";
+    if (hex) {
+      if (i==macro.len-1) {
+        snprintf(buf,31,"%.2X",macro.val[i]);
+      } else {
+        snprintf(buf,31,"%.2X ",macro.val[i]);
+      }
+    } else {
+      if (i==macro.len-1) {
+        snprintf(buf,31,"%d",macro.val[i]);
+      } else {
+        snprintf(buf,31,"%d ",macro.val[i]);
+      }
+    }
+    target+=buf;
+  }
+}
+
+template<typename T> void FurnaceGUI::decodeMMLStrW(String& source, DivMacroSTD<T>& macro, int macroMax, bool hex) {
   int buf=0;
   bool negaBuf=false;
   bool hasVal=false;
@@ -212,8 +235,22 @@ void FurnaceGUI::decodeMMLStrW(String& source, DivMacroSTD<int>& macro, int macr
       case '0': case '1': case '2': case '3': case '4':
       case '5': case '6': case '7': case '8': case '9':
         hasVal=true;
-        buf*=10;
+        buf*=hex?16:10;
         buf+=i-'0';
+        break;
+      case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+        if (hex) {
+          hasVal=true;
+          buf*=16;
+          buf+=10+i-'A';
+        }
+        break;
+      case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+        if (hex) {
+          hasVal=true;
+          buf*=16;
+          buf+=10+i-'a';
+        }
         break;
       case '-':
         if (!hasVal) {
@@ -246,8 +283,7 @@ void FurnaceGUI::decodeMMLStrW(String& source, DivMacroSTD<int>& macro, int macr
   }
 }
 
-template<typename T>
-void FurnaceGUI::decodeMMLStr(String& source, DivMacroSTD<T>& macro, int macroMin, int macroMax) {
+template<typename T> void FurnaceGUI::decodeMMLStr(String& source, DivMacroSTD<T>& macro, int macroMin, int macroMax) {
   int buf=0;
   bool negaBuf=false;
   bool hasVal=false;
@@ -620,7 +656,15 @@ void FurnaceGUI::stop() {
   activeNotes.clear();
 }
 
-void FurnaceGUI::previewNote(int refChan, int note) {
+void FurnaceGUI::previewNote(int refChan, int note, bool autoNote) {
+  if (autoNote) {
+    e->setMidiBaseChan(refChan);
+    e->synchronized([this,note]() {
+      e->autoNoteOn(-1,curIns,note);
+    });
+    return;
+  }
+
   bool chanBusy[DIV_MAX_CHANS];
   memset(chanBusy,0,DIV_MAX_CHANS*sizeof(bool));
   for (ActiveNote& i: activeNotes) {
@@ -642,15 +686,24 @@ void FurnaceGUI::previewNote(int refChan, int note) {
   //printf("FAILED TO FIND CHANNEL!\n");
 }
 
-void FurnaceGUI::stopPreviewNote(SDL_Scancode scancode) {
-  if (activeNotes.empty()) return;
+void FurnaceGUI::stopPreviewNote(SDL_Scancode scancode, bool autoNote) {
+  if (activeNotes.empty() && !autoNote) return;
   try {
     int key=noteKeys.at(scancode);
     int num=12*curOctave+key;
+    if (num<-60) num=-60; // C-(-5)
+    if (num>119) num=119; // B-9
 
     if (key==100) return;
     if (key==101) return;
     if (key==102) return;
+
+    if (autoNote) {
+      e->synchronized([this,num]() {
+        e->autoNoteOff(-1,num);
+      });
+      return;
+    }
 
     for (size_t i=0; i<activeNotes.size(); i++) {
       if (activeNotes[i].note==num) {
@@ -661,6 +714,105 @@ void FurnaceGUI::stopPreviewNote(SDL_Scancode scancode) {
       }
     }
   } catch (std::out_of_range& e) {
+  }
+}
+
+void FurnaceGUI::noteInput(int num, int key, int vol) {
+  DivPattern* pat=e->song.pat[cursor.xCoarse].getPattern(e->song.orders.ord[cursor.xCoarse][e->getOrder()],true);
+  
+  prepareUndo(GUI_UNDO_PATTERN_EDIT);
+
+  if (key==100) { // note off
+    pat->data[cursor.y][0]=100;
+    pat->data[cursor.y][1]=0;
+  } else if (key==101) { // note off + env release
+    pat->data[cursor.y][0]=101;
+    pat->data[cursor.y][1]=0;
+  } else if (key==102) { // env release only
+    pat->data[cursor.y][0]=102;
+    pat->data[cursor.y][1]=0;
+  } else {
+    pat->data[cursor.y][0]=num%12;
+    pat->data[cursor.y][1]=num/12;
+    if (pat->data[cursor.y][0]==0) {
+      pat->data[cursor.y][0]=12;
+      pat->data[cursor.y][1]--;
+    }
+    pat->data[cursor.y][1]=(unsigned char)pat->data[cursor.y][1];
+    if (latchIns==-2) {
+      pat->data[cursor.y][2]=curIns;
+    } else if (latchIns!=-1 && !e->song.ins.empty()) {
+      pat->data[cursor.y][2]=MIN(((int)e->song.ins.size())-1,latchIns);
+    }
+    int maxVol=e->getMaxVolumeChan(cursor.xCoarse);
+    if (latchVol!=-1) {
+      pat->data[cursor.y][3]=MIN(maxVol,latchVol);
+    } else if (vol!=-1) {
+      pat->data[cursor.y][3]=(vol*maxVol)/127;
+    }
+    if (latchEffect!=-1) pat->data[cursor.y][4]=latchEffect;
+    if (latchEffectVal!=-1) pat->data[cursor.y][5]=latchEffectVal;
+  }
+  makeUndo(GUI_UNDO_PATTERN_EDIT);
+  editAdvance();
+  curNibble=false;
+}
+
+void FurnaceGUI::valueInput(int num, bool direct, int target) {
+  DivPattern* pat=e->song.pat[cursor.xCoarse].getPattern(e->song.orders.ord[cursor.xCoarse][e->getOrder()],true);
+  prepareUndo(GUI_UNDO_PATTERN_EDIT);
+  if (target==-1) target=cursor.xFine+1;
+  if (direct) {
+    pat->data[cursor.y][target]=num&0xff;
+  } else {
+    if (pat->data[cursor.y][target]==-1) pat->data[cursor.y][target]=0;
+    pat->data[cursor.y][target]=((pat->data[cursor.y][target]<<4)|num)&0xff;
+  }
+  if (cursor.xFine==1) { // instrument
+    if (pat->data[cursor.y][target]>=(int)e->song.ins.size()) {
+      pat->data[cursor.y][target]&=0x0f;
+      if (pat->data[cursor.y][target]>=(int)e->song.ins.size()) {
+        pat->data[cursor.y][target]=(int)e->song.ins.size()-1;
+      }
+    }
+    makeUndo(GUI_UNDO_PATTERN_EDIT);
+    if (direct) {
+      curNibble=false;
+    } else {
+      if (e->song.ins.size()<16) {
+        curNibble=false;
+        editAdvance();
+      } else {
+        curNibble=!curNibble;
+        if (!curNibble) editAdvance();
+      }
+    }
+  } else if (cursor.xFine==2) {
+    if (curNibble) {
+      if (pat->data[cursor.y][target]>e->getMaxVolumeChan(cursor.xCoarse)) pat->data[cursor.y][target]=e->getMaxVolumeChan(cursor.xCoarse);
+    } else {
+      pat->data[cursor.y][target]&=15;
+    }
+    makeUndo(GUI_UNDO_PATTERN_EDIT);
+    if (direct) {
+      curNibble=false;
+    } else {
+      if (e->getMaxVolumeChan(cursor.xCoarse)<16) {
+        curNibble=false;
+        editAdvance();
+      } else {
+        curNibble=!curNibble;
+        if (!curNibble) editAdvance();
+      }
+    }
+  } else {
+    makeUndo(GUI_UNDO_PATTERN_EDIT);
+    if (direct) {
+      curNibble=false;
+    } else {
+      curNibble=!curNibble;
+      if (!curNibble) editAdvance();
+    }
   }
 }
 
@@ -728,92 +880,17 @@ void FurnaceGUI::keyDown(SDL_Event& ev) {
             if (num>119) num=119; // B-9
 
             if (edit) {
-              // TODO: separate when adding MIDI input.
-              DivPattern* pat=e->song.pat[cursor.xCoarse].getPattern(e->song.orders.ord[cursor.xCoarse][e->getOrder()],true);
-              
-              prepareUndo(GUI_UNDO_PATTERN_EDIT);
-
-              if (key==100) { // note off
-                pat->data[cursor.y][0]=100;
-                pat->data[cursor.y][1]=0;
-              } else if (key==101) { // note off + env release
-                pat->data[cursor.y][0]=101;
-                pat->data[cursor.y][1]=0;
-              } else if (key==102) { // env release only
-                pat->data[cursor.y][0]=102;
-                pat->data[cursor.y][1]=0;
-              } else {
-                pat->data[cursor.y][0]=num%12;
-                pat->data[cursor.y][1]=num/12;
-                if (pat->data[cursor.y][0]==0) {
-                  pat->data[cursor.y][0]=12;
-                  pat->data[cursor.y][1]--;
-                }
-                pat->data[cursor.y][1]=(unsigned char)pat->data[cursor.y][1];
-                if (latchIns==-2) {
-                  pat->data[cursor.y][2]=curIns;
-                } else if (latchIns!=-1 && !e->song.ins.empty()) {
-                  pat->data[cursor.y][2]=MIN(((int)e->song.ins.size())-1,latchIns);
-                }
-                if (latchVol!=-1) {
-                  int maxVol=e->getMaxVolumeChan(cursor.xCoarse);
-                  pat->data[cursor.y][3]=MIN(maxVol,latchVol);
-                }
-                if (latchEffect!=-1) pat->data[cursor.y][4]=latchEffect;
-                if (latchEffectVal!=-1) pat->data[cursor.y][5]=latchEffectVal;
-                previewNote(cursor.xCoarse,num);
-              }
-              makeUndo(GUI_UNDO_PATTERN_EDIT);
-              editAdvance();
-              curNibble=false;
-            } else {
-              if (key!=100 && key!=101 && key!=102) {
-                previewNote(cursor.xCoarse,num);
-              }
+              noteInput(num,key);
+            }
+            if (key!=100 && key!=101 && key!=102) {
+              previewNote(cursor.xCoarse,num);
             }
           } catch (std::out_of_range& e) {
           }
         } else if (edit) { // value
           try {
             int num=valueKeys.at(ev.key.keysym.sym);
-            DivPattern* pat=e->song.pat[cursor.xCoarse].getPattern(e->song.orders.ord[cursor.xCoarse][e->getOrder()],true);
-            prepareUndo(GUI_UNDO_PATTERN_EDIT);
-            if (pat->data[cursor.y][cursor.xFine+1]==-1) pat->data[cursor.y][cursor.xFine+1]=0;
-            pat->data[cursor.y][cursor.xFine+1]=((pat->data[cursor.y][cursor.xFine+1]<<4)|num)&0xff;
-            if (cursor.xFine==1) { // instrument
-              if (pat->data[cursor.y][cursor.xFine+1]>=(int)e->song.ins.size()) {
-                pat->data[cursor.y][cursor.xFine+1]&=0x0f;
-                if (pat->data[cursor.y][cursor.xFine+1]>=(int)e->song.ins.size()) {
-                  pat->data[cursor.y][cursor.xFine+1]=(int)e->song.ins.size()-1;
-                }
-              }
-              makeUndo(GUI_UNDO_PATTERN_EDIT);
-              if (e->song.ins.size()<16) {
-                curNibble=false;
-                editAdvance();
-              } else {
-                curNibble=!curNibble;
-                if (!curNibble) editAdvance();
-              }
-            } else if (cursor.xFine==2) {
-              if (curNibble) {
-                if (pat->data[cursor.y][cursor.xFine+1]>e->getMaxVolumeChan(cursor.xCoarse)) pat->data[cursor.y][cursor.xFine+1]=e->getMaxVolumeChan(cursor.xCoarse);
-              } else {
-                pat->data[cursor.y][cursor.xFine+1]&=15;
-              }
-              makeUndo(GUI_UNDO_PATTERN_EDIT);
-              if (e->getMaxVolumeChan(cursor.xCoarse)<16) {
-                curNibble=false;
-                editAdvance();
-              } else {
-                curNibble=!curNibble;
-                if (!curNibble) editAdvance();
-              }
-            } else {
-              makeUndo(GUI_UNDO_PATTERN_EDIT);
-              curNibble=!curNibble;
-              if (!curNibble) editAdvance();
-            }
+            valueInput(num);
           } catch (std::out_of_range& e) {
           }
         }
@@ -922,7 +999,7 @@ void FurnaceGUI::keyDown(SDL_Event& ev) {
           int key=noteKeys.at(ev.key.keysym.scancode);
           int num=12*curOctave+key;
           if (key!=100 && key!=101 && key!=102) {
-            previewNote(cursor.xCoarse,num);
+            previewNote(cursor.xCoarse,num,true);
           }
         } catch (std::out_of_range& e) {
         }
@@ -966,7 +1043,7 @@ void FurnaceGUI::keyDown(SDL_Event& ev) {
 }
 
 void FurnaceGUI::keyUp(SDL_Event& ev) {
-  stopPreviewNote(ev.key.keysym.scancode);
+  stopPreviewNote(ev.key.keysym.scancode,curWindow!=GUI_WINDOW_PATTERN);
   if (wavePreviewOn) {
     if (ev.key.keysym.scancode==wavePreviewKey) {
       wavePreviewOn=false;
@@ -1823,9 +1900,128 @@ bool FurnaceGUI::loop() {
       midiLock.unlock();
 
       // parse message here
-      logD("message is %.2x\n",msg.type);
-      int action=midiMap.at(msg);
-      if (action!=0) doAction(action);
+      if (learning!=-1) {
+        if (learning>=0 && learning<(int)midiMap.binds.size()) {
+          midiMap.binds[learning].type=msg.type>>4;
+          midiMap.binds[learning].channel=msg.type&15;
+          midiMap.binds[learning].data1=msg.data[0];
+          switch (msg.type&0xf0) {
+            case TA_MIDI_NOTE_OFF:
+            case TA_MIDI_NOTE_ON:
+            case TA_MIDI_AFTERTOUCH:
+            case TA_MIDI_PITCH_BEND:
+            case TA_MIDI_CONTROL:
+              midiMap.binds[learning].data2=msg.data[1];
+              break;
+            default:
+              midiMap.binds[learning].data2=128;
+              break;
+          }
+        }
+        learning=-1;
+      } else {
+        int action=midiMap.at(msg);
+        if (action!=0) {
+          doAction(action);
+        } else switch (msg.type&0xf0) {
+          case TA_MIDI_NOTE_ON:
+            if (midiMap.valueInputStyle==0 || midiMap.valueInputStyle>3 || cursor.xFine==0) {
+              if (midiMap.noteInput && edit && msg.data[1]!=0) {
+                noteInput(
+                  msg.data[0]-12,
+                  0,
+                  midiMap.volInput?((int)(pow((double)msg.data[1]/127.0,midiMap.volExp)*127.0)):-1
+                );
+              }
+            } else {
+              if (edit && msg.data[1]!=0) {
+                switch (midiMap.valueInputStyle) {
+                  case 1: {
+                    int val=msg.data[0]%24;
+                    if (val<16) {
+                      valueInput(val);
+                    }
+                    break;
+                  }
+                  case 2:
+                    valueInput(msg.data[0]&15);
+                    break;
+                  case 3:
+                    int val=altValues[msg.data[0]%24];
+                    if (val>=0) {
+                      valueInput(val);
+                    }
+                    break;
+                }
+              }
+            }
+            break;
+          case TA_MIDI_PROGRAM:
+            if (midiMap.programChange) {
+              curIns=msg.data[0];
+              if (curIns>=(int)e->song.ins.size()) curIns=e->song.ins.size()-1;
+            }
+            break;
+          case TA_MIDI_CONTROL:
+            bool gchanged=false;
+            if (msg.data[0]==midiMap.valueInputControlMSB) {
+              midiMap.valueInputCurMSB=msg.data[1];
+              gchanged=true;
+            }
+            if (msg.data[0]==midiMap.valueInputControlLSB) {
+              midiMap.valueInputCurLSB=msg.data[1];
+              gchanged=true;
+            }
+            if (msg.data[0]==midiMap.valueInputControlSingle) {
+              midiMap.valueInputCurSingle=msg.data[1];
+              gchanged=true;
+            }
+            if (gchanged && cursor.xFine>0) {
+              switch (midiMap.valueInputStyle) {
+                case 4: // dual CC
+                  valueInput(((midiMap.valueInputCurMSB>>3)<<4)|(midiMap.valueInputCurLSB>>3),true);
+                  break;
+                case 5: // 14-bit
+                  valueInput((midiMap.valueInputCurMSB<<1)|(midiMap.valueInputCurLSB>>6),true);
+                  break;
+                case 6: // single CC
+                  valueInput((midiMap.valueInputCurSingle*255)/127,true);
+                  break;
+              }
+            }
+
+            for (int i=0; i<18; i++) {
+              bool changed=false;
+              if (midiMap.valueInputSpecificStyle[i]!=0) {
+                if (msg.data[0]==midiMap.valueInputSpecificMSB[i]) {
+                  changed=true;
+                  midiMap.valueInputCurMSBS[i]=msg.data[1];
+                }
+                if (msg.data[0]==midiMap.valueInputSpecificLSB[i]) {
+                  changed=true;
+                  midiMap.valueInputCurLSBS[i]=msg.data[1];
+                }
+                if (msg.data[0]==midiMap.valueInputSpecificSingle[i]) {
+                  changed=true;
+                  midiMap.valueInputCurSingleS[i]=msg.data[1];
+                }
+
+                if (changed) switch (midiMap.valueInputStyle) {
+                  case 1: // dual CC
+                    valueInput(((midiMap.valueInputCurMSBS[i]>>3)<<4)|(midiMap.valueInputCurLSBS[i]>>3),true,i+2);
+                    break;
+                  case 2: // 14-bit
+                    valueInput((midiMap.valueInputCurMSBS[i]<<1)|(midiMap.valueInputCurLSBS[i]>>6),true,i+2);
+                    break;
+                  case 3: // single CC
+                    valueInput((midiMap.valueInputCurSingleS[i]*255)/127,true,i+2);
+                    break;
+                }
+              }
+            }
+            break;
+        }
+      }
 
       midiLock.lock();
       midiQueue.pop();
@@ -2485,6 +2681,7 @@ bool FurnaceGUI::init() {
   regViewOpen=e->getConfBool("regViewOpen",false);
 
   tempoView=e->getConfBool("tempoView",true);
+  waveHex=e->getConfBool("waveHex",false);
 
   syncSettings();
 
@@ -2591,6 +2788,10 @@ bool FurnaceGUI::init() {
     midiLock.lock();
     midiQueue.push(msg);
     midiLock.unlock();
+    e->setMidiBaseChan(cursor.xCoarse);
+    if (midiMap.valueInputStyle!=0 && cursor.xFine!=0 && edit) return -2;
+    if (!midiMap.noteInput) return -2;
+    if (learning!=-1) return -2;
     if (midiMap.at(msg)) return -2;
     return curIns;
   });
@@ -2642,6 +2843,7 @@ bool FurnaceGUI::finish() {
   e->setConf("lastWindowHeight",scrH);
 
   e->setConf("tempoView",tempoView);
+  e->setConf("waveHex",waveHex);
 
   for (int i=0; i<DIV_MAX_CHANS; i++) {
     delete oldPat[i];
@@ -2679,6 +2881,7 @@ FurnaceGUI::FurnaceGUI():
   aboutSin(0),
   aboutHue(0.0f),
   backupTimer(15.0),
+  learning(-1),
   mainFont(NULL),
   iconFont(NULL),
   patFont(NULL),
