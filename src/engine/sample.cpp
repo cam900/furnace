@@ -65,7 +65,7 @@ bool DivSample::save(const char* path) {
   if(loopStart != -1)
   {
     inst.loop_count = 1;
-    inst.loops[0].mode = SF_LOOP_FORWARD;
+    inst.loops[0].mode = (loopMode==DIV_SAMPLE_LOOP_PINGPONG)?SF_LOOP_ALTERNATING:((loopMode==DIV_SAMPLE_LOOP_BACKWARD)?SF_LOOP_BACKWARD:SF_LOOP_FORWARD);
     inst.loops[0].start = loopStart;
     inst.loops[0].end = samples;
   }
@@ -800,9 +800,9 @@ DivSampleHistory* DivSample::prepareUndo(bool data, bool doNotPush) {
       duplicate=new unsigned char[getCurBufLen()];
       memcpy(duplicate,getCurBuf(),getCurBufLen());
     }
-    h=new DivSampleHistory(duplicate,getCurBufLen(),samples,depth,rate,centerRate,loopStart);
+    h=new DivSampleHistory(duplicate,getCurBufLen(),samples,depth,rate,centerRate,loopStart,loopMode);
   } else {
-    h=new DivSampleHistory(depth,rate,centerRate,loopStart);
+    h=new DivSampleHistory(depth,rate,centerRate,loopStart,loopMode);
   }
   if (!doNotPush) {
     while (!redoHist.empty()) {
@@ -832,7 +832,8 @@ DivSampleHistory* DivSample::prepareUndo(bool data, bool doNotPush) {
   } \
   rate=h->rate; \
   centerRate=h->centerRate; \
-  loopStart=h->loopStart;
+  loopStart=h->loopStart; \
+  loopMode=h->loopMode;
 
 
 int DivSample::undo() {

@@ -102,6 +102,7 @@ void FurnaceGUI::drawSampleEdit() {
           updateSampleTex=true;
         }
         if (doLoop) {
+          // loop mode
           ImGui::SameLine();
           ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
           if (ImGui::InputInt("##LoopPosition",&sample->loopStart,1,10)) { MARK_MODIFIED
@@ -109,6 +110,20 @@ void FurnaceGUI::drawSampleEdit() {
               sample->loopStart=0;
             }
             updateSampleTex=true;
+          }
+          // sample loop mode
+          ImGui::Text("Loop Mode");
+          ImGui::SameLine();
+          if (ImGui::RadioButton("Foward",sample->loopMode==DIV_SAMPLE_LOOP_FOWARD)) {
+            sample->loopMode=DIV_SAMPLE_LOOP_FOWARD;
+          }
+          ImGui::SameLine();
+          if (ImGui::RadioButton("Backward",sample->loopMode==DIV_SAMPLE_LOOP_BACKWARD)) {
+            sample->loopMode=DIV_SAMPLE_LOOP_BACKWARD;
+          }
+          ImGui::SameLine();
+          if (ImGui::RadioButton("Pingpong",sample->loopMode==DIV_SAMPLE_LOOP_PINGPONG)) {
+            sample->loopMode=DIV_SAMPLE_LOOP_PINGPONG;
           }
         }
         ImGui::EndTable();
@@ -821,7 +836,7 @@ void FurnaceGUI::drawSampleEdit() {
       }
       if (sample->samples>2097151) {
         considerations=true;
-        ImGui::Text("- maximum sample length on Neo Geo ADPCM is 2097152 samples");
+        ImGui::Text("- maximum sample length on Neo Geo ADPCM, ES5506 is 2097152 samples");
       }
       if (!considerations) {
         ImGui::Text("- none");

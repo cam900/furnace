@@ -1170,6 +1170,7 @@ void DivEngine::processRow(int i, bool afterDelay) {
         sPreview.sample=-1;
         sPreview.wave=-1;
         sPreview.pos=0;
+        sPreview.dir=false;
         break;
     }
   }
@@ -1597,23 +1598,89 @@ void DivEngine::nextBuf(float** in, float** out, int inChans, int outChans, unsi
         if (sPreview.pos>=s->samples) {
           samp_temp=0;
         } else {
-          samp_temp=s->data16[sPreview.pos++];
+          samp_temp=s->data16[sPreview.dir?(sPreview.pos--):(sPreview.pos++)];
         }
         blip_add_delta(samp_bb,i,samp_temp-samp_prevSample);
         samp_prevSample=samp_temp;
 
-        if (sPreview.pos>=s->samples) {
-          if (s->loopStart>=0 && s->loopStart<(int)s->samples) {
-            sPreview.pos=s->loopStart;
+        if (sPreview.dir) {
+          if ((sPreview.pos<s->loopStart) || (sPreview.pos>=s->samples)) {
+            if (s->loopStart>=0 && s->loopStart<(int)s->samples) {
+              switch (s->loopMode) {
+                case DIV_SAMPLE_LOOP_FOWARD:
+                  sPreview.dir=false;
+                  sPreview.pos=s->loopStart;
+                  break;
+                case DIV_SAMPLE_LOOP_BACKWARD:
+                  sPreview.pos=s->samples-1;
+                  break;
+                case DIV_SAMPLE_LOOP_PINGPONG:
+                  sPreview.dir=false;
+                  sPreview.pos=s->loopStart+1;
+                  break;
+              }
+            }
+          }
+        } else {
+          if (sPreview.pos>=s->samples) {
+            if (s->loopStart>=0 && s->loopStart<(int)s->samples) {
+              switch (s->loopMode) {
+                case DIV_SAMPLE_LOOP_FOWARD:
+                  sPreview.pos=s->loopStart;
+                  break;
+                case DIV_SAMPLE_LOOP_BACKWARD:
+                  sPreview.dir=true;
+                  sPreview.pos=s->samples-1;
+                  break;
+                case DIV_SAMPLE_LOOP_PINGPONG:
+                  sPreview.dir=true;
+                  sPreview.pos=s->samples-1;
+                  break;
+              }
+            }
           }
         }
       }
 
-      if (sPreview.pos>=s->samples) {
-        if (s->loopStart>=0 && s->loopStart<(int)s->samples) {
-          sPreview.pos=s->loopStart;
-        } else {
-          sPreview.sample=-1;
+      if (sPreview.dir) {
+        if ((sPreview.pos<s->loopStart) || (sPreview.pos>=s->samples)) {
+          if (s->loopStart>=0 && s->loopStart<(int)s->samples) {
+            switch (s->loopMode) {
+              case DIV_SAMPLE_LOOP_FOWARD:
+                sPreview.dir=false;
+                sPreview.pos=s->loopStart;
+                break;
+              case DIV_SAMPLE_LOOP_BACKWARD:
+                sPreview.pos=s->samples-1;
+                break;
+              case DIV_SAMPLE_LOOP_PINGPONG:
+                sPreview.dir=false;
+                sPreview.pos=s->loopStart+1;
+                break;
+            }
+          } else {
+            sPreview.sample=-1;
+          }
+        }
+      } else {
+        if (sPreview.pos>=s->samples) {
+          if (s->loopStart>=0 && s->loopStart<(int)s->samples) {
+            switch (s->loopMode) {
+              case DIV_SAMPLE_LOOP_FOWARD:
+                sPreview.pos=s->loopStart;
+                break;
+              case DIV_SAMPLE_LOOP_BACKWARD:
+                sPreview.dir=true;
+                sPreview.pos=s->samples-1;
+                break;
+              case DIV_SAMPLE_LOOP_PINGPONG:
+                sPreview.dir=true;
+                sPreview.pos=s->samples-1;
+                break;
+            }
+          } else {
+            sPreview.sample=-1;
+          }
         }
       }
     } else if (sPreview.wave>=0 && sPreview.wave<(int)song.wave.size()) {

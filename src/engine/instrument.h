@@ -53,6 +53,7 @@ enum DivInstrumentType {
   DIV_INS_MIKEY=23,
   DIV_INS_VERA=24,
   DIV_INS_X1_010=25,
+  DIV_INS_ES5506=26,
   DIV_INS_MAX,
 };
 
@@ -147,184 +148,83 @@ struct DivInstrumentFM {
   }
 };
 
+template<typename T> struct DivMacroSTD {
+  T val[256];
+  unsigned char height;
+  bool open;
+  unsigned char len;
+  signed char loop;
+  signed char rel;
+  DivMacroSTD(unsigned char h=~0):
+    val{0},
+    height(h),
+    open(false),
+    len(0),
+    loop(-1),
+    rel(-1) {}
+};
 struct DivInstrumentSTD {
-  int volMacro[256];
-  int arpMacro[256];
-  int dutyMacro[256];
-  int waveMacro[256];
-  int pitchMacro[256];
-  int ex1Macro[256];
-  int ex2Macro[256];
-  int ex3Macro[256];
-  int algMacro[256];
-  int fbMacro[256];
-  int fmsMacro[256];
-  int amsMacro[256];
+  DivMacroSTD<int> volMacro;
+  DivMacroSTD<int> arpMacro;
+  DivMacroSTD<int> dutyMacro;
+  DivMacroSTD<int> waveMacro;
+  DivMacroSTD<int> pitchMacro;
+  DivMacroSTD<int> ex1Macro;
+  DivMacroSTD<int> ex2Macro;
+  DivMacroSTD<int> ex3Macro;
+  DivMacroSTD<int> algMacro;
+  DivMacroSTD<int> fbMacro;
+  DivMacroSTD<int> fmsMacro;
+  DivMacroSTD<int> amsMacro;
   bool arpMacroMode;
-  unsigned char volMacroHeight, dutyMacroHeight, waveMacroHeight;
-  bool volMacroOpen, arpMacroOpen, dutyMacroOpen, waveMacroOpen;
-  bool pitchMacroOpen, ex1MacroOpen, ex2MacroOpen, ex3MacroOpen;
-  bool algMacroOpen, fbMacroOpen, fmsMacroOpen, amsMacroOpen;
-  unsigned char volMacroLen, arpMacroLen, dutyMacroLen, waveMacroLen;
-  unsigned char pitchMacroLen, ex1MacroLen, ex2MacroLen, ex3MacroLen;
-  unsigned char algMacroLen, fbMacroLen, fmsMacroLen, amsMacroLen;
-  signed char volMacroLoop, arpMacroLoop, dutyMacroLoop, waveMacroLoop;
-  signed char pitchMacroLoop, ex1MacroLoop, ex2MacroLoop, ex3MacroLoop;
-  signed char algMacroLoop, fbMacroLoop, fmsMacroLoop, amsMacroLoop;
-  signed char volMacroRel, arpMacroRel, dutyMacroRel, waveMacroRel;
-  signed char pitchMacroRel, ex1MacroRel, ex2MacroRel, ex3MacroRel;
-  signed char algMacroRel, fbMacroRel, fmsMacroRel, amsMacroRel;
   struct OpMacro {
     // ar, dr, mult, rr, sl, tl, dt2, rs, dt, d2r, ssgEnv;
-    unsigned char amMacro[256];
-    unsigned char arMacro[256];
-    unsigned char drMacro[256];
-    unsigned char multMacro[256];
-    unsigned char rrMacro[256];
-    unsigned char slMacro[256];
-    unsigned char tlMacro[256];
-    unsigned char dt2Macro[256];
-    unsigned char rsMacro[256];
-    unsigned char dtMacro[256];
-    unsigned char d2rMacro[256];
-    unsigned char ssgMacro[256];
-    unsigned char damMacro[256];
-    unsigned char dvbMacro[256];
-    unsigned char egtMacro[256];
-    unsigned char kslMacro[256];
-    unsigned char susMacro[256];
-    unsigned char vibMacro[256];
-    unsigned char wsMacro[256];
-    unsigned char ksrMacro[256];
-    bool amMacroOpen, arMacroOpen, drMacroOpen, multMacroOpen;
-    bool rrMacroOpen, slMacroOpen, tlMacroOpen, dt2MacroOpen;
-    bool rsMacroOpen, dtMacroOpen, d2rMacroOpen, ssgMacroOpen;
-    bool damMacroOpen, dvbMacroOpen, egtMacroOpen, kslMacroOpen;
-    bool susMacroOpen, vibMacroOpen, wsMacroOpen, ksrMacroOpen;
-    unsigned char amMacroLen, arMacroLen, drMacroLen, multMacroLen;
-    unsigned char rrMacroLen, slMacroLen, tlMacroLen, dt2MacroLen;
-    unsigned char rsMacroLen, dtMacroLen, d2rMacroLen, ssgMacroLen;
-    unsigned char damMacroLen, dvbMacroLen, egtMacroLen, kslMacroLen;
-    unsigned char susMacroLen, vibMacroLen, wsMacroLen, ksrMacroLen;
-    signed char amMacroLoop, arMacroLoop, drMacroLoop, multMacroLoop;
-    signed char rrMacroLoop, slMacroLoop, tlMacroLoop, dt2MacroLoop;
-    signed char rsMacroLoop, dtMacroLoop, d2rMacroLoop, ssgMacroLoop;
-    signed char damMacroLoop, dvbMacroLoop, egtMacroLoop, kslMacroLoop;
-    signed char susMacroLoop, vibMacroLoop, wsMacroLoop, ksrMacroLoop;
-    signed char amMacroRel, arMacroRel, drMacroRel, multMacroRel;
-    signed char rrMacroRel, slMacroRel, tlMacroRel, dt2MacroRel;
-    signed char rsMacroRel, dtMacroRel, d2rMacroRel, ssgMacroRel;
-    signed char damMacroRel, dvbMacroRel, egtMacroRel, kslMacroRel;
-    signed char susMacroRel, vibMacroRel, wsMacroRel, ksrMacroRel;
+    DivMacroSTD<unsigned char> amMacro;
+    DivMacroSTD<unsigned char> arMacro;
+    DivMacroSTD<unsigned char> drMacro;
+    DivMacroSTD<unsigned char> multMacro;
+    DivMacroSTD<unsigned char> rrMacro;
+    DivMacroSTD<unsigned char> slMacro;
+    DivMacroSTD<unsigned char> tlMacro;
+    DivMacroSTD<unsigned char> dt2Macro;
+    DivMacroSTD<unsigned char> rsMacro;
+    DivMacroSTD<unsigned char> dtMacro;
+    DivMacroSTD<unsigned char> d2rMacro;
+    DivMacroSTD<unsigned char> ssgMacro;
+    DivMacroSTD<unsigned char> damMacro;
+    DivMacroSTD<unsigned char> dvbMacro;
+    DivMacroSTD<unsigned char> egtMacro;
+    DivMacroSTD<unsigned char> kslMacro;
+    DivMacroSTD<unsigned char> susMacro;
+    DivMacroSTD<unsigned char> vibMacro;
+    DivMacroSTD<unsigned char> wsMacro;
+    DivMacroSTD<unsigned char> ksrMacro;
     OpMacro():
-      amMacroOpen(false), arMacroOpen(false), drMacroOpen(false), multMacroOpen(false),
-      rrMacroOpen(false), slMacroOpen(false), tlMacroOpen(true), dt2MacroOpen(false),
-      rsMacroOpen(false), dtMacroOpen(false), d2rMacroOpen(false), ssgMacroOpen(false),
-      damMacroOpen(false), dvbMacroOpen(false), egtMacroOpen(false), kslMacroOpen(false),
-      susMacroOpen(false), vibMacroOpen(false), wsMacroOpen(false), ksrMacroOpen(false),
-      amMacroLen(0), arMacroLen(0), drMacroLen(0), multMacroLen(0),
-      rrMacroLen(0), slMacroLen(0), tlMacroLen(0), dt2MacroLen(0),
-      rsMacroLen(0), dtMacroLen(0), d2rMacroLen(0), ssgMacroLen(0),
-      damMacroLen(0), dvbMacroLen(0), egtMacroLen(0), kslMacroLen(0),
-      susMacroLen(0), vibMacroLen(0), wsMacroLen(0), ksrMacroLen(0),
-      amMacroLoop(-1), arMacroLoop(-1), drMacroLoop(-1), multMacroLoop(-1),
-      rrMacroLoop(-1), slMacroLoop(-1), tlMacroLoop(-1), dt2MacroLoop(-1),
-      rsMacroLoop(-1), dtMacroLoop(-1), d2rMacroLoop(-1), ssgMacroLoop(-1),
-      damMacroLoop(-1), dvbMacroLoop(-1), egtMacroLoop(-1), kslMacroLoop(-1),
-      susMacroLoop(-1), vibMacroLoop(-1), wsMacroLoop(-1), ksrMacroLoop(-1),
-      amMacroRel(-1), arMacroRel(-1), drMacroRel(-1), multMacroRel(-1),
-      rrMacroRel(-1), slMacroRel(-1), tlMacroRel(-1), dt2MacroRel(-1),
-      rsMacroRel(-1), dtMacroRel(-1), d2rMacroRel(-1), ssgMacroRel(-1),
-      damMacroRel(-1), dvbMacroRel(-1), egtMacroRel(-1), kslMacroRel(-1),
-      susMacroRel(-1), vibMacroRel(-1), wsMacroRel(-1), ksrMacroRel(-1) {
-        memset(amMacro,0,256);
-        memset(arMacro,0,256);
-        memset(drMacro,0,256);
-        memset(multMacro,0,256);
-        memset(rrMacro,0,256);
-        memset(slMacro,0,256);
-        memset(tlMacro,0,256);
-        memset(dt2Macro,0,256);
-        memset(rsMacro,0,256);
-        memset(dtMacro,0,256);
-        memset(d2rMacro,0,256);
-        memset(ssgMacro,0,256);
-        memset(damMacro,0,256);
-        memset(dvbMacro,0,256);
-        memset(egtMacro,0,256);
-        memset(kslMacro,0,256);
-        memset(susMacro,0,256);
-        memset(vibMacro,0,256);
-        memset(wsMacro,0,256);
-        memset(ksrMacro,0,256);
-      }
+      amMacro(DivMacroSTD<unsigned char>()), arMacro(DivMacroSTD<unsigned char>()),
+      drMacro(DivMacroSTD<unsigned char>()), multMacro(DivMacroSTD<unsigned char>()),
+      rrMacro(DivMacroSTD<unsigned char>()), slMacro(DivMacroSTD<unsigned char>()),
+      tlMacro(DivMacroSTD<unsigned char>()), dt2Macro(DivMacroSTD<unsigned char>()),
+      rsMacro(DivMacroSTD<unsigned char>()), dtMacro(DivMacroSTD<unsigned char>()),
+      d2rMacro(DivMacroSTD<unsigned char>()), ssgMacro(DivMacroSTD<unsigned char>()),
+      damMacro(DivMacroSTD<unsigned char>()), dvbMacro(DivMacroSTD<unsigned char>()),
+      egtMacro(DivMacroSTD<unsigned char>()), kslMacro(DivMacroSTD<unsigned char>()),
+      susMacro(DivMacroSTD<unsigned char>()), vibMacro(DivMacroSTD<unsigned char>()),
+      wsMacro(DivMacroSTD<unsigned char>()), ksrMacro(DivMacroSTD<unsigned char>()) { }
   } opMacros[4];
   DivInstrumentSTD():
-    arpMacroMode(false),
-    volMacroHeight(15),
-    dutyMacroHeight(3),
-    waveMacroHeight(63),
-    volMacroOpen(true),
-    arpMacroOpen(false),
-    dutyMacroOpen(false),
-    waveMacroOpen(false),
-    pitchMacroOpen(false),
-    ex1MacroOpen(false),
-    ex2MacroOpen(false),
-    ex3MacroOpen(false),
-    algMacroOpen(false),
-    fbMacroOpen(false),
-    fmsMacroOpen(false),
-    amsMacroOpen(false),
-    volMacroLen(0),
-    arpMacroLen(0),
-    dutyMacroLen(0),
-    waveMacroLen(0),
-    pitchMacroLen(0),
-    ex1MacroLen(0),
-    ex2MacroLen(0),
-    ex3MacroLen(0),
-    algMacroLen(0),
-    fbMacroLen(0),
-    fmsMacroLen(0),
-    amsMacroLen(0),
-    volMacroLoop(-1),
-    arpMacroLoop(-1),
-    dutyMacroLoop(-1),
-    waveMacroLoop(-1),
-    pitchMacroLoop(-1),
-    ex1MacroLoop(-1),
-    ex2MacroLoop(-1),
-    ex3MacroLoop(-1),
-    algMacroLoop(-1),
-    fbMacroLoop(-1),
-    fmsMacroLoop(-1),
-    amsMacroLoop(-1),
-    volMacroRel(-1),
-    arpMacroRel(-1),
-    dutyMacroRel(-1),
-    waveMacroRel(-1),
-    pitchMacroRel(-1),
-    ex1MacroRel(-1),
-    ex2MacroRel(-1),
-    ex3MacroRel(-1),
-    algMacroRel(-1),
-    fbMacroRel(-1),
-    fmsMacroRel(-1),
-    amsMacroRel(-1) {
-      memset(volMacro,0,256*sizeof(int));
-      memset(arpMacro,0,256*sizeof(int));
-      memset(dutyMacro,0,256*sizeof(int));
-      memset(waveMacro,0,256*sizeof(int));
-      memset(pitchMacro,0,256*sizeof(int));
-      memset(ex1Macro,0,256*sizeof(int));
-      memset(ex2Macro,0,256*sizeof(int));
-      memset(ex3Macro,0,256*sizeof(int));
-      memset(algMacro,0,256*sizeof(int));
-      memset(fbMacro,0,256*sizeof(int));
-      memset(fmsMacro,0,256*sizeof(int));
-      memset(amsMacro,0,256*sizeof(int));
-    }
+    volMacro(DivMacroSTD<int>(15)),
+    arpMacro(DivMacroSTD<int>()),
+    dutyMacro(DivMacroSTD<int>(3)),
+    waveMacro(DivMacroSTD<int>(63)),
+    pitchMacro(DivMacroSTD<int>()),
+    ex1Macro(DivMacroSTD<int>()),
+    ex2Macro(DivMacroSTD<int>()),
+    ex3Macro(DivMacroSTD<int>()),
+    algMacro(DivMacroSTD<int>()),
+    fbMacro(DivMacroSTD<int>()),
+    fmsMacro(DivMacroSTD<int>()),
+    amsMacro(DivMacroSTD<int>()),
+    arpMacroMode(false) { }
 };
 
 struct DivInstrumentGB {
@@ -396,6 +296,52 @@ struct DivInstrumentN163 {
     waveMode(3) {}
 };
 
+struct DivInstrumentES5506 {
+  struct Sample {
+    struct TransWave {
+      int index, loopStart;
+      double loopEnd;
+      TransWave():
+        index(-1),
+        loopStart(0),
+        loopEnd(16777216) {}
+    };
+    int init;
+    bool transWaveEnable;
+    std::vector<TransWave> transWaveTable;
+    Sample():
+      init(-1),
+      transWaveEnable(false),
+      transWaveTable{DivInstrumentES5506::Sample::TransWave()} {}
+  };
+  struct Filter {
+    signed int k1, k2;
+    unsigned char filterMode;
+    Filter():
+      k1(65535),
+      k2(65535),
+      filterMode(3) {}
+  };
+  struct Envelope {
+    unsigned short envCount;
+    signed short k1Ramp, k2Ramp;
+    bool k1Slow, k2Slow;
+    Envelope():
+      envCount(0),
+      k1Ramp(0),
+      k2Ramp(0),
+      k1Slow(false),
+      k2Slow(false) {}
+  };
+  Sample sample;
+  Filter filter;
+  Envelope envelope;
+  DivInstrumentES5506():
+    sample(DivInstrumentES5506::Sample()),
+    filter(DivInstrumentES5506::Filter()),
+    envelope(DivInstrumentES5506::Envelope()) {}
+};
+
 struct DivInstrument {
   String name;
   bool mode;
@@ -406,6 +352,7 @@ struct DivInstrument {
   DivInstrumentC64 c64;
   DivInstrumentAmiga amiga;
   DivInstrumentN163 n163;
+  DivInstrumentES5506 es5506;
   
   /**
    * save the instrument to a SafeWriter.

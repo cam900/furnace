@@ -29,13 +29,20 @@ enum DivResampleFilters {
   DIV_RESAMPLE_BEST
 };
 
+enum DivSampleLoopMode {
+  DIV_SAMPLE_LOOP_FOWARD=0,
+  DIV_SAMPLE_LOOP_BACKWARD,
+  DIV_SAMPLE_LOOP_PINGPONG,
+  DIV_SAMPLE_LOOP_MAX
+};
+
 struct DivSampleHistory {
   unsigned char* data;
   unsigned int length, samples;
   unsigned char depth;
-  int rate, centerRate, loopStart;
+  int rate, centerRate, loopStart, loopMode;
   bool hasSample;
-  DivSampleHistory(void* d, unsigned int l, unsigned int s, unsigned char de, int r, int cr, int ls):
+  DivSampleHistory(void* d, unsigned int l, unsigned int s, unsigned char de, int r, int cr, int ls, int lm):
     data((unsigned char*)d),
     length(l),
     samples(s),
@@ -43,8 +50,9 @@ struct DivSampleHistory {
     rate(r),
     centerRate(cr),
     loopStart(ls),
+    loopMode(lm),
     hasSample(true) {}
-  DivSampleHistory(unsigned char de, int r, int cr, int ls):
+  DivSampleHistory(unsigned char de, int r, int cr, int ls, int lm):
     data(NULL),
     length(0),
     samples(0),
@@ -52,13 +60,14 @@ struct DivSampleHistory {
     rate(r),
     centerRate(cr),
     loopStart(ls),
+    loopMode(lm),
     hasSample(false) {}
   ~DivSampleHistory();
 };
 
 struct DivSample {
   String name;
-  int rate, centerRate, loopStart, loopOffP;
+  int rate, centerRate, loopStart, loopOffP, loopMode;
   // valid values are:
   // - 0: ZX Spectrum overlay drum (1-bit)
   // - 1: 1-bit NES DPCM (1-bit)
@@ -86,7 +95,7 @@ struct DivSample {
 
   unsigned int length8, length16, length1, lengthDPCM, lengthQSoundA, lengthA, lengthB, lengthX68, lengthBRR, lengthVOX;
   unsigned int off8, off16, off1, offDPCM, offQSoundA, offA, offB, offX68, offBRR, offVOX;
-  unsigned int offSegaPCM, offQSound, offX1_010;
+  unsigned int offSegaPCM, offQSound, offX1_010, offES5506;
 
   unsigned int samples;
 
@@ -213,6 +222,7 @@ struct DivSample {
     centerRate(8363),
     loopStart(-1),
     loopOffP(0),
+    loopMode(DIV_SAMPLE_LOOP_FOWARD),
     depth(16),
     data8(NULL),
     data16(NULL),
