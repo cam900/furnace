@@ -22,3 +22,7 @@
 [submodule "extern/Nuked-OPL3"]
 	path = extern/Nuked-OPL3
 	url = https://github.com/nukeykt/Nuked-OPL3.git
+[submodule "extern/ThreadPool"]
+	path = extern/ThreadPool
+	url = https://github.com/cam900/ThreadPool
+	branch = wait
