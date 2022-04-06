@@ -41,22 +41,33 @@ class DivES5506Interface: public es550x_intf {
 class DivPlatformES5506: public DivDispatch {
   struct Channel {
     struct Sample {
-      int sample, sampleNext;
+      template<typename T> struct SampleState {
+        T init, curr, next;
+        void reset() {
+          curr=next=init;
+        }
+        void pop() {
+          next=curr;
+        }
+        SampleState(T i):
+          init(i), curr(i), next(i) {}
+      }
       double freqOffs;
-      unsigned int start, loop, end, bank;
-      unsigned int startNext, loopNext, endNext, bankNext;
+      SampleState<int> sample;
+      SampleState<unsigned int> start, loop, end, bank;
+      SampleState<double> sliceSize, sliceStart;
+      SampleState<unsigned int> sliceLoop, sliceEnd;
       Sample():
-        sample(-1),
-        sampleNext(-1),
         freqOffs(0),
+        sample(-1),
         start(0),
         loop(0),
         end(0),
         bank(0),
-        startNext(0),
-        loopNext(0),
-        endNext(0),
-        bankNext(0) {}
+        sliceSize(0.0),
+        sliceStart(0.0),
+        sliceLoop(0),
+        sliceEnd(0) {}
     };
     struct TransWave {
       int index, next;
@@ -68,28 +79,36 @@ class DivPlatformES5506: public DivDispatch {
         enable(false),
         trigger(false) {}
     };
+    struct Filter : public DivInstrumentES5506::Filter {
+      unsigned short k1Offset, k2Offset;
+      Filter():
+        DivInstrumentES5506::Filter(),
+        k1Offset(0),
+        k2Offset(0) {}
+    };
     int freq, baseFreq, pitch;
     unsigned short audLen;
     unsigned int audPos;
-    int sample, wave;
+    int sample, wave, slice;
     unsigned char ins;
     int note;
     int panning;
     unsigned short cr;
-    bool active, insChanged, freqChanged, volumeChanged, sampleChanged, transWaveChanged, filterChanged, filterRampChanged, envChanged, keyOn, keyOff, inPorta, useWave, pause;
+    bool active, insChanged, freqChanged, volumeChanged, sampleChanged, transWaveChanged, filterChanged, filterRampChanged, envChanged, keyOn, keyOff, inPorta, useWave, pause, sliceEnable;
     int vol, outVol, lvol, rvol;
     Sample pcm;
     TransWave transWave;
-    DivInstrumentES5506::Filter filter;
+    Filter filter;
     DivInstrumentES5506::Envelope envelope;
     DivMacroInt std;
-    Channel():
+    Channel(DivDispatch &p):
       freq(0),
       baseFreq(0),
       pitch(0),
       audLen(0),
       audPos(0),
       sample(-1),
+      slice(0),
       ins(-1),
       note(0),
       panning(0xff),
@@ -108,6 +127,7 @@ class DivPlatformES5506: public DivDispatch {
       inPorta(false),
       useWave(false),
       pause(false),
+      sliceEnable(false),
       vol(255<<8),
       outVol(255<<8),
       lvol(255<<8),
@@ -115,7 +135,8 @@ class DivPlatformES5506: public DivDispatch {
       pcm(DivPlatformES5506::Channel::Sample()),
       transWave(DivPlatformES5506::Channel::TransWave()),
       filter(DivInstrumentES5506::Filter()),
-      envelope(DivInstrumentES5506::Envelope()) {}
+      envelope(DivInstrumentES5506::Envelope()),
+      std(p) {}
   };
   Channel chan[32];
   bool isMuted[32];
@@ -160,7 +181,13 @@ class DivPlatformES5506: public DivDispatch {
     const char* getEffectName(unsigned char effect);
     int init(DivEngine* parent, int channels, int sugRate, unsigned int flags);
     void quit();
-  DivPlatformES5506() : es5506(intf) {};
+  DivPlatformES5506(DivDispatch &p):
+    DivDispatch(),
+    es5506(intf),
+    chan{*this,*this,*this,*this,*this,*this,*this,*this,
+         *this,*this,*this,*this,*this,*this,*this,*this,
+         *this,*this,*this,*this,*this,*this,*this,*this,
+         *this,*this,*this,*this,*this,*this,*this,*this} {} // up to 32 PCM channels
 };
 
 #endif

@@ -140,9 +140,11 @@ enum DivDispatchCmds {
   DIV_CMD_N163_GLOBAL_WAVE_LOADMODE,
 
   DIV_CMD_ES5506_PAUSE,
+  DIV_CMD_ES5506_SLICE,
+  DIV_CMD_ES5506_SLICE_POS,
+  DIV_CMD_ES5506_FILTER_MODE,
   DIV_CMD_ES5506_K1,
   DIV_CMD_ES5506_K2,
-  DIV_CMD_ES5506_FILTER_MODE,
   DIV_CMD_ES5506_K1_RAMP,
   DIV_CMD_ES5506_K2_RAMP,
   DIV_CMD_ES5506_ENVELOPE_COUNT,
@@ -156,24 +158,12 @@ struct DivCommand {
   DivDispatchCmds cmd;
   unsigned char chan, dis;
   int value, value2;
-  DivCommand(DivDispatchCmds c, unsigned char ch, int val, int val2):
+  DivCommand(DivDispatchCmds c, unsigned char ch, int val=0, int val2=0):
     cmd(c),
     chan(ch),
     dis(ch),
     value(val),
     value2(val2) {}
-  DivCommand(DivDispatchCmds c, unsigned char ch, int val):
-    cmd(c),
-    chan(ch),
-    dis(ch),
-    value(val),
-    value2(0) {}
-  DivCommand(DivDispatchCmds c, unsigned char ch):
-    cmd(c),
-    chan(ch),
-    dis(ch),
-    value(0),
-    value2(0) {}
 };
 
 struct DivDelayedCommand {

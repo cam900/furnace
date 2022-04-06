@@ -101,7 +101,7 @@ void DivInstrument::putInsData(SafeWriter* w) {
   w->writeC(c64.hp);
   w->writeC(c64.ch3off);
   w->writeS(c64.cut);
-  w->writeC(c64.dutyIsAbs);
+  w->writeC(std.dutyMacro.mode);
   w->writeC(c64.filterIsAbs);
   
   // Amiga
@@ -127,7 +127,7 @@ void DivInstrument::putInsData(SafeWriter* w) {
   w->writeI(std.ex1Macro.loop);
   w->writeI(std.ex2Macro.loop);
   w->writeI(std.ex3Macro.loop);
-  w->writeC(std.arpMacroMode);
+  w->writeC(std.arpMacro.mode);
   w->writeC(0); // reserved
   w->writeC(0);
   w->writeC(0);
@@ -480,7 +480,7 @@ DivDataErrors DivInstrument::readInsData(SafeReader& reader, short version) {
   c64.hp=reader.readC();
   c64.ch3off=reader.readC();
   c64.cut=reader.readS();
-  c64.dutyIsAbs=reader.readC();
+  std.dutyMacro.mode=reader.readC();
   c64.filterIsAbs=reader.readC();
 
   // Amiga
@@ -509,7 +509,7 @@ DivDataErrors DivInstrument::readInsData(SafeReader& reader, short version) {
     std.ex2Macro.loop=reader.readI();
     std.ex3Macro.loop=reader.readI();
   }
-  std.arpMacroMode=reader.readC();
+  std.arpMacro.mode=reader.readC();
   std.volMacro.height=reader.readC();
   std.dutyMacro.height=reader.readC();
   std.waveMacro.height=reader.readC();
@@ -521,7 +521,7 @@ DivDataErrors DivInstrument::readInsData(SafeReader& reader, short version) {
   reader.read(std.dutyMacro.val,4*std.dutyMacro.len);
   reader.read(std.waveMacro.val,4*std.waveMacro.len);
   if (version<31) {
-    if (!std.arpMacroMode) for (int j=0; j<std.arpMacro.len; j++) {
+    if (!std.arpMacro.mode) for (int j=0; j<std.arpMacro.len; j++) {
       std.arpMacro.val[j]-=12;
     }
   }

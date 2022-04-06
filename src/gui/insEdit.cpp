@@ -105,7 +105,7 @@ enum FMParams {
 #define FM_SHORT_NAME(x) fmParamShortNames[settings.fmNames][x]
 
 const char* es5506FilterMode[4]={
-  "LP/K1, LP/K1, HP/K2, HP/K2", "LP/K1, LP/K1, HP/K2, LP/K1", "LP/K1, LP/K1, LP/K2, LP/K2", "LP/K1, LP/K1, LP/K2, LP/K1"
+  "HP/K2, HP/K2", "HP/K2, LP/K1", "LP/K2, LP/K2", "LP/K2, LP/K1"
 };
 
 const char* c64ShapeBits[5]={
@@ -148,8 +148,8 @@ const char* n163UpdateBits[8]={
   "now", "every waveform changed", NULL
 };
 
-const char* es5506EnvelopeBits[8]={
-  "k1", "k2", NULL
+const char* es5506ControlBits[6]={
+  "pause", "transwave slice", "k1 ramp slowdown", "k2 ramp slowdown", "envelope force update", NULL
 };
 
 const char* oneBit[2]={
@@ -877,66 +877,6 @@ void FurnaceGUI::drawFMEnv(unsigned char tl, unsigned char ar, unsigned char dr,
   }
 }
 
-void FurnaceGUI::drawES5506Env(unsigned short src, signed char ramp, unsigned short counter, bool slow, const ImVec2& size) {
-  ImDrawList* dl=ImGui::GetWindowDrawList();
-  ImGuiWindow* window=ImGui::GetCurrentWindow();
-
-  ImVec2 minArea=window->DC.CursorPos;
-  ImVec2 maxArea=ImVec2(
-    minArea.x+size.x,
-    minArea.y+size.y
-  );
-  ImRect rect=ImRect(minArea,maxArea);
-  ImGuiStyle& style=ImGui::GetStyle();
-  ImU32 color=ImGui::GetColorU32(uiColors[GUI_COLOR_TEXT]);
-  ImU32 colorS=ImGui::GetColorU32(uiColors[GUI_COLOR_SONG_LOOP]); //Relsease triangle and sustain horiz/vert line color
-  ImGui::ItemSize(size,style.FramePadding.y);
-  if (ImGui::ItemAdd(rect,ImGui::GetID("alg"))) {
-    ImGui::RenderFrame(rect.Min,rect.Max,ImGui::GetColorU32(ImGuiCol_FrameBg),true,style.FrameRounding);
-
-    //calculate x positions
-    float initY=1.0-(float(source)/65535.0); // initial Y position
-    float arPos=float(maxArDr-ar)/maxArDr; //peak of AR, start of DR
-    float drPos=arPos+((sl/15.0)*(float(maxArDr-dr)/maxArDr)); //end of DR, start of D2R
-    float d2rPos=drPos+(((15.0-sl)/15.0)*(float(31.0-d2r)/31.0)); //End of D2R
-    float rrPos=(float(15-rr)/15.0); //end of RR
-
-    //shrink all the x positions horizontally
-    arPos/=2.0;
-    drPos/=2.0;
-    d2rPos/=2.0;
-    rrPos/=1.0;
-
-    ImVec2 pos1=ImLerp(rect.Min,rect.Max,ImVec2(0.0,initY)); //Height of source
-    ImVec2 pos2=ImLerp(rect.Min,rect.Max,ImVec2(arPos,(tl/maxTl))); //peak of AR, start of DR
-    ImVec2 pos3=ImLerp(rect.Min,rect.Max,ImVec2(drPos,(float)((tl/maxTl)+(sl/15.0)-((tl/maxTl)*(sl/15.0))))); //end of DR, start of D2R
-    ImVec2 pos4=ImLerp(rect.Min,rect.Max,ImVec2(d2rPos,1.0)); //end of D2R
-    ImVec2 posSLineHEnd=ImLerp(rect.Min,rect.Max,ImVec2(1.0,(float)((tl/maxTl)+(sl/15.0)-((tl/maxTl)*(sl/15.0))))); //sustain horizontal line end
-    ImVec2 posSLineVEnd=ImLerp(rect.Min,rect.Max,ImVec2(drPos,1.0)); //sustain vertical line end
-    ImVec2 posSourcePt=ImLerp(rect.Min,rect.Max,ImVec2(1.0,initY)); //Height of source
-    ImVec2 posTop=ImLerp(rect.Min,rect.Max,ImVec2(1.0,0.0)); //Top corner
-    ImVec2 posBottom=ImLerp(rect.Min,rect.Max,ImVec2(1.0,1.0)); //Bottom corner
-
-    //dl->Flags=ImDrawListFlags_AntiAliasedLines|ImDrawListFlags_AntiAliasedLinesUseTex;
-    if (ramp==0 || counter==0) { //if ramp = 0 or counter = 0, the envelope never starts
-      addAALine(dl,pos1,posSourcePt,color); //Draw Straight line
-    } else if (counter==511) { //if counter = 511, the envelope stays at the sustain level forever
-      addAALine(dl,pos3,posSLineHEnd,colorS); //draw horiz line through sustain level
-      addAALine(dl,pos3,posSLineVEnd,colorS); //draw vert. line through sustain level
-      addAALine(dl,pos1,pos2,color); //A
-      addAALine(dl,pos2,pos3,color); //D
-      addAALine(dl,pos3,posDecay2Rate0Pt,color); //Line from D to end of graph
-    } else { //draw graph normally
-      addAALine(dl,pos3,posSLineHEnd,colorS); //draw horiz line through sustain level
-      addAALine(dl,pos3,posSLineVEnd,colorS); //draw vert. line through sustain level
-      addAALine(dl,pos1,pos2,color); //A
-      addAALine(dl,pos2,pos3,color); //D
-      addAALine(dl,pos3,pos4,color); //D2
-    }
-    //dl->Flags^=ImDrawListFlags_AntiAliasedLines|ImDrawListFlags_AntiAliasedLinesUseTex;
-  }
-}
-
 #define P(x) if (x) { \
   MARK_MODIFIED; \
   e->notifyInsChange(curIns); \
@@ -944,176 +884,198 @@ void FurnaceGUI::drawES5506Env(unsigned short src, signed char ramp, unsigned sh
 
 #define PARAMETER MARK_MODIFIED; e->notifyInsChange(curIns);
 
-#define NORMAL_MACRO(macro,macroMin,macroHeight,macroName,displayName,displayHeight,displayLoop,bitfield,bfVal,drawSlider,sliderVal,sliderLow,macroDispMin,bitOff,macroMode,macroColor,mmlStr,macroAMin,macroAMax,hoverFunc,blockMode) \
-  ImGui::TableNextRow(); \
-  ImGui::TableNextColumn(); \
-  ImGui::Text("%s",displayName); \
-  ImGui::SameLine(); \
-  if (ImGui::SmallButton(displayLoop?(ICON_FA_CHEVRON_UP "##IMacroOpen_" macroName):(ICON_FA_CHEVRON_DOWN "##IMacroOpen_" macroName))) { \
-    displayLoop=!displayLoop; \
-  } \
-  if (displayLoop) { \
-    ImGui::SetNextItemWidth(lenAvail); \
-    if (ImGui::InputScalar("##IMacroLen_" macroName,ImGuiDataType_U8,&macro.len,&_ONE,&_THREE)) { MARK_MODIFIED \
-      if (macro.len>127) macro.len=127; \
-    } \
-    if (macroMode!=NULL) { \
-      ImGui::Checkbox("Fixed##IMacroMode_" macroName,macroMode); \
-    } \
-  } \
-  ImGui::TableNextColumn(); \
-  for (int j=0; j<256; j++) { \
-    if (j+macroDragScroll>=macro.len) { \
-      asFloat[j]=0; \
-      asInt[j]=0; \
-    } else { \
-      asFloat[j]=macro.val[j+macroDragScroll]+macroDispMin; \
-      asInt[j]=macro.val[j+macroDragScroll]+macroDispMin+bitOff; \
-    } \
-    if (j+macroDragScroll>=macro.len || (j+macroDragScroll>macro.rel && macro.loop<macro.rel)) { \
-      loopIndicator[j]=0; \
-    } else { \
-      loopIndicator[j]=((macro.loop!=-1 && (j+macroDragScroll)>=macro.loop))|((macro.rel!=-1 && (j+macroDragScroll)==macro.rel)<<1); \
-    } \
-  } \
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(0.0f,0.0f)); \
-  \
-  if (bitfield) { \
-    PlotBitfield("##IMacro_" macroName,asInt,totalFit,0,bfVal,macroHeight,ImVec2(availableWidth,(displayLoop)?(displayHeight*dpiScale):(32.0f*dpiScale))); \
-  } else { \
-    PlotCustom("##IMacro_" macroName,asFloat,totalFit,macroDragScroll,NULL,macroDispMin+macroMin,macroHeight+macroDispMin,ImVec2(availableWidth,(displayLoop)?(displayHeight*dpiScale):(32.0f*dpiScale)),sizeof(float),macroColor,macro.len-macroDragScroll,hoverFunc,blockMode); \
-  } \
-  if (displayLoop && ImGui::IsItemClicked(ImGuiMouseButton_Left)) { \
-    macroDragStart=ImGui::GetItemRectMin(); \
-    macroDragAreaSize=ImVec2(availableWidth,displayHeight*dpiScale); \
-    macroDragMin=macroMin; \
-    macroDragMax=macroHeight; \
-    macroDragBitOff=bitOff; \
-    macroDragBitMode=bitfield; \
-    macroDragInitialValueSet=false; \
-    macroDragInitialValue=false; \
-    macroDragLen=totalFit; \
-    macroDragActive=true; \
-    macroDragTarget=macro; \
-    macroDragChar=false; \
-    processDrags(ImGui::GetMousePos().x,ImGui::GetMousePos().y); \
-  } \
-  if (displayLoop) { \
-    if (drawSlider) { \
-      ImGui::SameLine(); \
-      ImGui::VSliderInt("##IArpMacroPos",ImVec2(20.0f*dpiScale,displayHeight*dpiScale),sliderVal,sliderLow,70); \
-    } \
-    PlotCustom("##IMacroLoop_" macroName,loopIndicator,totalFit,macroDragScroll,NULL,0,2,ImVec2(availableWidth,12.0f*dpiScale),sizeof(float),macroColor,macro.len-macroDragScroll,&macroHoverLoop); \
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) { \
-      macroLoopDragStart=ImGui::GetItemRectMin(); \
-      macroLoopDragAreaSize=ImVec2(availableWidth,12.0f*dpiScale); \
-      macroLoopDragLen=totalFit; \
-      if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) { \
-        macroLoopDragTarget=&macro.rel; \
-      } else { \
-        macroLoopDragTarget=&macro.loop; \
-      } \
-      macroLoopDragActive=true; \
-      processDrags(ImGui::GetMousePos().x,ImGui::GetMousePos().y); \
-    } \
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) { \
-      if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) { \
-        macro.rel=-1; \
-      } else { \
-        macro.loop=-1; \
-      } \
-    } \
-    ImGui::SetNextItemWidth(availableWidth); \
-    if (ImGui::InputText("##IMacroMML_" macroName,&mmlStr)) { \
-      decodeMMLStr(mmlStr,macro,macroAMin,(bitfield)?((1<<macroAMax)-1):macroAMax); \
-    } \
-    if (!ImGui::IsItemActive()) { \
-      encodeMMLStr(mmlStr,macro); \
-    } \
-  } \
-  ImGui::PopStyleVar();
+template<typename T>
+void FurnaceGUI::normalMacro(DivMacroSTD<T> &macro, int macroMin, int macroHeight,
+                             const char* displayName, int displayHeight,
+                             bool bitfield, const char** bfVal,
+                             bool drawSlider, int* sliderVal, int sliderLow,
+                             int macroDispMin, int bitOff,
+                             bool *macroMode, const char *displayModeName,
+                             ImVec4 macroColor, String &mmlStr,
+                             int macroAMin, int macroAMax, std::string (*hoverFunc)(int,float), bool blockMode,
+                             float lenAvail, float availableWidth, std::vector<MacroGUI>& macroView) {
+  ImGui::TableNextRow();
+  ImGui::TableNextColumn();
+  ImGui::Text("%s",displayName);
+  ImGui::SameLine();
+  const char* macroOpenTag=strcat("##IMacroOpen_",macro.name);
+  if (ImGui::SmallButton(macro.open?strcat(ICON_FA_CHEVRON_UP,macroOpenTag):strcat(ICON_FA_CHEVRON_DOWN,macroOpenTag))) {
+    macro.open=!macro.open;
+  }
+  if (macro.open) {
+    ImGui::SetNextItemWidth(lenAvail);
+    if (ImGui::InputScalar(strcat("##IMacroLen_",macro.name),ImGuiDataType_U8,&macro.len,&_ONE,&_THREE)) { MARK_MODIFIED
+      if (macro.len>127) macro.len=127;
+    }
+    if (macroMode!=NULL) {
+      ImGui::Checkbox(strcat(displayModeName,strcat("##IMacroMode_",macro.name)),macroMode);
+    }
+  }
+  ImGui::TableNextColumn();
+  for (int j=0; j<256; j++) {
+    if (j+macroDragScroll>=macro.len) {
+      asFloat[j]=0;
+      asInt[j]=0;
+    } else {
+      asFloat[j]=macro.arr[j+macroDragScroll].val+macroDispMin;
+      asInt[j]=macro.arr[j+macroDragScroll].val+macroDispMin+bitOff;
+    }
+    if (j+macroDragScroll>=macro.len || (j+macroDragScroll>macro.rel && macro.loop<macro.rel)) {
+      loopIndicator[j]=0;
+    } else {
+      loopIndicator[j]=((macro.loop!=-1 && (j+macroDragScroll)>=macro.loop))|((macro.rel!=-1 && (j+macroDragScroll)==macro.rel)<<1);
+    }
+  }
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(0.0f,0.0f));
 
-#define OP_MACRO(macro,macro.len,macro.loop,macro.rel,macroHeight,op,macroName,displayName,displayHeight,displayLoop,bitfield,bfVal,mmlStr) \
-  ImGui::TableNextRow(); \
-  ImGui::TableNextColumn(); \
-  ImGui::Text("%s",displayName); \
-  ImGui::SameLine(); \
-  if (ImGui::SmallButton(displayLoop?(ICON_FA_CHEVRON_UP "##IOPMacroOpen_" macroName):(ICON_FA_CHEVRON_DOWN "##IOPMacroOpen_" macroName))) { \
-    displayLoop=!displayLoop; \
-  } \
-  if (displayLoop) { \
-    ImGui::SetNextItemWidth(lenAvail); \
-    if (ImGui::InputScalar("##IOPMacroLen_" #op macroName,ImGuiDataType_U8,&macro.len,&_ONE,&_THREE)) { MARK_MODIFIED \
-      if (macro.len>127) macro.len=127; \
-    } \
-  } \
-  ImGui::TableNextColumn(); \
-  for (int j=0; j<256; j++) { \
-    if (j+macroDragScroll>=macro.len) { \
-      asFloat[j]=0; \
-      asInt[j]=0; \
-    } else { \
-      asFloat[j]=macro.val[j+macroDragScroll]; \
-      asInt[j]=macro.val[j+macroDragScroll]; \
-    } \
-    if (j+macroDragScroll>=macro.len || (j+macroDragScroll>macro.rel && macro.loop<macro.rel)) { \
-      loopIndicator[j]=0; \
-    } else { \
-      loopIndicator[j]=((macro.loop!=-1 && (j+macroDragScroll)>=macro.loop))|((macro.rel!=-1 && (j+macroDragScroll)==macro.rel)<<1); \
-    } \
-  } \
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(0.0f,0.0f)); \
-  \
-  if (bitfield) { \
-    PlotBitfield("##IOPMacro_" #op macroName,asInt,totalFit,0,bfVal,macroHeight,ImVec2(availableWidth,displayLoop?(displayHeight*dpiScale):(24*dpiScale))); \
-  } else { \
-    PlotCustom("##IOPMacro_" #op macroName,asFloat,totalFit,macroDragScroll,NULL,0,macroHeight,ImVec2(availableWidth,displayLoop?(displayHeight*dpiScale):(24*dpiScale)),sizeof(float),uiColors[GUI_COLOR_MACRO_OTHER],macro.len-macroDragScroll); \
-  } \
-  if (displayLoop && ImGui::IsItemClicked(ImGuiMouseButton_Left)) { \
-    macroDragStart=ImGui::GetItemRectMin(); \
-    macroDragAreaSize=ImVec2(availableWidth,displayHeight*dpiScale); \
-    macroDragMin=0; \
-    macroDragMax=macroHeight; \
-    macroDragBitOff=0; \
-    macroDragBitMode=bitfield; \
-    macroDragInitialValueSet=false; \
-    macroDragInitialValue=false; \
-    macroDragLen=totalFit; \
-    macroDragActive=true; \
-    macroDragCTarget=macro; \
-    macroDragChar=true; \
-    processDrags(ImGui::GetMousePos().x,ImGui::GetMousePos().y); \
-  } \
-  if (displayLoop) { \
-    PlotCustom("##IOPMacroLoop_" #op macroName,loopIndicator,totalFit,macroDragScroll,NULL,0,2,ImVec2(availableWidth,12.0f*dpiScale),sizeof(float),uiColors[GUI_COLOR_MACRO_OTHER],macro.len-macroDragScroll,&macroHoverLoop); \
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) { \
-      macroLoopDragStart=ImGui::GetItemRectMin(); \
-      macroLoopDragAreaSize=ImVec2(availableWidth,8.0f*dpiScale); \
-      macroLoopDragLen=totalFit; \
-      if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) { \
-        macroLoopDragTarget=&macro.rel; \
-      } else { \
-        macroLoopDragTarget=&macro.loop; \
-      } \
-      macroLoopDragActive=true; \
-      processDrags(ImGui::GetMousePos().x,ImGui::GetMousePos().y); \
-    } \
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) { \
-      if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) { \
-        macro.rel=-1; \
-      } else { \
-        macro.loop=-1; \
-      } \
-    } \
-    ImGui::SetNextItemWidth(availableWidth); \
-    if (ImGui::InputText("##IOPMacroMML_" macroName,&mmlStr)) { \
-      decodeMMLStr(mmlStr,macro,0,bitfield?((1<<macroHeight)-1):(macroHeight)); \
-    } \
-    if (!ImGui::IsItemActive()) { \
-      encodeMMLStr(mmlStr,macro); \
-    } \
-  } \
+  const char* macroPlot=strcat("##IMacro_",macro.name);
+  if (bitfield) {
+    PlotBitfield(macroPlot,asInt,totalFit,0,bfVal,macroHeight,ImVec2(availableWidth,(macro.open)?(displayHeight*dpiScale):(32.0f*dpiScale)));
+  } else {
+    PlotCustom(macroPlot,asFloat,totalFit,macroDragScroll,NULL,macroDispMin+macroMin,macroHeight+macroDispMin,ImVec2(availableWidth,(macro.open)?(displayHeight*dpiScale):(32.0f*dpiScale)),sizeof(float),macroColor,macro.len-macroDragScroll,hoverFunc,blockMode);
+  }
+  if (macro.open && ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+    macroDragStart=ImGui::GetItemRectMin();
+    macroDragAreaSize=ImVec2(availableWidth,displayHeight*dpiScale);
+    macroDragMin=macroMin;
+    macroDragMax=macroHeight;
+    macroDragBitOff=bitOff;
+    macroDragBitMode=bitfield;
+    macroDragInitialValueSet=false;
+    macroDragInitialValue=false;
+    macroDragLen=totalFit;
+    macroDragActive=true;
+    macroDragTarget=*macro.arr;
+    macroDragChar=false;
+    processDrags(ImGui::GetMousePos().x,ImGui::GetMousePos().y);
+  }
+  if (macro.open) {
+    if (drawSlider) {
+      ImGui::SameLine();
+      ImGui::VSliderInt("##IArpMacroPos",ImVec2(20.0f*dpiScale,displayHeight*dpiScale),sliderVal,sliderLow,70);
+    }
+    PlotCustom(strcat("##IMacroLoop_",macro.name),loopIndicator,totalFit,macroDragScroll,NULL,0,2,ImVec2(availableWidth,12.0f*dpiScale),sizeof(float),macroColor,macro.len-macroDragScroll,&macroHoverLoop);
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+      macroLoopDragStart=ImGui::GetItemRectMin();
+      macroLoopDragAreaSize=ImVec2(availableWidth,12.0f*dpiScale);
+      macroLoopDragLen=totalFit;
+      if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) {
+        macroLoopDragTarget=&macro.rel;
+      } else {
+        macroLoopDragTarget=&macro.loop;
+      }
+      macroLoopDragActive=true;
+      processDrags(ImGui::GetMousePos().x,ImGui::GetMousePos().y);
+    }
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+      if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) {
+        macro.rel=-1;
+      } else {
+        macro.loop=-1;
+      }
+    }
+    ImGui::SetNextItemWidth(availableWidth);
+    if (ImGui::InputText(strcat("##IMacroMML_",macro.name),&mmlStr)) {
+      decodeMMLStr(mmlStr,macro,macroAMin,(bitfield)?((1<<macroAMax)-1):macroAMax);
+    }
+    if (!ImGui::IsItemActive()) {
+      encodeMMLStr(mmlStr,macro);
+    }
+  }
   ImGui::PopStyleVar();
+}
+
+template<typename T>
+void FurnaceGUI::opMacro(DivMacroSTD<T> &macro, int macroHeight, int op,
+             const char* displayName, int displayHeight,
+             bool bitfield, const char** bfVal,
+             String &mmlStr,
+             float lenAvail, float availableWidth, std::vector<MacroGUI>& macroView) {
+  ImGui::TableNextRow();
+  ImGui::TableNextColumn();
+  ImGui::Text("%s",displayName);
+  ImGui::SameLine();
+  const char opMacroName[]=strcat(op+'0',macro.name);
+  const char* macroButtonName=strcat("##IOPMacroOpen_",opMacroName);
+  if (ImGui::SmallButton(macro.open?strcat(ICON_FA_CHEVRON_UP,macroButtonName):strcat(ICON_FA_CHEVRON_DOWN,macroButtonName))) {
+    macro.open=!macro.open;
+  }
+  if (macro.open) {
+    ImGui::SetNextItemWidth(lenAvail);
+    if (ImGui::InputScalar(strcat("##IOPMacroLen_",opMacroName)),ImGuiDataType_U8,&macro.len,&_ONE,&_THREE)) { MARK_MODIFIED
+      if (macro.len>127) macro.len=127;
+    }
+  }
+  ImGui::TableNextColumn();
+  for (int j=0; j<256; j++) {
+    if (j+macroDragScroll>=macro.len) {
+      asFloat[j]=0;
+      asInt[j]=0;
+    } else {
+      asFloat[j]=macro.arr[j+macroDragScroll].val;
+      asInt[j]=macro.arr[j+macroDragScroll].val;
+    }
+    if (j+macroDragScroll>=macro.len || (j+macroDragScroll>macro.rel && macro.loop<macro.rel)) {
+      loopIndicator[j]=0;
+    } else {
+      loopIndicator[j]=((macro.loop!=-1 && (j+macroDragScroll)>=macro.loop))|((macro.rel!=-1 && (j+macroDragScroll)==macro.rel)<<1);
+    }
+  }
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(0.0f,0.0f));
+
+  const char* macroPlotName=strcat("##IOPMacro_",opMacroName);
+  if (bitfield) {
+    PlotBitfield(macroPlotName,asInt,totalFit,0,bfVal,macroHeight,ImVec2(availableWidth,macro.open?(displayHeight*dpiScale):(24*dpiScale)));
+  } else {
+    PlotCustom(macroPlotName,asFloat,totalFit,macroDragScroll,NULL,0,macroHeight,ImVec2(availableWidth,macro.open?(displayHeight*dpiScale):(24*dpiScale)),sizeof(float),uiColors[GUI_COLOR_MACRO_OTHER],macro.len-macroDragScroll);
+  }
+  if (macro.open && ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+    macroDragStart=ImGui::GetItemRectMin();
+    macroDragAreaSize=ImVec2(availableWidth,displayHeight*dpiScale);
+    macroDragMin=0;
+    macroDragMax=macroHeight;
+    macroDragBitOff=0;
+    macroDragBitMode=bitfield;
+    macroDragInitialValueSet=false;
+    macroDragInitialValue=false;
+    macroDragLen=totalFit;
+    macroDragActive=true;
+    macroDragCTarget=*macro.arr;
+    macroDragChar=true;
+    processDrags(ImGui::GetMousePos().x,ImGui::GetMousePos().y);
+  }
+  if (macro.open) {
+    const char* macroLoopName=strcat("##IOPMacroLoop_",opMacroName);
+    PlotCustom(strcat("##IOPMacroLoop_",opMacroName),loopIndicator,totalFit,macroDragScroll,NULL,0,2,ImVec2(availableWidth,12.0f*dpiScale),sizeof(float),uiColors[GUI_COLOR_MACRO_OTHER],macro.len-macroDragScroll,&macroHoverLoop);
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+      macroLoopDragStart=ImGui::GetItemRectMin();
+      macroLoopDragAreaSize=ImVec2(availableWidth,8.0f*dpiScale);
+      macroLoopDragLen=totalFit;
+      if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) {
+        macroLoopDragTarget=&macro.rel;
+      } else {
+        macroLoopDragTarget=&macro.loop;
+      }
+      macroLoopDragActive=true;
+      processDrags(ImGui::GetMousePos().x,ImGui::GetMousePos().y);
+    }
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+      if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) {
+        macro.rel=-1;
+      } else {
+        macro.loop=-1;
+      }
+    }
+    ImGui::SetNextItemWidth(availableWidth);
+    if (ImGui::InputText(strcat("##IOPMacroMML_",opMacroName),&mmlStr)) {
+      decodeMMLStr(mmlStr,macro,0,bitfield?((1<<macroHeight)-1):(macroHeight));
+    }
+    if (!ImGui::IsItemActive()) {
+      encodeMMLStr(mmlStr,macro);
+    }
+  }
+  ImGui::PopStyleVar();
+}
 
 #define MACRO_BEGIN(reservedSpace) \
 if (ImGui::BeginTable("MacroSpace",2)) { \
@@ -1211,6 +1173,7 @@ void FurnaceGUI::drawInsEdit() {
       if (ImGui::BeginTabBar("insEditTab")) {
         if (ins->type==DIV_INS_FM || ins->type==DIV_INS_OPL || ins->type==DIV_INS_OPLL || ins->type==DIV_INS_OPZ) {
           char label[32];
+          std::vector<MacroGUI> macroView(256);
           float asFloat[256];
           int asInt[256];
           float loopIndicator[256];
@@ -1853,24 +1816,24 @@ void FurnaceGUI::drawInsEdit() {
           if (ImGui::BeginTabItem("FM Macros")) {
             MACRO_BEGIN(0);
             if (ins->type==DIV_INS_OPLL) {
-              NORMAL_MACRO(ins->std.algMacro,0,1,"alg",FM_NAME(FM_SUS),32,ins->std.algMacro.open,true,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[0],0,1,NULL,false);
-              NORMAL_MACRO(ins->std.fbMacro,0,7,"fb",FM_NAME(FM_FB),96,ins->std.fbMacro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[1],0,7,NULL,false);
-              NORMAL_MACRO(ins->std.fmsMacro,0,1,"fms",FM_NAME(FM_DC),32,ins->std.fmsMacro.open,true,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[2],0,1,NULL,false);
-              NORMAL_MACRO(ins->std.amsMacro,0,1,"ams",FM_NAME(FM_DM),32,ins->std.amsMacro.open,true,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[3],0,1,NULL,false);
+              normalMacro(ins->std.algMacro,0,1,FM_NAME(FM_SUS),32,true,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[0],0,1,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.fbMacro,0,7,FM_NAME(FM_FB),96,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[1],0,7,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.fmsMacro,0,1,FM_NAME(FM_DC),32,true,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[2],0,1,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.amsMacro,0,1,FM_NAME(FM_DM),32,true,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[3],0,1,NULL,false,lenAvail,availableWidth);
             } else {
-              NORMAL_MACRO(ins->std.algMacro,0,7,"alg",FM_NAME(FM_ALG),96,ins->std.algMacro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[0],0,7,NULL,false);
-              NORMAL_MACRO(ins->std.fbMacro,0,7,"fb",FM_NAME(FM_FB),96,ins->std.fbMacro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[1],0,7,NULL,false);
+              normalMacro(ins->std.algMacro,0,7,FM_NAME(FM_ALG),96,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[0],0,7,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.fbMacro,0,7,FM_NAME(FM_FB),96,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[1],0,7,NULL,false,lenAvail,availableWidth);
               if (ins->type!=DIV_INS_OPL) {
-                NORMAL_MACRO(ins->std.fmsMacro,0,7,"fms",FM_NAME(FM_FMS),96,ins->std.fmsMacro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[2],0,7,NULL,false);
-                NORMAL_MACRO(ins->std.amsMacro,0,3,"ams",FM_NAME(FM_AMS),48,ins->std.amsMacro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[3],0,3,NULL,false);
+                normalMacro(ins->std.fmsMacro,0,7,FM_NAME(FM_FMS),96,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[2],0,7,NULL,false,lenAvail,availableWidth);
+                normalMacro(ins->std.amsMacro,0,3,FM_NAME(FM_AMS),48,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[3],0,3,NULL,false,lenAvail,availableWidth);
               }
             }
             
             if (ins->type==DIV_INS_FM || ins->type==DIV_INS_OPZ) {
-              NORMAL_MACRO(ins->std.ex1Macro,0,127,"ex1","AM Depth",128,ins->std.ex1Macro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[4],0,127,NULL,false);
-              NORMAL_MACRO(ins->std.ex2Macro,0,127,"ex2","PM Depth",128,ins->std.ex2Macro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[5],0,127,NULL,false);
-              NORMAL_MACRO(ins->std.ex3Macro,0,255,"ex3","LFO Speed",128,ins->std.ex3Macro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[6],0,255,NULL,false);
-              NORMAL_MACRO(ins->std.waveMacro,0,3,"wave","LFO Shape",48,ins->std.waveMacro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_WAVE],mmlString[7],0,3,&macroLFOWaves,false);
+              normalMacro(ins->std.ex1Macro,0,127,"AM Depth",128,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[4],0,127,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.ex2Macro,0,127,"PM Depth",128,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[5],0,127,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.ex3Macro,0,255,"LFO Speed",128,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[6],0,255,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.waveMacro,0,3,"LFO Shape",48,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_WAVE],mmlString[7],0,3,&macroLFOWaves,false,lenAvail,availableWidth);
             }
             MACRO_END;
             ImGui::EndTabItem();
@@ -1895,45 +1858,45 @@ void FurnaceGUI::drawInsEdit() {
               int maxArDr=(ins->type==DIV_INS_FM || ins->type==DIV_INS_OPZ)?31:15;
 
               if (ins->type==DIV_INS_OPL) {
-                OP_MACRO(ins->std.opMacros[ordi].tlMacro,maxTl,ordi,"tl",FM_NAME(FM_TL),128,ins->std.opMacros[ordi].tlMacro.open,false,NULL,mmlString[0]);
-                OP_MACRO(ins->std.opMacros[ordi].arMacro,maxArDr,ordi,"ar",FM_NAME(FM_AR),64,ins->std.opMacros[ordi].arMacro.open,false,NULL,mmlString[1]);
-                OP_MACRO(ins->std.opMacros[ordi].drMacro,maxArDr,ordi,"dr",FM_NAME(FM_DR),64,ins->std.opMacros[ordi].drMacro.open,false,NULL,mmlString[2]);
-                OP_MACRO(ins->std.opMacros[ordi].slMacro,15,ordi,"sl",FM_NAME(FM_SL),64,ins->std.opMacros[ordi].slMacro.open,false,NULL,mmlString[5]);
-                OP_MACRO(ins->std.opMacros[ordi].rrMacro,15,ordi,"rr",FM_NAME(FM_RR),64,ins->std.opMacros[ordi].rrMacro.open,false,NULL,mmlString[4]);
-                OP_MACRO(ins->std.opMacros[ordi].kslMacro,3,ordi,"ksl",FM_NAME(FM_KSL),32,ins->std.opMacros[ordi].kslMacro.open,false,NULL,mmlString[6]);
-                OP_MACRO(ins->std.opMacros[ordi].multMacro,15,ordi,"mult",FM_NAME(FM_MULT),64,ins->std.opMacros[ordi].multMacro.open,false,NULL,mmlString[7]);
-                OP_MACRO(ins->std.opMacros[ordi].wsMacro,7,ordi,"ws",FM_NAME(FM_WS),64,ins->std.opMacros[ordi].wsMacro.open,false,NULL,mmlString[8]);
+                opMacro(ins->std.opMacros[ordi].tlMacro,maxTl,ordi,FM_NAME(FM_TL),128,false,NULL,mmlString[0],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].arMacro,maxArDr,ordi,FM_NAME(FM_AR),64,false,NULL,mmlString[1],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].drMacro,maxArDr,ordi,FM_NAME(FM_DR),64,false,NULL,mmlString[2],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].slMacro,15,ordi,FM_NAME(FM_SL),64,false,NULL,mmlString[5],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].rrMacro,15,ordi,FM_NAME(FM_RR),64,false,NULL,mmlString[4],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].kslMacro,3,ordi,FM_NAME(FM_KSL),32,false,NULL,mmlString[6],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].multMacro,15,ordi,FM_NAME(FM_MULT),64,false,NULL,mmlString[7],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].wsMacro,7,ordi,FM_NAME(FM_WS),64,false,NULL,mmlString[8],lenAvail,availableWidth);
 
-                OP_MACRO(ins->std.opMacros[ordi].amMacro,1,ordi,"am",FM_NAME(FM_AM),32,ins->std.opMacros[ordi].amMacro.open,true,NULL,mmlString[9]);
-                OP_MACRO(ins->std.opMacros[ordi].vibMacro,1,ordi,"vib",FM_NAME(FM_VIB),32,ins->std.opMacros[ordi].vibMacro.open,true,NULL,mmlString[10]);
-                OP_MACRO(ins->std.opMacros[ordi].ksrMacro,1,ordi,"ksr",FM_NAME(FM_KSR),32,ins->std.opMacros[ordi].ksrMacro.open,true,NULL,mmlString[11]);
-                OP_MACRO(ins->std.opMacros[ordi].susMacro,1,ordi,"sus",FM_NAME(FM_SUS),32,ins->std.opMacros[ordi].susMacro.open,true,NULL,mmlString[12]);
+                opMacro(ins->std.opMacros[ordi].amMacro,1,ordi,FM_NAME(FM_AM),32,true,NULL,mmlString[9],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].vibMacro,1,ordi,FM_NAME(FM_VIB),32,true,NULL,mmlString[10],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].ksrMacro,1,ordi,FM_NAME(FM_KSR),32,true,NULL,mmlString[11],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].susMacro,1,ordi,FM_NAME(FM_SUS),32,true,NULL,mmlString[12],lenAvail,availableWidth);
               } else if (ins->type==DIV_INS_OPLL) {
-                OP_MACRO(ins->std.opMacros[ordi].tlMacro,maxTl,ordi,"tl",FM_NAME(FM_TL),128,ins->std.opMacros[ordi].tlMacro.open,false,NULL,mmlString[0]);
-                OP_MACRO(ins->std.opMacros[ordi].arMacro,maxArDr,ordi,"ar",FM_NAME(FM_AR),64,ins->std.opMacros[ordi].arMacro.open,false,NULL,mmlString[1]);
-                OP_MACRO(ins->std.opMacros[ordi].drMacro,maxArDr,ordi,"dr",FM_NAME(FM_DR),64,ins->std.opMacros[ordi].drMacro.open,false,NULL,mmlString[2]);
-                OP_MACRO(ins->std.opMacros[ordi].slMacro,15,ordi,"sl",FM_NAME(FM_SL),64,ins->std.opMacros[ordi].slMacro.open,false,NULL,mmlString[5]);
-                OP_MACRO(ins->std.opMacros[ordi].rrMacro,15,ordi,"rr",FM_NAME(FM_RR),64,ins->std.opMacros[ordi].rrMacro.open,false,NULL,mmlString[4]);
-                OP_MACRO(ins->std.opMacros[ordi].kslMacro,3,ordi,"ksl",FM_NAME(FM_KSL),32,ins->std.opMacros[ordi].kslMacro.open,false,NULL,mmlString[6]);
-                OP_MACRO(ins->std.opMacros[ordi].multMacro,15,ordi,"mult",FM_NAME(FM_MULT),64,ins->std.opMacros[ordi].multMacro.open,false,NULL,mmlString[7]);
+                opMacro(ins->std.opMacros[ordi].tlMacro,maxTl,ordi,FM_NAME(FM_TL),128,false,NULL,mmlString[0],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].arMacro,maxArDr,ordi,FM_NAME(FM_AR),64,false,NULL,mmlString[1],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].drMacro,maxArDr,ordi,FM_NAME(FM_DR),64,false,NULL,mmlString[2],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].slMacro,15,ordi,FM_NAME(FM_SL),64,false,NULL,mmlString[5],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].rrMacro,15,ordi,FM_NAME(FM_RR),64,false,NULL,mmlString[4],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].kslMacro,3,ordi,FM_NAME(FM_KSL),32,false,NULL,mmlString[6],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].multMacro,15,ordi,FM_NAME(FM_MULT),64,false,NULL,mmlString[7],lenAvail,availableWidth);
                 
-                OP_MACRO(ins->std.opMacros[ordi].amMacro,1,ordi,"am",FM_NAME(FM_AM),32,ins->std.opMacros[ordi].amMacro.open,true,NULL,mmlString[8]);
-                OP_MACRO(ins->std.opMacros[ordi].vibMacro,1,ordi,"vib",FM_NAME(FM_VIB),32,ins->std.opMacros[ordi].vibMacro.open,true,NULL,mmlString[9]);
-                OP_MACRO(ins->std.opMacros[ordi].ksrMacro,1,ordi,"ksr",FM_NAME(FM_KSR),32,ins->std.opMacros[ordi].ksrMacro.open,true,NULL,mmlString[10]);
-                OP_MACRO(ins->std.opMacros[ordi].egtMacro,1,ordi,"egt",FM_NAME(FM_EGS),32,ins->std.opMacros[ordi].egtMacro.open,true,NULL,mmlString[11]);
+                opMacro(ins->std.opMacros[ordi].amMacro,1,ordi,FM_NAME(FM_AM),32,true,NULL,mmlString[8],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].vibMacro,1,ordi,FM_NAME(FM_VIB),32,true,NULL,mmlString[9],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].ksrMacro,1,ordi,FM_NAME(FM_KSR),32,true,NULL,mmlString[10],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].egtMacro,1,ordi,FM_NAME(FM_EGS),32,true,NULL,mmlString[11],lenAvail,availableWidth);
               } else {
-                OP_MACRO(ins->std.opMacros[ordi].tlMacro,maxTl,ordi,"tl",FM_NAME(FM_TL),128,ins->std.opMacros[ordi].tlMacro.open,false,NULL,mmlString[0]);
-                OP_MACRO(ins->std.opMacros[ordi].arMacro,maxArDr,ordi,"ar",FM_NAME(FM_AR),64,ins->std.opMacros[ordi].arMacro.open,false,NULL,mmlString[1]);
-                OP_MACRO(ins->std.opMacros[ordi].drMacro,maxArDr,ordi,"dr",FM_NAME(FM_DR),64,ins->std.opMacros[ordi].drMacro.open,false,NULL,mmlString[2]);
-                OP_MACRO(ins->std.opMacros[ordi].d2rMacro,31,ordi,"d2r",FM_NAME(FM_D2R),64,ins->std.opMacros[ordi].d2rMacro.open,false,NULL,mmlString[3]);
-                OP_MACRO(ins->std.opMacros[ordi].rrMacro,15,ordi,"rr",FM_NAME(FM_RR),64,ins->std.opMacros[ordi].rrMacro.open,false,NULL,mmlString[4]);
-                OP_MACRO(ins->std.opMacros[ordi].slMacro,15,ordi,"sl",FM_NAME(FM_SL),64,ins->std.opMacros[ordi].slMacro.open,false,NULL,mmlString[5]);
-                OP_MACRO(ins->std.opMacros[ordi].rsMacro,3,ordi,"rs",FM_NAME(FM_RS),32,ins->std.opMacros[ordi].rsMacro.open,false,NULL,mmlString[6]);
-                OP_MACRO(ins->std.opMacros[ordi].multMacro,15,ordi,"mult",FM_NAME(FM_MULT),64,ins->std.opMacros[ordi].multMacro.open,false,NULL,mmlString[7]);
-                OP_MACRO(ins->std.opMacros[ordi].dtMacro,7,ordi,"dt",FM_NAME(FM_DT),64,ins->std.opMacros[ordi].dtMacro.open,false,NULL,mmlString[8]);
-                OP_MACRO(ins->std.opMacros[ordi].dt2Macro,3,ordi,"dt2",FM_NAME(FM_DT2),32,ins->std.opMacros[ordi].dt2Macro.open,false,NULL,mmlString[9]);
-                OP_MACRO(ins->std.opMacros[ordi].amMacro,1,ordi,"am",FM_NAME(FM_AM),32,ins->std.opMacros[ordi].amMacro.open,true,NULL,mmlString[10]);
-                OP_MACRO(ins->std.opMacros[ordi].ssgMacro,4,ordi,"ssg",FM_NAME(FM_SSG),64,ins->std.opMacros[ordi].ssgMacro.open,true,ssgEnvBits,mmlString[11]);
+                opMacro(ins->std.opMacros[ordi].tlMacro,maxTl,ordi,FM_NAME(FM_TL),128,false,NULL,mmlString[0],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].arMacro,maxArDr,ordi,FM_NAME(FM_AR),64,false,NULL,mmlString[1],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].drMacro,maxArDr,ordi,FM_NAME(FM_DR),64,false,NULL,mmlString[2],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].d2rMacro,31,ordi,FM_NAME(FM_D2R),64,false,NULL,mmlString[3],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].rrMacro,15,ordi,FM_NAME(FM_RR),64,false,NULL,mmlString[4],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].slMacro,15,ordi,FM_NAME(FM_SL),64,false,NULL,mmlString[5],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].rsMacro,3,ordi,FM_NAME(FM_RS),32,false,NULL,mmlString[6],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].multMacro,15,ordi,FM_NAME(FM_MULT),64,false,NULL,mmlString[7],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].dtMacro,7,ordi,FM_NAME(FM_DT),64,false,NULL,mmlString[8],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].dt2Macro,3,ordi,FM_NAME(FM_DT2),32,false,NULL,mmlString[9],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].amMacro,1,ordi,FM_NAME(FM_AM),32,true,NULL,mmlString[10],lenAvail,availableWidth);
+                opMacro(ins->std.opMacros[ordi].ssgMacro,4,ordi,FM_NAME(FM_SSG),64,true,ssgEnvBits,mmlString[11],lenAvail,availableWidth);
               }
               MACRO_END;
               ImGui::PopID();
@@ -2036,7 +1999,7 @@ void FurnaceGUI::drawInsEdit() {
 
           P(ImGui::Checkbox("Volume Macro is Cutoff Macro",&ins->c64.volIsCutoff));
           P(ImGui::Checkbox("Absolute Cutoff Macro",&ins->c64.filterIsAbs));
-          P(ImGui::Checkbox("Absolute Duty Macro",&ins->c64.dutyIsAbs));
+          P(ImGui::Checkbox("Absolute Duty Macro",&ins->std.dutyMacro.mode));
           ImGui::EndTabItem();
         }
         if (ins->type==DIV_INS_AMIGA || ins->type==DIV_INS_ES5506) if (ImGui::BeginTabItem("Amiga/Sample")) {
@@ -2142,8 +2105,7 @@ void FurnaceGUI::drawInsEdit() {
             String sName;
             P(ImGui::Checkbox("Use Transwave",&ins->es5506.sample.transWaveEnable));
             if (ins->es5506.sample.transWaveEnable) {
-              int tableSize=ins->es5506.sample.transWaveTable.size();
-              if (ImGui::InputInt("Transwave Initial Index##TABLESIZE",&ins->es5506.sample.init,1,10)) { PARAMETER
+              if (ImGui::InputInt("Transwave Initial Index##TABLEINIT",&ins->es5506.sample.init,1,10)) { PARAMETER
                 if (ins->es5506.sample.init<0) ins->es5506.sample.init=0;
                 if (ins->es5506.sample.init>=ins->es5506.sample.transWaveTable.size()) ins->es5506.sample.init=ins->es5506.sample.transWaveTable.size()-1;
               }
@@ -2200,7 +2162,7 @@ void FurnaceGUI::drawInsEdit() {
                       id=fmt::sprintf("%d: %s",j,e->song.sample[j]->name);
                       if (ImGui::Selectable(id.c_str(),seq.index==j)) { PARAMETER
                         seq.index=j;
-                        DivSample &s=e->getSample(seq.index);
+                        DivSample &s=*e->getSample(seq.index);
                         if (seq.loopStart<0) seq.loopStart=0;
                         if (seq.loopStart>s.length8) seq.loopStart=s.length8;
                         if (seq.loopEnd<0) seq.loopEnd=0;
@@ -2212,7 +2174,7 @@ void FurnaceGUI::drawInsEdit() {
                   ImGui::TableNextColumn();
                   ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                   if (seq.index<0 || seq.index>=e->song.sampleLen) {
-                    DivSample &s=e->getSample(seq.index);
+                    DivSample &s=*e->getSample(seq.index);
                     if (ImGui::InputInt("##SS",&seq.loopStart,256,32768)) { PARAMETER
                       if (seq.loopStart<0) seq.loopStart=0;
                       if (seq.loopStart>s.length8) seq.loopStart=s.length8;
@@ -2221,7 +2183,7 @@ void FurnaceGUI::drawInsEdit() {
                   ImGui::TableNextColumn();
                   ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                   if (seq.index<0 || seq.index>=e->song.sampleLen) {
-                    DivSample &s=e->getSample(seq.index);
+                    DivSample &s=*e->getSample(seq.index);
                     if (ImGui::InputDouble("##SE",&seq.loopEnd,256,32768)) { PARAMETER
                       if (seq.loopEnd<0) seq.loopEnd=0;
                       if (seq.loopEnd>s.length8) seq.loopEnd=s.length8;
@@ -2236,37 +2198,39 @@ void FurnaceGUI::drawInsEdit() {
             ImGui::EndTabItem();
           }
           if (ImGui::BeginTabItem("Filter/Envelope")) {
-          P(ImGui::SliderScalar("Filter Mode",ImGuiDataType_U8,&ins->es5506.filter.filterMode,&_ZERO,&_THREE,es5506FilterMode[ins->es5506.filter.filterMode])); rightClickable
+            P(ImGui::SliderScalar("Filter 4, 3 Mode",ImGuiDataType_U8,&ins->es5506.filter.filterMode,&_ZERO,&_THREE,es5506FilterMode[ins->es5506.filter.filterMode])); rightClickable
 
-          P(ImGui::SliderScalar("Filter K1",ImGuiDataType_S32,&ins->es5506.filter.k1,&_ZERO,&_SIXTY_FIVE_THOUSAND_THIRTY_FIVE)); rightClickable
-          ImGui::SameLine();
-          P(ImGui::SliderScalar("Filter K2",ImGuiDataType_S32,&ins->es5506.filter.k2,&_ZERO,&_SIXTY_FIVE_THOUSAND_THIRTY_FIVE)); rightClickable
+            P(ImGui::SliderScalar("Filter K1",ImGuiDataType_S32,&ins->es5506.filter.k1,&_ZERO,&_SIXTY_FIVE_THOUSAND_THIRTY_FIVE)); rightClickable
+            ImGui::SameLine();
+            P(ImGui::SliderScalar("Filter K2",ImGuiDataType_S32,&ins->es5506.filter.k2,&_ZERO,&_SIXTY_FIVE_THOUSAND_THIRTY_FIVE)); rightClickable
 
-          drawFMEnv(op.tl&maxTl,op.ar&maxArDr,op.dr&maxArDr,(ins->type==DIV_INS_OPL || ins->type==DIV_INS_OPLL)?((op.rr&15)*2):op.d2r&31,op.rr&15,op.sl&15,maxTl,maxArDr,ImVec2(ImGui::GetContentRegionAvail().x,sliderHeight));
+            // Place envelope shape here
+            ImGui::Text("Place envelope shape here");
 
-          P(ImGui::SliderScalar("Envelope Counter",ImGuiDataType_U16,&ins->es5506.envelope.envCount,&_ZERO,&_FIVE_HUNDRED_ELEVEN)); rightClickable
+            P(ImGui::SliderScalar("Envelope Counter",ImGuiDataType_U16,&ins->es5506.envelope.envCount,&_ZERO,&_FIVE_HUNDRED_ELEVEN)); rightClickable
 
-          P(ImGui::SliderScalar("Filter K1 Ramp",ImGuiDataType_S16,&ins->es5506.envelope.k1Ramp,&_MINUS_ONE_HUNDRED_TWENTY_EIGHT,&_ONE_HUNDRED_TWENTY_SEVEN)); rightClickable
-          ImGui::SameLine();
-          P(ImGui::SliderScalar("Filter K2 Ramp",ImGuiDataType_S16,&ins->es5506.envelope.k1Ramp,&_MINUS_ONE_HUNDRED_TWENTY_EIGHT,&_ONE_HUNDRED_TWENTY_SEVEN)); rightClickable
+            P(ImGui::SliderScalar("Filter K1 Ramp",ImGuiDataType_S16,&ins->es5506.envelope.k1Ramp,&_MINUS_ONE_HUNDRED_TWENTY_EIGHT,&_ONE_HUNDRED_TWENTY_SEVEN)); rightClickable
+            ImGui::SameLine();
+            P(ImGui::SliderScalar("Filter K2 Ramp",ImGuiDataType_S16,&ins->es5506.envelope.k1Ramp,&_MINUS_ONE_HUNDRED_TWENTY_EIGHT,&_ONE_HUNDRED_TWENTY_SEVEN)); rightClickable
 
-          ImGui::Text("Envelope Slowdown");
-          ImGui::SameLine();
-          ImGui::PushStyleColor(ImGuiCol_Button,TOGGLE_COLOR(ins->es5506.envelope.k1Slow));
-          if (ImGui::Button("k1")) { PARAMETER
-            ins->es5506.envelope.k1Slow=!ins->es5506.envelope.k1Slow;
+            ImGui::Text("Envelope Slowdown");
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button,TOGGLE_COLOR(ins->es5506.envelope.k1Slow));
+            if (ImGui::Button("k1")) { PARAMETER
+              ins->es5506.envelope.k1Slow=!ins->es5506.envelope.k1Slow;
+            }
+            ImGui::PopStyleColor();
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button,TOGGLE_COLOR(ins->es5506.envelope.k2Slow));
+            if (ImGui::Button("k2")) { PARAMETER
+              ins->es5506.envelope.k2Slow=!ins->es5506.envelope.k2Slow;
+            }
+            ImGui::PopStyleColor();
+            ImGui::EndTabItem();
           }
-          ImGui::PopStyleColor();
-          ImGui::SameLine();
-          ImGui::PushStyleColor(ImGuiCol_Button,TOGGLE_COLOR(ins->es5506.envelope.k2Slow));
-          if (ImGui::Button("k2")) { PARAMETER
-            ins->es5506.envelope.k2Slow=!ins->es5506.envelope.k2Slow;
-          }
-          ImGui::PopStyleColor();
-          ImGui::EndTabItem();
-        }
         }
         if (ImGui::BeginTabItem("Macros")) {
+          std::vector<MacroGUI> macroView(256);
           float asFloat[256];
           int asInt[256];
           float loopIndicator[256];
@@ -2274,15 +2238,16 @@ void FurnaceGUI::drawInsEdit() {
 
           int volMax=15;
           int volMin=0;
+
+          bool c64CutoffMode=ins->c64.filterIsAbs;
+          int c64CutoffMin=c64CutoffMode?0:-18;
+          int c64CutoffMax=c64CutoffMode?2047:18;
+
           if (ins->type==DIV_INS_C64) {
             if (ins->c64.volIsCutoff) {
               volumeLabel="Cutoff";
-              if (ins->c64.filterIsAbs) {
-                volMax=2047;
-              } else {
-                volMin=-18;
-                volMax=18;
-              }
+              volMin=c64CutoffMin;
+              volMax=c64CutoffMax;
             }
           }
           if ((ins->type==DIV_INS_PCE || ins->type==DIV_INS_AY8930)) {
@@ -2307,13 +2272,13 @@ void FurnaceGUI::drawInsEdit() {
             volMax=65535;
           }
 
-          bool arpMode=ins->std.arpMacroMode;
+          bool arpMode=ins->std.arpMacro.mode;
 
           const char* dutyLabel="Duty/Noise";
           int dutyMax=3;
           if (ins->type==DIV_INS_C64) {
             dutyLabel="Duty";
-            if (ins->c64.dutyIsAbs) {
+            if (ins->std.dutyMacro.mode) {
               dutyMax=4095;
             } else {
               dutyMax=24;
@@ -2364,7 +2329,7 @@ void FurnaceGUI::drawInsEdit() {
             dutyLabel="Filter mode";
             dutyMax=3;
           }
-          bool dutyIsRel=(ins->type==DIV_INS_C64 && !ins->c64.dutyIsAbs);
+          bool dutyIsRel=(ins->type==DIV_INS_C64 && !ins->std.dutyMacro.mode);
 
           const char* waveLabel="Waveform";
           int waveMax=(ins->type==DIV_INS_AY || ins->type==DIV_INS_AY8930 || ins->type==DIV_INS_VERA)?3:63;
@@ -2421,77 +2386,83 @@ void FurnaceGUI::drawInsEdit() {
           }
           if (ins->type==DIV_INS_SAA1099) ex1Max=8;
           if (ins->type==DIV_INS_ES5506) {
-            ex1Max=65535;
-            ex2Max=65535;
+            ex1Max=4095; // Transwave slice
+            ex2Max=65535; // K1
           }
 
           if (settings.macroView==0) { // modern view
             MACRO_BEGIN(28*dpiScale);
             if (volMax>0) {
-              NORMAL_MACRO(ins->std.volMacro,volMin,volMax,"vol",volumeLabel,160,ins->std.volMacro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_VOLUME],mmlString[0],volMin,volMax,NULL,false);
+              normalMacro(ins->std.volMacro,volMin,volMax,volumeLabel,160,false,NULL,false,NULL,0,0,0,ins->c64.volIsCutoff?&cutoffMode:NULL,"",uiColors[GUI_COLOR_MACRO_VOLUME],mmlString[0],volMin,volMax,NULL,false,lenAvail,availableWidth);
             }
-            NORMAL_MACRO(ins->std.arpMacro,arpMacroScroll,arpMacroScroll+24,"arp","Arpeggio",160,ins->std.arpMacro.open,false,NULL,true,&arpMacroScroll,(arpMode?-60:-80),0,0,&ins->std.arpMacroMode,uiColors[GUI_COLOR_MACRO_PITCH],mmlString[1],-92,94,(ins->std.arpMacroMode?(&macroHoverNote):NULL),true);
+            normalMacro(ins->std.arpMacro,arpMacroScroll,arpMacroScroll+24,"Arpeggio",160,false,NULL,true,&arpMacroScroll,(arpMode?-60:-80),0,0,&ins->std.arpMacro.mode,"Fixed",uiColors[GUI_COLOR_MACRO_PITCH],mmlString[1],-92,94,(ins->std.arpMacro.mode?(&macroHoverNote):NULL),true,lenAvail,availableWidth);
             if (dutyMax>0) {
               if (ins->type==DIV_INS_MIKEY) {
-                NORMAL_MACRO(ins->std.dutyMacro,0,dutyMax,"duty",dutyLabel,160,ins->std.dutyMacro.open,true,mikeyFeedbackBits,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[2],0,dutyMax,NULL,false);
+                normalMacro(ins->std.dutyMacro,0,dutyMax,dutyLabel,160,true,mikeyFeedbackBits,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[2],0,dutyMax,NULL,false,lenAvail,availableWidth);
+              } else if (ins->type==DIV_INS_C64) {
+                normalMacro(ins->std.dutyMacro,0,dutyMax,dutyLabel,160,false,NULL,false,NULL,0,0,NULL,&ins->dutyMacro.mode,"Absolute",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[2],0,dutyMax,NULL,false,lenAvail,availableWidth);
+              } else {
+                normalMacro(ins->std.dutyMacro,0,dutyMax,dutyLabel,160,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[2],0,dutyMax,NULL,false,lenAvail,availableWidth);
               }
-              else {
-                NORMAL_MACRO(ins->std.dutyMacro,0,dutyMax,"duty",dutyLabel,160,ins->std.dutyMacro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[2],0,dutyMax,NULL,false);
-              }            
             }
             if (waveMax>0) {
-              NORMAL_MACRO(ins->std.waveMacro,0,waveMax,"wave",waveLabel,(bitMode && ins->type!=DIV_INS_PET)?64:160,ins->std.waveMacro.open,bitMode,waveNames,false,NULL,0,0,((ins->type==DIV_INS_AY || ins->type==DIV_INS_AY8930)?1:0),NULL,uiColors[GUI_COLOR_MACRO_WAVE],mmlString[3],0,waveMax,NULL,false);
+              normalMacro(ins->std.waveMacro,0,waveMax,waveLabel,(bitMode && ins->type!=DIV_INS_PET)?64:160,bitMode,waveNames,false,NULL,0,0,((ins->type==DIV_INS_AY || ins->type==DIV_INS_AY8930)?1:0),NULL,"",uiColors[GUI_COLOR_MACRO_WAVE],mmlString[3],0,waveMax,NULL,false,lenAvail,availableWidth);
             }
             if (ex1Max>0) {
               if (ins->type==DIV_INS_C64) {
-                NORMAL_MACRO(ins->std.ex1Macro,0,ex1Max,"ex1","Filter Mode",64,ins->std.ex1Macro.open,true,filtModeBits,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[4],0,ex1Max,NULL,false);
+                normalMacro(ins->std.ex1Macro,0,ex1Max,"Filter Mode",64,true,filtModeBits,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[4],0,ex1Max,NULL,false,lenAvail,availableWidth);
               } else if (ins->type==DIV_INS_SAA1099) {
-                NORMAL_MACRO(ins->std.ex1Macro,0,ex1Max,"ex1","Envelope",160,ins->std.ex1Macro.open,true,saaEnvBits,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[4],0,ex1Max,NULL,false);
+                normalMacro(ins->std.ex1Macro,0,ex1Max,"Envelope",160,true,saaEnvBits,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[4],0,ex1Max,NULL,false,lenAvail,availableWidth);
               } else if (ins->type==DIV_INS_X1_010) {
-                NORMAL_MACRO(ins->std.ex1Macro,0,ex1Max,"ex1","Envelope Mode",160,ins->std.ex1Macro.open,true,x1_010EnvBits,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[4],0,ex1Max,NULL,false);
+                normalMacro(ins->std.ex1Macro,0,ex1Max,"Envelope Mode",160,true,x1_010EnvBits,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[4],0,ex1Max,NULL,false,lenAvail,availableWidth);
               } else if (ins->type==DIV_INS_N163) {
-                NORMAL_MACRO(ins->std.ex1Macro,0,ex1Max,"ex1","Waveform len.",160,ins->std.ex1Macro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[4],0,ex1Max,NULL,false);
+                normalMacro(ins->std.ex1Macro,0,ex1Max,"Waveform len.",160,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[4],0,ex1Max,NULL,false,lenAvail,availableWidth);
               } else if (ins->type==DIV_INS_ES5506) {
-                NORMAL_MACRO(ins->std.ex1Macro,0,ex1Max,"ex1","Filter K1",160,ins->std.ex1Macro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[4],0,ex1Max,NULL,false);
+                normalMacro(ins->std.ex1Macro,0,ex1Max,"Transwave Slice",160,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[4],0,ex1Max,NULL,false,lenAvail,availableWidth);
               } else {
-                NORMAL_MACRO(ins->std.ex1Macro,0,ex1Max,"ex1","Duty",160,ins->std.ex1Macro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[4],0,ex1Max,NULL,false);
+                normalMacro(ins->std.ex1Macro,0,ex1Max,"Duty",160,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[4],0,ex1Max,NULL,false,lenAvail,availableWidth);
               }
             }
             if (ex2Max>0) {
               if (ins->type==DIV_INS_C64) {
-                NORMAL_MACRO(ins->std.ex2Macro,0,ex2Max,"ex2","Resonance",64,ins->std.ex2Macro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[5],0,ex2Max,NULL,false);
+                normalMacro(ins->std.ex2Macro,0,ex2Max,"Resonance",64,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[5],0,ex2Max,NULL,false,lenAvail,availableWidth);
               } else if (ins->type==DIV_INS_ES5506) {
-                NORMAL_MACRO(ins->std.ex2Macro,0,ex2Max,"ex2","Filter K2",160,ins->std.ex2Macro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[5],0,ex2Max,NULL,false);
+                bool k1_fixed=ins->std.ex2Macro.mode;
+                normalMacro(ins->std.ex2Macro,k1_fixed?0:-32768,k1_fixed?ex2Max:(ex2Max-32768),"Filter K1",160,false,NULL,false,NULL,0,0,0,&ins->std.ex2Macro.mode,"Absolute",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[5],0,ex2Max,NULL,false,lenAvail,availableWidth);
               } else if (ins->type==DIV_INS_N163) {
-                NORMAL_MACRO(ins->std.ex2Macro,0,ex2Max,"ex2","Waveform update",64,ins->std.ex2Macro.open,true,n163UpdateBits,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[5],0,ex2Max,NULL,false);
+                normalMacro(ins->std.ex2Macro,0,ex2Max,"Waveform update",64,true,n163UpdateBits,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[5],0,ex2Max,NULL,false,lenAvail,availableWidth);
               } else {
-                NORMAL_MACRO(ins->std.ex2Macro,0,ex2Max,"ex2","Envelope",ex2Bit?64:160,ins->std.ex2Macro.open,ex2Bit,ayEnvBits,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[5],0,ex2Max,NULL,false);
+                normalMacro(ins->std.ex2Macro,0,ex2Max,"Envelope",ex2Bit?64:160,ex2Bit,ayEnvBits,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[5],0,ex2Max,NULL,false,lenAvail,availableWidth);
               }
             }
             if (ins->type==DIV_INS_C64) {
-              NORMAL_MACRO(ins->std.ex3Macro,0,2,"ex3","Special",32,ins->std.ex3Macro.open,true,c64SpecialBits,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[6],0,2,NULL,false);
+              normalMacro(ins->std.ex3Macro,0,2,"Special",32,true,c64SpecialBits,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[6],0,2,NULL,false,lenAvail,availableWidth);
+              if (!ins->c64.volIsCutoff) {
+                normalMacro(ins->std.algMacro,c64CutoffMin,c64CutoffMax,"Cutoff",160,false,NULL,false,NULL,0,0,0,&c64CutoffMode,"Absolute",uiColors[GUI_COLOR_MACRO_VOLUME],mmlString[0],c64CutoffMin,c64CutoffMax,NULL,false,lenAvail,availableWidth);
+              }
             }
             if (ins->type==DIV_INS_AY || ins->type==DIV_INS_AY8930 || ins->type==DIV_INS_X1_010) {
-              NORMAL_MACRO(ins->std.ex3Macro,0,15,"ex3","AutoEnv Num",96,ins->std.ex3Macro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[6],0,15,NULL,false);
-              NORMAL_MACRO(ins->std.algMacro,0,15,"alg","AutoEnv Den",96,ins->std.algMacro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[7],0,15,NULL,false);
+              normalMacro(ins->std.ex3Macro,0,15,"AutoEnv Num",96,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[6],0,15,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.algMacro,0,15,"AutoEnv Den",96,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[7],0,15,NULL,false,lenAvail,availableWidth);
             }
             if (ins->type==DIV_INS_AY8930) {
               // oh my i am running out of macros
-              NORMAL_MACRO(ins->std.fbMacro,0,8,"fb","Noise AND Mask",96,ins->std.fbMacro.open,true,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[8],0,8,NULL,false);
-              NORMAL_MACRO(ins->std.fmsMacro,0,8,"fms","Noise OR Mask",96,ins->std.fmsMacro.open,true,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[9],0,8,NULL,false);
+              normalMacro(ins->std.fbMacro,0,8,"Noise AND Mask",96,true,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[8],0,8,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.fmsMacro,0,8,"Noise OR Mask",96,true,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[9],0,8,NULL,false,lenAvail,availableWidth);
             }
             if (ins->type==DIV_INS_N163) {
-              NORMAL_MACRO(ins->std.ex3Macro,0,255,"ex3","Waveform to Load",160,ins->std.ex3Macro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[6],0,255,NULL,false);
-              NORMAL_MACRO(ins->std.algMacro,0,255,"alg","Wave pos. to Load",160,ins->std.algMacro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[7],0,255,NULL,false);
-              NORMAL_MACRO(ins->std.fbMacro,0,252,"fb","Wave len. to Load",160,ins->std.fbMacro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[8],0,252,NULL,false);
-              NORMAL_MACRO(ins->std.fmsMacro,0,2,"fms","Waveform load",64,ins->std.fmsMacro.open,true,n163UpdateBits,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[9],0,2,NULL,false);
+              normalMacro(ins->std.ex3Macro,0,255,"Waveform to Load",160,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[6],0,255,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.algMacro,0,255,"Wave pos. to Load",160,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[7],0,255,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.fbMacro,0,252,"Wave len. to Load",160,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[8],0,252,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.fmsMacro,0,2,"Waveform load",64,true,n163UpdateBits,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[9],0,2,NULL,false,lenAvail,availableWidth);
             }
             if (ins->type==DIV_INS_ES5506) {
-              NORMAL_MACRO(ins->std.ex3Macro,0,511,"ex3","Envelope counter",160,ins->std.ex3Macro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[6],0,511,NULL,false);
-              NORMAL_MACRO(ins->std.algMacro,0,2,"alg","Filter envelope slowdown",64,ins->std.algMacro.open,true,es5506EnvelopeBits,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[7],0,2,NULL,false);
-              NORMAL_MACRO(ins->std.fbMacro,-128,127,"fb","Filter K1 Ramp",160,ins->std.fbMacro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[8],-128,127,NULL,false);
-              NORMAL_MACRO(ins->std.fmsMacro,-128,127,"fms","Filter K2 Ramp",64,ins->std.fmsMacro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[9],-128,127,NULL,false);
-              NORMAL_MACRO(ins->std.amsMacro,0,1,"ams","Pause",64,ins->std.amsMacro.open,true,oneBit,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[10],0,1,NULL,false);
+              bool k2_fixed=ins->std.ex3Macro.mode;
+              normalMacro(ins->std.ex3Macro,k2_fixed?0:-32768,k2_fixed?65535:32767,"Filter K2",160,false,NULL,false,NULL,0,0,0,&ins->std.ex3Macro.mode,"Absolute",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[6],k2_fixed?0:-32768,k2_fixed?65535:32767,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.algMacro,0,5,"Extra controls",64,true,es5506ControlBits,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[7],0,5,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.fbMacro,0,511,"Envelope counter",160,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[8],0,511,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.fmsMacro,-128,127,"Filter K1 Ramp",160,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[9],-128,127,NULL,false,lenAvail,availableWidth);
+              normalMacro(ins->std.amsMacro,-128,127,"Filter K2 Ramp",160,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[10],-128,127,NULL,false,lenAvail,availableWidth);
             }
 
             MACRO_END;
@@ -2509,9 +2480,9 @@ void FurnaceGUI::drawInsEdit() {
             }
             for (int i=0; i<ins->std.volMacro.len; i++) {
               if (ins->type==DIV_INS_C64 && ins->c64.volIsCutoff && !ins->c64.filterIsAbs) {
-                asFloat[i]=ins->std.volMacro.val[i]-18;
+                asFloat[i]=ins->std.volMacro.arr[i].val-18;
               } else {
-                asFloat[i]=ins->std.volMacro.val[i];
+                asFloat[i]=ins->std.volMacro.arr[i].val;
               }
               loopIndicator[i]=(ins->std.volMacro.loop!=-1 && i>=ins->std.volMacro.loop);
             }
@@ -2526,7 +2497,7 @@ void FurnaceGUI::drawInsEdit() {
                 macroDragMax=volMax;
                 macroDragLen=ins->std.volMacro.len;
                 macroDragActive=true;
-                macroDragTarget=ins->std.volMacro;
+                macroDragTarget=*ins->std.volMacro.arr;
                 macroDragChar=false;
                 processDrags(ImGui::GetMousePos().x,ImGui::GetMousePos().y);
               }
@@ -2552,7 +2523,7 @@ void FurnaceGUI::drawInsEdit() {
             ImGui::Separator();
             ImGui::Text("Arpeggio Macro");
             for (int i=0; i<ins->std.arpMacro.len; i++) {
-              asFloat[i]=ins->std.arpMacro.val[i];
+              asFloat[i]=ins->std.arpMacro.arr[i].val;
               loopIndicator[i]=(ins->std.arpMacro.loop!=-1 && i>=ins->std.arpMacro.loop);
             }
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(0.0f,0.0f));
@@ -2564,7 +2535,7 @@ void FurnaceGUI::drawInsEdit() {
               macroDragMax=arpMacroScroll+24;
               macroDragLen=ins->std.arpMacro.len;
               macroDragActive=true;
-              macroDragTarget=ins->std.arpMacro;
+              macroDragTarget=*ins->std.arpMacro.arr;
               macroDragChar=false;
               processDrags(ImGui::GetMousePos().x,ImGui::GetMousePos().y);
             }
@@ -2587,7 +2558,7 @@ void FurnaceGUI::drawInsEdit() {
               if (ins->std.arpMacro.len>127) ins->std.arpMacro.len=127;
             }
             if (ImGui::Checkbox("Fixed",&arpMode)) {
-              ins->std.arpMacroMode=arpMode;
+              ins->std.arpMacro.mode=arpMode;
               if (arpMode) {
                 if (arpMacroScroll<0) arpMacroScroll=0;
               }
@@ -2597,7 +2568,7 @@ void FurnaceGUI::drawInsEdit() {
             if (dutyMax>0) {
               ImGui::Separator();
               if (ins->type==DIV_INS_C64) {
-                if (ins->c64.dutyIsAbs) {
+                if (ins->std.dutyMacro.mode) {
                   ImGui::Text("Duty Macro");
                 } else {
                   ImGui::Text("Relative Duty Macro");
@@ -2610,7 +2581,7 @@ void FurnaceGUI::drawInsEdit() {
                 }
               }
               for (int i=0; i<ins->std.dutyMacro.len; i++) {
-                asFloat[i]=ins->std.dutyMacro.val[i]-(dutyIsRel?12:0);
+                asFloat[i]=ins->std.dutyMacro.arr[i].val-(dutyIsRel?12:0);
                 loopIndicator[i]=(ins->std.dutyMacro.loop!=-1 && i>=ins->std.dutyMacro.loop);
               }
               ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(0.0f,0.0f));
@@ -2623,7 +2594,7 @@ void FurnaceGUI::drawInsEdit() {
                 macroDragMax=dutyMax;
                 macroDragLen=ins->std.dutyMacro.len;
                 macroDragActive=true;
-                macroDragTarget=ins->std.dutyMacro;
+                macroDragTarget=*ins->std.dutyMacro.arr;
                 macroDragChar=false;
                 processDrags(ImGui::GetMousePos().x,ImGui::GetMousePos().y);
               }
@@ -2650,11 +2621,11 @@ void FurnaceGUI::drawInsEdit() {
               ImGui::Separator();
               ImGui::Text("Waveform Macro");
               for (int i=0; i<ins->std.waveMacro.len; i++) {
-                asFloat[i]=ins->std.waveMacro.val[i];
+                asFloat[i]=ins->std.waveMacro.arr[i].val;
                 if (ins->type==DIV_INS_AY || ins->type==DIV_INS_AY8930) {
-                  asInt[i]=ins->std.waveMacro.val[i]+1;
+                  asInt[i]=ins->std.waveMacro.arr[i].val+1;
                 } else {
-                  asInt[i]=ins->std.waveMacro.val[i];
+                  asInt[i]=ins->std.waveMacro.arr[i].val;
                 }
                 loopIndicator[i]=(ins->std.waveMacro.loop!=-1 && i>=ins->std.waveMacro.loop);
               }
@@ -2679,7 +2650,7 @@ void FurnaceGUI::drawInsEdit() {
                 macroDragInitialValue=false;
                 macroDragLen=ins->std.waveMacro.len;
                 macroDragActive=true;
-                macroDragTarget=ins->std.waveMacro;
+                macroDragTarget=*ins->std.waveMacro.arr;
                 macroDragChar=false;
                 processDrags(ImGui::GetMousePos().x,ImGui::GetMousePos().y);
               }
@@ -2710,7 +2681,7 @@ void FurnaceGUI::drawInsEdit() {
                 ImGui::Text("Extra 1 Macro");
               }
               for (int i=0; i<ins->std.ex1Macro.len; i++) {
-                asFloat[i]=ins->std.ex1Macro.val[i];
+                asFloat[i]=ins->std.ex1Macro.arr[i].val;
                 loopIndicator[i]=(ins->std.ex1Macro.loop!=-1 && i>=ins->std.ex1Macro.loop);
               }
               ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,ImVec2(0.0f,0.0f));
@@ -2723,7 +2694,7 @@ void FurnaceGUI::drawInsEdit() {
                 macroDragMax=ex1Max;
                 macroDragLen=ins->std.ex1Macro.len;
                 macroDragActive=true;
-                macroDragTarget=ins->std.ex1Macro;
+                macroDragTarget=*ins->std.ex1Macro.arr;
                 macroDragChar=false;
                 processDrags(ImGui::GetMousePos().x,ImGui::GetMousePos().y);
               }

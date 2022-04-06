@@ -149,15 +149,31 @@ struct DivInstrumentFM {
   }
 };
 
+template<typename T> struct DivMacroArray {
+  T val;
+  unsigned short tick;
+  bool interpolate;
+  DivMacroArray():
+    val(0),
+    tick(1),
+    interpolate(false) {}
+};
+
 template<typename T> struct DivMacroSTD {
-  T val[256];
+  const char* name;
+  bool enable;
+  bool mode;
+  std::vector<DivMacroArray<T>> arr;
   unsigned char height;
   bool open;
   unsigned char len;
   signed char loop;
   signed char rel;
-  DivMacroSTD(unsigned char h=~0):
-    val{0},
+  DivMacroSTD(const char* macroName, unsigned char h=~0):
+    name(macroName),
+    enable(true),
+    mode(false),
+    arr(256),
     height(h),
     open(false),
     len(0),
@@ -177,7 +193,6 @@ struct DivInstrumentSTD {
   DivMacroSTD<int> fbMacro;
   DivMacroSTD<int> fmsMacro;
   DivMacroSTD<int> amsMacro;
-  bool arpMacroMode;
   struct OpMacro {
     // ar, dr, mult, rr, sl, tl, dt2, rs, dt, d2r, ssgEnv;
     DivMacroSTD<unsigned char> amMacro;
@@ -201,31 +216,30 @@ struct DivInstrumentSTD {
     DivMacroSTD<unsigned char> wsMacro;
     DivMacroSTD<unsigned char> ksrMacro;
     OpMacro():
-      amMacro(DivMacroSTD<unsigned char>()), arMacro(DivMacroSTD<unsigned char>()),
-      drMacro(DivMacroSTD<unsigned char>()), multMacro(DivMacroSTD<unsigned char>()),
-      rrMacro(DivMacroSTD<unsigned char>()), slMacro(DivMacroSTD<unsigned char>()),
-      tlMacro(DivMacroSTD<unsigned char>()), dt2Macro(DivMacroSTD<unsigned char>()),
-      rsMacro(DivMacroSTD<unsigned char>()), dtMacro(DivMacroSTD<unsigned char>()),
-      d2rMacro(DivMacroSTD<unsigned char>()), ssgMacro(DivMacroSTD<unsigned char>()),
-      damMacro(DivMacroSTD<unsigned char>()), dvbMacro(DivMacroSTD<unsigned char>()),
-      egtMacro(DivMacroSTD<unsigned char>()), kslMacro(DivMacroSTD<unsigned char>()),
-      susMacro(DivMacroSTD<unsigned char>()), vibMacro(DivMacroSTD<unsigned char>()),
-      wsMacro(DivMacroSTD<unsigned char>()), ksrMacro(DivMacroSTD<unsigned char>()) { }
+      amMacro(DivMacroSTD<unsigned char>("am")), arMacro(DivMacroSTD<unsigned char>("ar")),
+      drMacro(DivMacroSTD<unsigned char>("dr")), multMacro(DivMacroSTD<unsigned char>("mult")),
+      rrMacro(DivMacroSTD<unsigned char>("rr")), slMacro(DivMacroSTD<unsigned char>("sl")),
+      tlMacro(DivMacroSTD<unsigned char>("tl")), dt2Macro(DivMacroSTD<unsigned char>("dt2")),
+      rsMacro(DivMacroSTD<unsigned char>("rs")), dtMacro(DivMacroSTD<unsigned char>("dt2")),
+      d2rMacro(DivMacroSTD<unsigned char>("d2r")), ssgMacro(DivMacroSTD<unsigned char>("ssg")),
+      damMacro(DivMacroSTD<unsigned char>("dam")), dvbMacro(DivMacroSTD<unsigned char>("dvb")),
+      egtMacro(DivMacroSTD<unsigned char>("egt")), kslMacro(DivMacroSTD<unsigned char>("ksl")),
+      susMacro(DivMacroSTD<unsigned char>("sus")), vibMacro(DivMacroSTD<unsigned char>("vib")),
+      wsMacro(DivMacroSTD<unsigned char>("ws")), ksrMacro(DivMacroSTD<unsigned char>("ksr")) { }
   } opMacros[4];
   DivInstrumentSTD():
-    volMacro(DivMacroSTD<int>(15)),
-    arpMacro(DivMacroSTD<int>()),
-    dutyMacro(DivMacroSTD<int>(3)),
-    waveMacro(DivMacroSTD<int>(63)),
-    pitchMacro(DivMacroSTD<int>()),
-    ex1Macro(DivMacroSTD<int>()),
-    ex2Macro(DivMacroSTD<int>()),
-    ex3Macro(DivMacroSTD<int>()),
-    algMacro(DivMacroSTD<int>()),
-    fbMacro(DivMacroSTD<int>()),
-    fmsMacro(DivMacroSTD<int>()),
-    amsMacro(DivMacroSTD<int>()),
-    arpMacroMode(false) { }
+    volMacro(DivMacroSTD<int>("vol",15)),
+    arpMacro(DivMacroSTD<int>("arp")),
+    dutyMacro(DivMacroSTD<int>("duty",3)),
+    waveMacro(DivMacroSTD<int>("wave",63)),
+    pitchMacro(DivMacroSTD<int>("pitch")),
+    ex1Macro(DivMacroSTD<int>("ex1")),
+    ex2Macro(DivMacroSTD<int>("ex2")),
+    ex3Macro(DivMacroSTD<int>("ex3")),
+    algMacro(DivMacroSTD<int>("alg")),
+    fbMacro(DivMacroSTD<int>("fb")),
+    fmsMacro(DivMacroSTD<int>("fms")),
+    amsMacro(DivMacroSTD<int>("ams")) { }
 };
 
 struct DivInstrumentGB {
@@ -305,7 +319,7 @@ struct DivInstrumentES5506 {
       TransWave():
         index(-1),
         loopStart(0),
-        loopEnd(16777216) {}
+        loopEnd(16777216.0) {}
     };
     int init;
     bool transWaveEnable;
