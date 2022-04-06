@@ -2539,7 +2539,7 @@ void FurnaceGUI::drawInsEdit() {
               NORMAL_MACRO(macro.amsMacro,-128,127,macro.amsMacro.name,"Filter K2 Ramp",160,macro.amsMacro.open,false,NULL,false,NULL,0,0,0,NULL,"",uiColors[GUI_COLOR_MACRO_OTHER],mmlString[10],-128,127,NULL,false);
             }
             if (ins->type==DIV_INS_FDS) {
-              NORMAL_MACRO(macro.ex3Macro,0,127,macro.ex3Macro.name,"Mod Position",160,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[6],0,2,NULL,false);
+              NORMAL_MACRO(macro.ex3Macro,0,127,macro.ex3Macro.name,"Mod Position",160,macro.ex3Macro.open,false,NULL,false,NULL,0,0,0,NULL,uiColors[GUI_COLOR_MACRO_OTHER],mmlString[6],0,2,NULL,false);
             }
 
             MACRO_END;
