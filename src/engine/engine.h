@@ -42,8 +42,8 @@
 #define BUSY_BEGIN_SOFT softLocked=true; isBusy.lock();
 #define BUSY_END isBusy.unlock(); softLocked=false;
 
-#define DIV_VERSION "dev75"
-#define DIV_ENGINE_VERSION 75
+#define DIV_VERSION "dev76"
+#define DIV_ENGINE_VERSION 76
 
 // for imports
 #define DIV_VERSION_MOD 0xff01
@@ -256,8 +256,10 @@ class DivEngine {
   // MIDI stuff
   std::function<int(const TAMidiMessage&)> midiCallback=[](const TAMidiMessage&) -> int {return -2;};
 
-  DivSystem systemFromFile(unsigned char val);
-  unsigned char systemToFile(DivSystem val);
+  DivSystem systemFromFileFur(unsigned char val);
+  unsigned char systemToFileFur(DivSystem val);
+  DivSystem systemFromFileDMF(unsigned char val);
+  unsigned char systemToFileDMF(DivSystem val);
   int dispatchCmd(DivCommand c);
   void processRow(int i, bool afterDelay);
   void nextOrder();
@@ -274,6 +276,13 @@ class DivEngine {
   bool loadDMF(unsigned char* file, size_t len);
   bool loadFur(unsigned char* file, size_t len);
   bool loadMod(unsigned char* file, size_t len);
+
+  void loadDMP(SafeReader& reader, std::vector<DivInstrument*>& ret, String& stripPath);
+  void loadTFI(SafeReader& reader, std::vector<DivInstrument*>& ret, String& stripPath);
+  void loadVGI(SafeReader& reader, std::vector<DivInstrument*>& ret, String& stripPath);
+  void loadS3I(SafeReader& reader, std::vector<DivInstrument*>& ret, String& stripPath);
+  void loadSBI(SafeReader& reader, std::vector<DivInstrument*>& ret, String& stripPath);
+  void loadOPM(SafeReader& reader, std::vector<DivInstrument*>& ret, String& stripPath);
 
   bool initAudioBackend();
   bool deinitAudioBackend();
@@ -307,7 +316,7 @@ class DivEngine {
     // specify system to build ROM for.
     SafeWriter* buildROM(int sys);
     // dump to VGM.
-    SafeWriter* saveVGM(bool* sysToExport=NULL, bool loop=true);
+    SafeWriter* saveVGM(bool* sysToExport=NULL, bool loop=true, int version=0x171);
     // export to an audio file
     bool saveAudio(const char* path, int loops, DivAudioExportModes mode);
     // wait for audio export to finish
@@ -319,8 +328,8 @@ class DivEngine {
     // notify wavetable change
     void notifyWaveChange(int wave);
 
-    // returns whether a system is VGM compatible
-    bool isVGMExportable(DivSystem which);
+    // returns the minimum VGM version which may carry the specified system, or 0 if none.
+    int minVGMVersion(DivSystem which);
 
     // save config
     bool saveConf();
@@ -493,8 +502,12 @@ class DivEngine {
     // add instrument
     int addInstrument(int refChan=0);
 
-    // add instrument from file
-    bool addInstrumentFromFile(const char* path);
+    // add instrument from pointer
+    int addInstrumentPtr(DivInstrument* which);
+
+    // get instrument from file
+    // if the returned vector is empty then there was an error.
+    std::vector<DivInstrument*> instrumentFromFile(const char* path);
 
     // delete instrument
     void delInstrument(int index);

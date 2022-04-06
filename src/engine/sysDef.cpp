@@ -20,7 +20,7 @@
 #include "engine.h"
 #include "song.h"
 
-DivSystem DivEngine::systemFromFile(unsigned char val) {
+DivSystem DivEngine::systemFromFileFur(unsigned char val) {
   switch (val) {
     case 0x01:
       return DIV_SYSTEM_YMU759;
@@ -50,7 +50,6 @@ DivSystem DivEngine::systemFromFile(unsigned char val) {
       return DIV_SYSTEM_C64_6581;
     case 0x49:
       return DIV_SYSTEM_YM2610_EXT;
-    // Furnace-specific systems
     case 0x80:
       return DIV_SYSTEM_AY8910;
     case 0x81:
@@ -149,7 +148,7 @@ DivSystem DivEngine::systemFromFile(unsigned char val) {
   return DIV_SYSTEM_NULL;
 }
 
-unsigned char DivEngine::systemToFile(DivSystem val) {
+unsigned char DivEngine::systemToFileFur(DivSystem val) {
   switch (val) {
     case DIV_SYSTEM_YMU759:
       return 0x01;
@@ -175,11 +174,12 @@ unsigned char DivEngine::systemToFile(DivSystem val) {
       return 0x43;
     case DIV_SYSTEM_NES_VRC7:
       return 0x46;
+    case DIV_SYSTEM_NES_FDS:
+      return 0; // unsupported
     case DIV_SYSTEM_C64_6581:
       return 0x47;
     case DIV_SYSTEM_YM2610_EXT:
       return 0x49;
-    // Furnace-specific systems
     case DIV_SYSTEM_AY8910:
       return 0x80;
     case DIV_SYSTEM_AMIGA:
@@ -281,6 +281,80 @@ unsigned char DivEngine::systemToFile(DivSystem val) {
   return 0;
 }
 
+DivSystem DivEngine::systemFromFileDMF(unsigned char val) {
+  switch (val) {
+    case 0x01:
+      return DIV_SYSTEM_YMU759;
+    case 0x02:
+      return DIV_SYSTEM_GENESIS;
+    case 0x03:
+      return DIV_SYSTEM_SMS;
+    case 0x04:
+      return DIV_SYSTEM_GB;
+    case 0x05:
+      return DIV_SYSTEM_PCE;
+    case 0x06:
+      return DIV_SYSTEM_NES;
+    case 0x07:
+      return DIV_SYSTEM_C64_8580;
+    case 0x08:
+      return DIV_SYSTEM_ARCADE;
+    case 0x09:
+      return DIV_SYSTEM_YM2610;
+    case 0x42:
+      return DIV_SYSTEM_GENESIS_EXT;
+    case 0x43:
+      return DIV_SYSTEM_SMS_OPLL;
+    case 0x46:
+      return DIV_SYSTEM_NES_VRC7;
+    case 0x47:
+      return DIV_SYSTEM_C64_6581;
+    case 0x49:
+      return DIV_SYSTEM_YM2610_EXT;
+    case 0x86:
+      return DIV_SYSTEM_NES_FDS;
+  }
+  return DIV_SYSTEM_NULL;
+}
+
+unsigned char DivEngine::systemToFileDMF(DivSystem val) {
+  switch (val) {
+    case DIV_SYSTEM_YMU759:
+      return 0x01;
+    case DIV_SYSTEM_GENESIS:
+      return 0x02;
+    case DIV_SYSTEM_SMS:
+      return 0x03;
+    case DIV_SYSTEM_GB:
+      return 0x04;
+    case DIV_SYSTEM_PCE:
+      return 0x05;
+    case DIV_SYSTEM_NES:
+      return 0x06;
+    case DIV_SYSTEM_C64_8580:
+      return 0x07;
+    case DIV_SYSTEM_ARCADE:
+      return 0x08;
+    case DIV_SYSTEM_YM2610:
+      return 0x09;
+    case DIV_SYSTEM_GENESIS_EXT:
+      return 0x42;
+    case DIV_SYSTEM_SMS_OPLL:
+      return 0x43;
+    case DIV_SYSTEM_NES_VRC7:
+      return 0x46;
+    case DIV_SYSTEM_NES_FDS:
+      return 0x86;
+    case DIV_SYSTEM_C64_6581:
+      return 0x47;
+    case DIV_SYSTEM_YM2610_EXT:
+      return 0x49;
+    default:
+      return 0;
+  }
+  return 0;
+}
+
 int DivEngine::getChannelCount(DivSystem sys) {
   switch (sys) {
     case DIV_SYSTEM_NULL:
@@ -306,9 +380,10 @@ int DivEngine::getChannelCount(DivSystem sys) {
       return 13;
     case DIV_SYSTEM_NES_VRC7:
       return 11;
+    case DIV_SYSTEM_NES_FDS:
+      return 6;
     case DIV_SYSTEM_YM2610_EXT:
       return 16;
-    // Furnace-specific systems
     case DIV_SYSTEM_AY8910:
     case DIV_SYSTEM_AY8930:
       return 3;
@@ -577,6 +652,8 @@ const char* DivEngine::getSystemName(DivSystem sys) {
       return "NES";
     case DIV_SYSTEM_NES_VRC7:
       return "NES + Konami VRC7";
+    case DIV_SYSTEM_NES_FDS:
+      return "Famicom Disk System";
     case DIV_SYSTEM_C64_6581:
       return "Commodore 64 with 6581";
     case DIV_SYSTEM_C64_8580:
@@ -589,7 +666,6 @@ const char* DivEngine::getSystemName(DivSystem sys) {
       return "Neo Geo CD";
     case DIV_SYSTEM_YM2610_EXT:
       return "Neo Geo CD Extended Channel 2";
-    // Furnace-specific systems
     case DIV_SYSTEM_YM2610_FULL:
       return "Neo Geo";
     case DIV_SYSTEM_YM2610_FULL_EXT:
@@ -708,6 +784,8 @@ const char* DivEngine::getSystemChips(DivSystem sys) {
       return "Ricoh 2A03";
     case DIV_SYSTEM_NES_VRC7:
       return "Ricoh 2A03 + Konami VRC7";
+    case DIV_SYSTEM_NES_FDS:
+      return "Ricoh 2A03 + Famicom Disk System";
     case DIV_SYSTEM_C64_6581:
       return "SID 6581";
     case DIV_SYSTEM_C64_8580:
@@ -720,7 +798,6 @@ const char* DivEngine::getSystemChips(DivSystem sys) {
       return "Yamaha YM2610 no ADPCM-B";
     case DIV_SYSTEM_YM2610_EXT:
       return "Yamaha YM2610 no ADPCM-B (extended channel 2)";
-    // Furnace-specific systems
     case DIV_SYSTEM_AY8910:
       return "AY-3-8910";
     case DIV_SYSTEM_AMIGA:
@@ -852,7 +929,6 @@ const char* DivEngine::getSystemNameJ(DivSystem sys) {
       return "業務用ネオジオ";
     case DIV_SYSTEM_YM2610_FULL_EXT:
       return "業務用ネオジオ";
-    // Furnace-specific systems
     case DIV_SYSTEM_AY8910:
       return "";
     case DIV_SYSTEM_AMIGA:
@@ -1094,6 +1170,7 @@ const char* DivEngine::getChannelName(int chan) {
       break;
     case DIV_SYSTEM_SMS_OPLL: // this is flattened to SMS + OPLL.
     case DIV_SYSTEM_NES_VRC7: // this is flattened to NES + VRC7.
+    case DIV_SYSTEM_NES_FDS: // this is flattened to NES + FDS.
       return "??";
       break;
     case DIV_SYSTEM_GB:
@@ -1240,6 +1317,7 @@ const char* DivEngine::getChannelShortName(int chan) {
       break;
     case DIV_SYSTEM_SMS_OPLL: // this is flattened to SMS + OPLL.
     case DIV_SYSTEM_NES_VRC7: // this is flattened to NES + VRC7.
+    case DIV_SYSTEM_NES_FDS: // this is flattened to NES + FDS.
       return "??";
       break;
     case DIV_SYSTEM_GB:
@@ -1382,6 +1460,7 @@ int DivEngine::getChannelType(int chan) {
       break;
     case DIV_SYSTEM_SMS_OPLL: // this is flattened to SMS + OPLL.
     case DIV_SYSTEM_NES_VRC7: // this is flattened to NES + VRC7.
+    case DIV_SYSTEM_NES_FDS: // this is flattened to NES + FDS.
       return 0;
       break;
     case DIV_SYSTEM_GB:
@@ -1530,6 +1609,9 @@ DivInstrumentType DivEngine::getPreferInsType(int chan) {
     case DIV_SYSTEM_NES_VRC7: // this is flattened to NES + VRC7.
       return DIV_INS_OPLL;
       break;
+    case DIV_SYSTEM_NES_FDS: // this is flattened to NES + FDS.
+      return DIV_INS_STD;
+      break;
     case DIV_SYSTEM_GB:
       return chanPrefType[4][dispatchChanOfChan[chan]];
       break;
@@ -1670,41 +1752,45 @@ DivInstrumentType DivEngine::getPreferInsType(int chan) {
   return DIV_INS_FM;
 }
 
-bool DivEngine::isVGMExportable(DivSystem which) {
+int DivEngine::minVGMVersion(DivSystem which) {
   switch (which) {
-    case DIV_SYSTEM_SMS:
-    case DIV_SYSTEM_GB:
-    case DIV_SYSTEM_PCE:
-    case DIV_SYSTEM_NES:
-    case DIV_SYSTEM_YM2151:
     case DIV_SYSTEM_YM2612:
     case DIV_SYSTEM_YM2612_EXT:
+    case DIV_SYSTEM_SMS:
+    case DIV_SYSTEM_OPLL:
+    case DIV_SYSTEM_OPLL_DRUMS:
+    case DIV_SYSTEM_VRC7:
+    case DIV_SYSTEM_YM2151:
+      return 0x150; // due to usage of data blocks
+    case DIV_SYSTEM_SEGAPCM:
+    case DIV_SYSTEM_SEGAPCM_COMPAT:
     case DIV_SYSTEM_YM2610:
     case DIV_SYSTEM_YM2610_EXT:
     case DIV_SYSTEM_YM2610_FULL:
     case DIV_SYSTEM_YM2610_FULL_EXT:
     case DIV_SYSTEM_YM2610B:
     case DIV_SYSTEM_YM2610B_EXT:
-    case DIV_SYSTEM_AY8910:
-    case DIV_SYSTEM_AY8930:
-    case DIV_SYSTEM_SAA1099:
-    case DIV_SYSTEM_QSOUND:
-    case DIV_SYSTEM_SEGAPCM:
-    case DIV_SYSTEM_SEGAPCM_COMPAT:
-    case DIV_SYSTEM_OPLL:
-    case DIV_SYSTEM_OPLL_DRUMS:
-    case DIV_SYSTEM_VRC7:
-    case DIV_SYSTEM_X1_010:
-    case DIV_SYSTEM_SWAN:
     case DIV_SYSTEM_OPL:
     case DIV_SYSTEM_OPL_DRUMS:
     case DIV_SYSTEM_OPL2:
     case DIV_SYSTEM_OPL2_DRUMS:
     case DIV_SYSTEM_OPL3:
     case DIV_SYSTEM_OPL3_DRUMS:
-      return true;
+    case DIV_SYSTEM_AY8910:
+    case DIV_SYSTEM_AY8930:
+      return 0x151;
+    case DIV_SYSTEM_GB:
+    case DIV_SYSTEM_PCE:
+    case DIV_SYSTEM_NES:
+    case DIV_SYSTEM_FDS:
+    case DIV_SYSTEM_QSOUND:
+      return 0x161;
+    case DIV_SYSTEM_SAA1099:
+    case DIV_SYSTEM_X1_010:
+    case DIV_SYSTEM_SWAN:
+      return 0x171;
     default:
-      return false;
+      return 0;
   }
-  return false;
+  return 0;
 }

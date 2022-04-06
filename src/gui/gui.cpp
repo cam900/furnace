@@ -24,6 +24,7 @@
 #include "../ta-log.h"
 #include "../fileutils.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_sdlrenderer.h"
 #include "ImGuiFileDialog.h"
@@ -339,6 +340,123 @@ template<typename T> void FurnaceGUI::decodeMMLStr(String& source, DivMacroSTD<T
   }
 }
 
+#define CW_ADDITION(T) \
+  if (p_min!=NULL && p_max!=NULL) { \
+    if (*((T*)p_min)>*((T*)p_max)) { \
+      if (wheelY<0) { \
+        if ((*((T*)p_data)-wheelY)>*((T*)p_min)) { \
+          *((T*)p_data)=*((T*)p_min); \
+        } else { \
+          *((T*)p_data)-=wheelY; \
+        } \
+      } else { \
+        if ((*((T*)p_data)-wheelY)<*((T*)p_max)) { \
+          *((T*)p_data)=*((T*)p_max); \
+        } else { \
+          *((T*)p_data)-=wheelY; \
+        } \
+      } \
+    } else { \
+      if (wheelY>0) { \
+        if ((*((T*)p_data)+wheelY)>*((T*)p_max)) { \
+          *((T*)p_data)=*((T*)p_max); \
+        } else { \
+          *((T*)p_data)+=wheelY; \
+        } \
+      } else { \
+        if ((*((T*)p_data)+wheelY)<*((T*)p_min)) { \
+          *((T*)p_data)=*((T*)p_min); \
+        } else { \
+          *((T*)p_data)+=wheelY; \
+        } \
+      } \
+    } \
+  }
+
+bool FurnaceGUI::CWSliderScalar(const char* label, ImGuiDataType data_type, void* p_data, const void* p_min, const void* p_max, const char* format, ImGuiSliderFlags flags) {
+  if (ImGui::SliderScalar(label,data_type,p_data,p_min,p_max,format,flags)) {
+    return true;
+  }
+  if (ImGui::IsItemHovered() && ctrlWheeling) {
+    switch (data_type) {
+      case ImGuiDataType_U8:
+        CW_ADDITION(unsigned char);
+        break;
+      case ImGuiDataType_S8:
+        CW_ADDITION(signed char);
+        break;
+      case ImGuiDataType_U16:
+        CW_ADDITION(unsigned short);
+        break;
+      case ImGuiDataType_S16:
+        CW_ADDITION(short);
+        break;
+      case ImGuiDataType_U32:
+        CW_ADDITION(unsigned int);
+        break;
+      case ImGuiDataType_S32:
+        CW_ADDITION(int);
+        break;
+      case ImGuiDataType_Float:
+        CW_ADDITION(float);
+        break;
+      case ImGuiDataType_Double:
+        CW_ADDITION(double);
+        break;
+    }
+    return true;
+  }
+  return false;
+}
+
+bool FurnaceGUI::CWVSliderScalar(const char* label, const ImVec2& size, ImGuiDataType data_type, void* p_data, const void* p_min, const void* p_max, const char* format, ImGuiSliderFlags flags) {
+  if (ImGui::VSliderScalar(label,size,data_type,p_data,p_min,p_max,format,flags)) {
+    return true;
+  }
+  if (ImGui::IsItemHovered() && ctrlWheeling) {
+    switch (data_type) {
+      case ImGuiDataType_U8:
+        CW_ADDITION(unsigned char);
+        break;
+      case ImGuiDataType_S8:
+        CW_ADDITION(signed char);
+        break;
+      case ImGuiDataType_U16:
+        CW_ADDITION(unsigned short);
+        break;
+      case ImGuiDataType_S16:
+        CW_ADDITION(short);
+        break;
+      case ImGuiDataType_U32:
+        CW_ADDITION(unsigned int);
+        break;
+      case ImGuiDataType_S32:
+        CW_ADDITION(int);
+        break;
+      case ImGuiDataType_Float:
+        CW_ADDITION(float);
+        break;
+      case ImGuiDataType_Double:
+        CW_ADDITION(double);
+        break;
+    }
+    return true;
+  }
+  return false;
+}
+
+bool FurnaceGUI::CWSliderInt(const char* label, int* v, int v_min, int v_max, const char* format, ImGuiSliderFlags flags) {
+  return CWSliderScalar(label,ImGuiDataType_S32,v,&v_min,&v_max,format,flags);
+}
+
+bool FurnaceGUI::CWSliderFloat(const char* label, float* v, float v_min, float v_max, const char* format, ImGuiSliderFlags flags) {
+  return CWSliderScalar(label,ImGuiDataType_Float,v,&v_min,&v_max,format,flags);
+}
+
+bool FurnaceGUI::CWVSliderInt(const char* label, const ImVec2& size, int* v, int v_min, int v_max, const char* format, ImGuiSliderFlags flags) {
+  return CWVSliderScalar(label,size,ImGuiDataType_S32,v,&v_min,&v_max,format,flags);
+}
+
 const char* FurnaceGUI::getSystemName(DivSystem which) {
   if (settings.chipNames) {
     return e->getSystemChips(which);
@@ -379,14 +497,50 @@ void FurnaceGUI::setFileName(String name) {
     curFileName=ret;
   }
 #endif
+  updateWindowTitle();
 }
 
 void FurnaceGUI::updateWindowTitle() {
-  if (e->song.name.empty()) {
-    SDL_SetWindowTitle(sdlWin,fmt::sprintf("Furnace (%s)",e->getSongSystemName()).c_str());
-  } else {
-    SDL_SetWindowTitle(sdlWin,fmt::sprintf("%s - Furnace (%s)",e->song.name,e->getSongSystemName()).c_str());
+  String title;
+  switch (settings.titleBarInfo) {
+    case 0:
+      title="Furnace";
+      break;
+    case 1:
+      if (e->song.name.empty()) {
+        title="Furnace";
+      } else {
+        title=fmt::sprintf("%s - Furnace",e->song.name);
+      }
+      break;
+    case 2:
+      if (curFileName.empty()) {
+        title="Furnace";
+      } else {
+        String shortName;
+        size_t pos=curFileName.rfind(DIR_SEPARATOR);
+        if (pos==String::npos) {
+          shortName=curFileName;
+        } else {
+          shortName=curFileName.substr(pos+1);
+        }
+        title=fmt::sprintf("%s - Furnace",shortName);
+      }
+      break;
+    case 3:
+      if (curFileName.empty()) {
+        title="Furnace";
+      } else {
+        title=fmt::sprintf("%s - Furnace",curFileName);
+      }
+      break;
   }
+
+  if (settings.titleBarSys) {
+    title+=fmt::sprintf(" (%s)",e->getSongSystemName());
+  }
+
+  if (sdlWin!=NULL) SDL_SetWindowTitle(sdlWin,title.c_str());
 }
 
 const char* defaultLayout="[Window][DockSpaceViewport_11111111]\n\
@@ -811,7 +965,18 @@ void FurnaceGUI::valueInput(int num, bool direct, int target) {
       curNibble=false;
     } else {
       curNibble=!curNibble;
-      if (!curNibble) editAdvance();
+      if (!curNibble) {
+        if (!settings.effectCursorDir) {
+          editAdvance();
+        } else {
+          if (cursor.xFine&1) {
+            cursor.xFine++;
+          } else {
+            editAdvance();
+            cursor.xFine--;
+          }
+        }
+      }
     }
   }
 }
@@ -1326,6 +1491,7 @@ int FurnaceGUI::save(String path, int dmfVersion) {
   w->finish();
   curFileName=path;
   modified=false;
+  updateWindowTitle();
   if (!e->getWarnings().empty()) {
     showWarning(e->getWarnings(),GUI_WARN_GENERIC);
   }
@@ -1829,6 +1995,10 @@ bool FurnaceGUI::loop() {
             bindSetPrevValue=0;
           }
           break;
+        case SDL_MOUSEWHEEL:
+          wheelX+=ev.wheel.x;
+          wheelY+=ev.wheel.y;
+          break;
         case SDL_WINDOWEVENT:
           switch (ev.window.event) {
             case SDL_WINDOWEVENT_RESIZED:
@@ -2084,14 +2254,27 @@ bool FurnaceGUI::loop() {
       }
       if (ImGui::BeginMenu("export VGM...")) {
         ImGui::Text("settings:");
+        if (ImGui::BeginCombo("format version",fmt::sprintf("%d.%.2x",vgmExportVersion>>8,vgmExportVersion&0xff).c_str())) {
+          for (int i=0; i<6; i++) {
+            if (ImGui::Selectable(fmt::sprintf("%d.%.2x",vgmVersions[i]>>8,vgmVersions[i]&0xff).c_str(),vgmExportVersion==vgmVersions[i])) {
+              vgmExportVersion=vgmVersions[i];
+            }
+          }
+          ImGui::EndCombo();
+        }
         ImGui::Checkbox("loop",&vgmExportLoop);
-        ImGui::Text("systems to export:");;
+        ImGui::Text("systems to export:");
         bool hasOneAtLeast=false;
         for (int i=0; i<e->song.systemLen; i++) {
-          ImGui::BeginDisabled(!e->isVGMExportable(e->song.system[i]));
+          int minVersion=e->minVGMVersion(e->song.system[i]);
+          ImGui::BeginDisabled(minVersion>vgmExportVersion || minVersion==0);
           ImGui::Checkbox(fmt::sprintf("%d. %s##_SYSV%d",i+1,getSystemName(e->song.system[i]),i).c_str(),&willExport[i]);
           ImGui::EndDisabled();
-          if (!e->isVGMExportable(e->song.system[i])) {
+          if (minVersion>vgmExportVersion) {
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+              ImGui::SetTooltip("this system is only available in VGM %d.%.2x and higher!",minVersion>>8,minVersion&0xff);
+            }
+          } else if (minVersion==0) {
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
               ImGui::SetTooltip("this system is not supported by the VGM format!");
             }
@@ -2100,7 +2283,7 @@ bool FurnaceGUI::loop() {
           }
         }
         ImGui::Text("select the systems you wish to export,");
-        ImGui::Text("but only up to 2 of each type.");
+        ImGui::Text("but only up to %d of each type.",(vgmExportVersion>=0x151)?2:1);
         if (hasOneAtLeast) {
           if (ImGui::MenuItem("click to export")) {
             openFileDialog(GUI_FILE_EXPORT_VGM);
@@ -2171,6 +2354,9 @@ bool FurnaceGUI::loop() {
       ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("settings")) {
+      if (ImGui::MenuItem("lock layout",NULL,lockLayout)) {
+        lockLayout=!lockLayout;
+      }
       if (ImGui::MenuItem("visualizer",NULL,fancyPattern)) {
         fancyPattern=!fancyPattern;
         e->enableCommandStream(fancyPattern);
@@ -2288,7 +2474,7 @@ bool FurnaceGUI::loop() {
     }
     ImGui::EndMainMenuBar();
 
-    ImGui::DockSpaceOverViewport();
+    ImGui::DockSpaceOverViewport(NULL,lockLayout?(ImGuiDockNodeFlags_NoResize|ImGuiDockNodeFlags_NoCloseButton|ImGuiDockNodeFlags_NoDocking|ImGuiDockNodeFlags_NoDockingSplitMe|ImGuiDockNodeFlags_NoDockingSplitOther):0);
 
     drawPattern();
     drawEditControls();
@@ -2443,23 +2629,28 @@ bool FurnaceGUI::loop() {
             case GUI_FILE_EXPORT_AUDIO_PER_CHANNEL:
               exportAudio(copyOfName,DIV_EXPORT_MODE_MANY_CHAN);
               break;
-            case GUI_FILE_INS_OPEN:
-              if (e->addInstrumentFromFile(copyOfName.c_str())) {
+            case GUI_FILE_INS_OPEN: {
+              std::vector<DivInstrument*> instruments=e->instrumentFromFile(copyOfName.c_str());
+              if (!instruments.empty()) {
                 if (!e->getWarnings().empty()) {
                   showWarning(e->getWarnings(),GUI_WARN_GENERIC);
+                }
+                for (DivInstrument* i: instruments) {
+                  e->addInstrumentPtr(i);
                 }
               } else {
                 showError("cannot load instrument! ("+e->getLastError()+")");
               }
               break;
+            }
             case GUI_FILE_WAVE_OPEN:
               e->addWaveFromFile(copyOfName.c_str());
               MARK_MODIFIED;
               break;
             case GUI_FILE_EXPORT_VGM: {
-              SafeWriter* w=e->saveVGM(willExport,vgmExportLoop);
+              SafeWriter* w=e->saveVGM(willExport,vgmExportLoop,vgmExportVersion);
               if (w!=NULL) {
-                FILE* f=fopen(copyOfName.c_str(),"wb");
+                FILE* f=ps_fopen(copyOfName.c_str(),"wb");
                 if (f!=NULL) {
                   fwrite(w->getFinalBuf(),1,w->size(),f);
                   fclose(f);
@@ -2472,7 +2663,7 @@ bool FurnaceGUI::loop() {
                   showWarning(e->getWarnings(),GUI_WARN_GENERIC);
                 }
               } else {
-                showError("could not write VGM. dang it.");
+                showError(fmt::sprintf("could not write VGM! (%s)",e->getLastError()));
               }
               break;
             }
@@ -2632,6 +2823,9 @@ bool FurnaceGUI::loop() {
 
     if (--soloTimeout<0) soloTimeout=0;
 
+    wheelX=0;
+    wheelY=0;
+
     if (willCommit) {
       commitSettings();
       willCommit=false;
@@ -2682,6 +2876,7 @@ bool FurnaceGUI::init() {
 
   tempoView=e->getConfBool("tempoView",true);
   waveHex=e->getConfBool("waveHex",false);
+  lockLayout=e->getConfBool("lockLayout",false);
 
   syncSettings();
 
@@ -2844,6 +3039,7 @@ bool FurnaceGUI::finish() {
 
   e->setConf("tempoView",tempoView);
   e->setConf("waveHex",waveHex);
+  e->setConf("lockLayout",lockLayout);
 
   for (int i=0; i<DIV_MAX_CHANS; i++) {
     delete oldPat[i];
@@ -2858,6 +3054,8 @@ bool FurnaceGUI::finish() {
 
 FurnaceGUI::FurnaceGUI():
   e(NULL),
+  sdlWin(NULL),
+  sdlRend(NULL),
   sampleTex(NULL),
   sampleTexW(0),
   sampleTexH(0),
@@ -2871,6 +3069,7 @@ FurnaceGUI::FurnaceGUI():
   displayExporting(false),
   vgmExportLoop(true),
   displayNew(false),
+  vgmExportVersion(0x171),
   curFileDialog(GUI_FILE_OPEN),
   warnAction(GUI_WARN_OPEN),
   fileDialog(NULL),
@@ -2907,6 +3106,8 @@ FurnaceGUI::FurnaceGUI():
   extraChannelButtons(0),
   patNameTarget(-1),
   newSongCategory(0),
+  wheelX(0),
+  wheelY(0),
   editControlsOpen(true),
   ordersOpen(true),
   insListOpen(true),
@@ -2930,6 +3131,31 @@ FurnaceGUI::FurnaceGUI():
   notesOpen(false),
   channelsOpen(false),
   regViewOpen(false),
+  /*
+  editControlsDocked(false),
+  ordersDocked(false),
+  insListDocked(false),
+  songInfoDocked(false),
+  patternDocked(false),
+  insEditDocked(false),
+  waveListDocked(false),
+  waveEditDocked(false),
+  sampleListDocked(false),
+  sampleEditDocked(false),
+  aboutDocked(false),
+  settingsDocked(false),
+  mixerDocked(false),
+  debugDocked(false),
+  inspectorDocked(false),
+  oscDocked(false),
+  volMeterDocked(false),
+  statsDocked(false),
+  compatFlagsDocked(false),
+  pianoDocked(false),
+  notesDocked(false),
+  channelsDocked(false),
+  regViewDocked(false),
+  */
   selecting(false),
   curNibble(false),
   orderNibble(false),
@@ -2942,6 +3168,8 @@ FurnaceGUI::FurnaceGUI():
   wantPatName(false),
   firstFrame(true),
   tempoView(true),
+  waveHex(false),
+  lockLayout(false),
   curWindow(GUI_WINDOW_NOTHING),
   nextWindow(GUI_WINDOW_NOTHING),
   nextDesc(NULL),

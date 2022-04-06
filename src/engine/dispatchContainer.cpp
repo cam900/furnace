@@ -50,6 +50,8 @@
 #include "platform/pet.h"
 #include "platform/vic20.h"
 #include "platform/vrc6.h"
+#include "platform/fds.h"
+#include "platform/mmc5.h"
 #include "platform/dummy.h"
 #include "../ta-log.h"
 #include "song.h"
@@ -213,6 +215,9 @@ void DivDispatchContainer::init(DivSystem sys, DivEngine* eng, int chanCount, do
     case DIV_SYSTEM_AY8930:
       dispatch=new DivPlatformAY8930;
       break;
+    case DIV_SYSTEM_FDS:
+      dispatch=new DivPlatformFDS;
+      break;
     case DIV_SYSTEM_TIA:
       dispatch=new DivPlatformTIA;
       break;
@@ -290,6 +295,9 @@ void DivDispatchContainer::init(DivSystem sys, DivEngine* eng, int chanCount, do
       break;
     case DIV_SYSTEM_VRC6:
       dispatch=new DivPlatformVRC6;
+      break;
+    case DIV_SYSTEM_MMC5:
+      dispatch=new DivPlatformMMC5;
       break;
     default:
       logW("this system is not supported yet! using dummy platform.\n");

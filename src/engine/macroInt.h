@@ -22,62 +22,73 @@
 
 #include "instrument.h"
 
-struct DivMacroIntStruct {
-  int pos, val;
-  bool has, had, finished, will;
-  void reset() {
-    pos=0;
-    has=had=finished=will=false;
-  }
-  void init() {
-    has=had=finished=will=true;
-  }
-	template<typename T> void doMacro(DivMacroSTD<T>& source);
-  DivMacroIntStruct():
-    pos(0),
-    val(0),
-    has(false),
-    had(false),
-    finished(false),
-    will(false) {}
-};
-
 class DivMacroInt {
   DivInstrument* ins;
   bool released;
   public:
-    DivMacroIntStruct vol;
-    DivMacroIntStruct arp;
-    DivMacroIntStruct duty, wave, pitch, ex1, ex2, ex3;
-    DivMacroIntStruct alg, fb, fms, ams;
-    bool arpMode;
+    template<typename T> struct DivMacroIntStruct {
+      DivMacroSTD<T>* source;
+      int pos, val;
+      bool has, had, finished, will;
+      bool mode;
+      void reset() {
+        source=NULL;
+        pos=0;
+        has=had=finished=will=false;
+        mode=false;
+      }
+      void init(DivMacroSTD<T>* src) {
+        if (src==NULL) {
+          return;
+        }
+        source=src;
+        has=had=finished=will=true;
+        mode=src->mode;
+      }
+	    void doMacro();
+      DivMacroIntStruct():
+        source(NULL),
+        pos(0),
+        val(0),
+        has(false),
+        had(false),
+        finished(false),
+        will(false),
+        mode(false) {}
+    };
+
+    DivMacroIntStruct<int> vol;
+    DivMacroIntStruct<int> arp;
+    DivMacroIntStruct<int> duty, wave, pitch, ex1, ex2, ex3;
+    DivMacroIntStruct<int> alg, fb, fms, ams;
+    DivMacroIntStruct<int> panL, panR, phaseReset, ex4, ex5, ex6, ex7, ex8;
     struct IntOp {
-      DivMacroIntStruct am, ar, dr, mult;
-      DivMacroIntStruct rr, sl, tl, dt2;
-      DivMacroIntStruct rs, dt, d2r, ssg;
-      DivMacroIntStruct dam, dvb, egt, ksl;
-      DivMacroIntStruct sus, vib, ws, ksr;
+      DivMacroIntStruct<unsigned char> am, ar, dr, mult;
+      DivMacroIntStruct<unsigned char> rr, sl, tl, dt2;
+      DivMacroIntStruct<unsigned char> rs, dt, d2r, ssg;
+      DivMacroIntStruct<unsigned char> dam, dvb, egt, ksl;
+      DivMacroIntStruct<unsigned char> sus, vib, ws, ksr;
       IntOp():
-        am(DivMacroIntStruct()),
-        ar(DivMacroIntStruct()),
-        dr(DivMacroIntStruct()),
-        mult(DivMacroIntStruct()),
-        rr(DivMacroIntStruct()),
-        sl(DivMacroIntStruct()),
-        tl(DivMacroIntStruct()),
-        dt2(DivMacroIntStruct()),
-        rs(DivMacroIntStruct()),
-        dt(DivMacroIntStruct()),
-        d2r(DivMacroIntStruct()),
-        ssg(DivMacroIntStruct()),
-        dam(DivMacroIntStruct()),
-        dvb(DivMacroIntStruct()),
-        egt(DivMacroIntStruct()),
-        ksl(DivMacroIntStruct()),
-        sus(DivMacroIntStruct()),
-        vib(DivMacroIntStruct()),
-        ws(DivMacroIntStruct()),
-        ksr(DivMacroIntStruct()) {}
+        am(DivMacroIntStruct<unsigned char>()),
+        ar(DivMacroIntStruct<unsigned char>()),
+        dr(DivMacroIntStruct<unsigned char>()),
+        mult(DivMacroIntStruct<unsigned char>()),
+        rr(DivMacroIntStruct<unsigned char>()),
+        sl(DivMacroIntStruct<unsigned char>()),
+        tl(DivMacroIntStruct<unsigned char>()),
+        dt2(DivMacroIntStruct<unsigned char>()),
+        rs(DivMacroIntStruct<unsigned char>()),
+        dt(DivMacroIntStruct<unsigned char>()),
+        d2r(DivMacroIntStruct<unsigned char>()),
+        ssg(DivMacroIntStruct<unsigned char>()),
+        dam(DivMacroIntStruct<unsigned char>()),
+        dvb(DivMacroIntStruct<unsigned char>()),
+        egt(DivMacroIntStruct<unsigned char>()),
+        ksl(DivMacroIntStruct<unsigned char>()),
+        sus(DivMacroIntStruct<unsigned char>()),
+        vib(DivMacroIntStruct<unsigned char>()),
+        ws(DivMacroIntStruct<unsigned char>()),
+        ksr(DivMacroIntStruct<unsigned char>()) {}
     } op[4];
 
     /**
@@ -89,13 +100,6 @@ class DivMacroInt {
      * trigger next macro tick.
      */
     void next();
-
-    /**
-     * execute macro routine.
-     * @param val an macro struct.
-     * @param source an instrument.
-     */
-    template<typename T>void doMacro(DivMacroIntStruct& macro, DivMacroSTD<T>& source);
 
     /**
      * initialize the macro interpreter.
@@ -112,19 +116,26 @@ class DivMacroInt {
     DivMacroInt():
       ins(NULL),
       released(false),
-      vol(DivMacroIntStruct()),
-      arp(DivMacroIntStruct()),
-      duty(DivMacroIntStruct()),
-      wave(DivMacroIntStruct()),
-      pitch(DivMacroIntStruct()),
-      ex1(DivMacroIntStruct()),
-      ex2(DivMacroIntStruct()),
-      ex3(DivMacroIntStruct()),
-      alg(DivMacroIntStruct()),
-      fb(DivMacroIntStruct()),
-      fms(DivMacroIntStruct()),
-      ams(DivMacroIntStruct()),
-      arpMode(false) {}
+      vol(DivMacroIntStruct<int>()),
+      arp(DivMacroIntStruct<int>()),
+      duty(DivMacroIntStruct<int>()),
+      wave(DivMacroIntStruct<int>()),
+      pitch(DivMacroIntStruct<int>()),
+      ex1(DivMacroIntStruct<int>()),
+      ex2(DivMacroIntStruct<int>()),
+      ex3(DivMacroIntStruct<int>()),
+      alg(DivMacroIntStruct<int>()),
+      fb(DivMacroIntStruct<int>()),
+      fms(DivMacroIntStruct<int>()),
+      ams(DivMacroIntStruct<int>()),
+      panL(DivMacroIntStruct<int>()),
+      panR(DivMacroIntStruct<int>()),
+      phaseReset(DivMacroIntStruct<int>()),
+      ex4(DivMacroIntStruct<int>()),
+      ex5(DivMacroIntStruct<int>()),
+      ex6(DivMacroIntStruct<int>()),
+      ex7(DivMacroIntStruct<int>()),
+      ex8(DivMacroIntStruct<int>()) {}
 };
 
 #endif

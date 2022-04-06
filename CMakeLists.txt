@@ -236,6 +236,8 @@ src/engine/platform/sound/gb/apu.c
 src/engine/platform/sound/gb/timing.c
 src/engine/platform/sound/pce_psg.cpp
 src/engine/platform/sound/nes/apu.c
+src/engine/platform/sound/nes/fds.c
+src/engine/platform/sound/nes/mmc5.c
 src/engine/platform/sound/vera_psg.c
 src/engine/platform/sound/vera_pcm.c
 
@@ -290,6 +292,7 @@ src/engine/config.cpp
 src/engine/dispatchContainer.cpp
 src/engine/engine.cpp
 src/engine/fileOps.cpp
+src/engine/fileOpsIns.cpp
 src/engine/filter.cpp
 src/engine/instrument.cpp
 src/engine/macroInt.cpp
@@ -307,6 +310,7 @@ src/engine/platform/sms.cpp
 src/engine/platform/opll.cpp
 src/engine/platform/gb.cpp
 src/engine/platform/pce.cpp
+src/engine/platform/mmc5.cpp
 src/engine/platform/nes.cpp
 src/engine/platform/c64.cpp
 src/engine/platform/arcade.cpp
@@ -317,6 +321,7 @@ src/engine/platform/ym2610bext.cpp
 src/engine/platform/ay.cpp
 src/engine/platform/ay8930.cpp
 src/engine/platform/opl.cpp
+src/engine/platform/fds.cpp
 src/engine/platform/tia.cpp
 src/engine/platform/saa.cpp
 src/engine/platform/amiga.cpp

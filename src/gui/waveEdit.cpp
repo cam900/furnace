@@ -19,6 +19,7 @@
 
 #include "gui.h"
 #include "plot_nolerp.h"
+#include "IconsFontAwesome4.h"
 #include "misc/cpp/imgui_stdlib.h"
 #include <imgui.h>
 
@@ -35,10 +36,26 @@ void FurnaceGUI::drawWaveEdit() {
     if (curWave<0 || curWave>=(int)e->song.wave.size()) {
       ImGui::Text("no wavetable selected");
     } else {
+      ImGui::SetNextItemWidth(80.0f*dpiScale);
+      if (ImGui::InputInt("##CurWave",&curWave,1,1)) {
+        if (curWave<0) curWave=0;
+        if (curWave>=(int)e->song.wave.size()) curWave=e->song.wave.size()-1;
+      }
+      ImGui::SameLine();
+      // TODO: load replace
+      if (ImGui::Button(ICON_FA_FOLDER_OPEN "##WELoad")) {
+        doAction(GUI_ACTION_WAVE_LIST_OPEN);
+      }
+      ImGui::SameLine();
+      if (ImGui::Button(ICON_FA_FLOPPY_O "##WESave")) {
+        doAction(GUI_ACTION_WAVE_LIST_SAVE);
+      }
+      ImGui::SameLine();
+      
       DivWavetable* wave=e->song.wave[curWave];
       ImGui::Text("Width");
       if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("use a width of:\n- any on Amiga/N163\n- 32 on Game Boy, PC Engine and WonderSwan\n- 128 on X1-010\nany other widths will be scaled during playback.");
+        ImGui::SetTooltip("use a width of:\n- any on Amiga/N163\n- 32 on Game Boy, PC Engine and WonderSwan\n- 64 on FDS\n- 128 on X1-010\nany other widths will be scaled during playback.");
       }
       ImGui::SameLine();
       ImGui::SetNextItemWidth(128.0f*dpiScale);
@@ -52,7 +69,7 @@ void FurnaceGUI::drawWaveEdit() {
       ImGui::SameLine();
       ImGui::Text("Height");
       if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("use a height of:\n- 15 for Game Boy, WonderSwan, X1-010 Envelope shape and N163\n- 31 for PC Engine\n- 255 for X1-010\nany other heights will be scaled during playback.");
+        ImGui::SetTooltip("use a height of:\n- 15 for Game Boy, WonderSwan, X1-010 Envelope shape and N163\n- 31 for PC Engine\n- 63 for FDS\n- 255 for X1-010\nany other heights will be scaled during playback.");
       }
       ImGui::SameLine();
       ImGui::SetNextItemWidth(128.0f*dpiScale);

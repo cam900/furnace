@@ -1300,6 +1300,16 @@ int DivEngine::addInstrument(int refChan) {
   return insCount;
 }
 
+int DivEngine::addInstrumentPtr(DivInstrument* which) {
+  BUSY_BEGIN;
+  saveLock.lock();
+  song.ins.push_back(which);
+  song.insLen=song.ins.size();
+  saveLock.unlock();
+  BUSY_END;
+  return song.insLen;
+}
+
 enum DivInsFormats {
   DIV_INSFORMAT_DMP,
   DIV_INSFORMAT_TFI,
@@ -1308,12 +1318,14 @@ enum DivInsFormats {
   DIV_INSFORMAT_BTI,
   DIV_INSFORMAT_S3I,
   DIV_INSFORMAT_SBI,
+  DIV_INSFORMAT_OPM
 };
 
 // TODO: re-organize this function to:
 // - support replacing instruments
 // - support instrument formats which contain multiple instruments
-bool DivEngine::addInstrumentFromFile(const char* path) {
+std::vector<DivInstrument*> DivEngine::instrumentFromFile(const char* path) {
+  std::vector<DivInstrument*> ret;
   warnings="";
 
   const char* pathRedux=strrchr(path,DIR_SEPARATOR);
@@ -1335,37 +1347,37 @@ bool DivEngine::addInstrumentFromFile(const char* path) {
   FILE* f=ps_fopen(path,"rb");
   if (f==NULL) {
     lastError=strerror(errno);
-    return false;
+    return ret;
   }
   unsigned char* buf;
   ssize_t len;
   if (fseek(f,0,SEEK_END)!=0) {
     lastError=strerror(errno);
     fclose(f);
-    return false;
+    return ret;
   }
   len=ftell(f);
   if (len<0) {
     lastError=strerror(errno);
     fclose(f);
-    return false;
+    return ret;
   }
   if (len==0) {
     lastError=strerror(errno);
     fclose(f);
-    return false;
+    return ret;
   }
   if (fseek(f,0,SEEK_SET)!=0) {
     lastError=strerror(errno);
     fclose(f);
-    return false;
+    return ret;
   }
   buf=new unsigned char[len];
   if (fread(buf,1,len,f)!=(size_t)len) {
     logW("did not read entire instrument file buffer!\n");
     lastError="did not read entire instrument file!";
     delete[] buf;
-    return false;
+    return ret;
   }
   fclose(f);
 
@@ -1399,14 +1411,14 @@ bool DivEngine::addInstrumentFromFile(const char* path) {
         lastError="invalid instrument header/data!";
         delete ins;
         delete[] buf;
-        return false;
+        return ret;
       }
     } catch (EndOfFileException& e) {
       lastError="premature end of file";
       logE("premature end of file!\n");
       delete ins;
       delete[] buf;
-      return false;
+      return ret;
     }
   } else { // read as a different format
     const char* ext=strrchr(path,'.');
@@ -1451,14 +1463,14 @@ bool DivEngine::addInstrumentFromFile(const char* path) {
           logE("premature end of file!\n");
           delete ins;
           delete[] buf;
-          return false;
+          return ret;
         }
 
         if (version>11) {
           lastError="unknown instrument version!";
           delete ins;
           delete[] buf;
-          return false;
+          return ret;
         }
 
         ins->name=stripPath;
@@ -1496,7 +1508,7 @@ bool DivEngine::addInstrumentFromFile(const char* path) {
                 lastError="unknown instrument type!";
                 delete ins;
                 delete[] buf;
-                return false;
+                return ret;
                 break;
             }
           } catch (EndOfFileException& e) {
@@ -1504,7 +1516,7 @@ bool DivEngine::addInstrumentFromFile(const char* path) {
             logE("premature end of file!\n");
             delete ins;
             delete[] buf;
-            return false;
+            return ret;
           }
         }
 
@@ -1685,7 +1697,7 @@ bool DivEngine::addInstrumentFromFile(const char* path) {
           logE("premature end of file!\n");
           delete ins;
           delete[] buf;
-          return false;
+          return ret;
         }
         break;
       }
@@ -1718,7 +1730,7 @@ bool DivEngine::addInstrumentFromFile(const char* path) {
           logE("premature end of file!\n");
           delete ins;
           delete[] buf;
-          return false;
+          return ret;
         }
         break;
       case DIV_INSFORMAT_VGI:
@@ -1757,12 +1769,14 @@ bool DivEngine::addInstrumentFromFile(const char* path) {
           logE("premature end of file!\n");
           delete ins;
           delete[] buf;
-          return false;
+          return ret;
         }
         break;
-      case DIV_INSFORMAT_FTI:
+      case DIV_INSFORMAT_FTI: // TODO
         break;
-      case DIV_INSFORMAT_BTI:
+      case DIV_INSFORMAT_BTI: // TODO
+        break;
+      case DIV_INSFORMAT_OPM: // TODO
         break;
       case DIV_INSFORMAT_S3I:
         try {
@@ -1840,7 +1854,7 @@ bool DivEngine::addInstrumentFromFile(const char* path) {
           logE("premature end of file!\n");
           delete ins;
           delete[] buf;
-          return false;
+          return ret;
         }
         break;
       case DIV_INSFORMAT_SBI:
@@ -2007,7 +2021,7 @@ bool DivEngine::addInstrumentFromFile(const char* path) {
           logE("premature end of file!\n");
           delete ins;
           delete[] buf;
-          return false;
+          return ret;
         }
         break;
     }
@@ -2019,14 +2033,8 @@ bool DivEngine::addInstrumentFromFile(const char* path) {
     }
   }
 
-  BUSY_BEGIN;
-  saveLock.lock();
-  int insCount=(int)song.ins.size();
-  song.ins.push_back(ins);
-  song.insLen=insCount+1;
-  saveLock.unlock();
-  BUSY_END;
-  return true;
+  ret.push_back(ins);
+  return ret;
 }
 
 void DivEngine::delInstrument(int index) {

@@ -149,21 +149,10 @@ struct DivInstrumentFM {
   }
 };
 
-template<typename T> struct DivMacroArray {
-  T val;
-  unsigned short tick;
-  bool interpolate;
-  DivMacroArray():
-    val(0),
-    tick(1),
-    interpolate(false) {}
-};
-
 template<typename T> struct DivMacroSTD {
   const char* name;
-  bool enable;
+  T val[256];
   bool mode;
-  std::vector<DivMacroArray<T>> arr;
   unsigned char height;
   bool open;
   unsigned char len;
@@ -171,9 +160,8 @@ template<typename T> struct DivMacroSTD {
   signed char rel;
   DivMacroSTD(const char* macroName, unsigned char h=~0):
     name(macroName),
-    enable(true),
     mode(false),
-    arr(256),
+    val{0},
     height(h),
     open(false),
     len(0),
@@ -193,6 +181,14 @@ struct DivInstrumentSTD {
   DivMacroSTD<int> fbMacro;
   DivMacroSTD<int> fmsMacro;
   DivMacroSTD<int> amsMacro;
+  DivMacroSTD<int> panLMacro;
+  DivMacroSTD<int> panRMacro;
+  DivMacroSTD<int> phaseResetMacro;
+  DivMacroSTD<int> ex4Macro;
+  DivMacroSTD<int> ex5Macro;
+  DivMacroSTD<int> ex6Macro;
+  DivMacroSTD<int> ex7Macro;
+  DivMacroSTD<int> ex8Macro;
   struct OpMacro {
     // ar, dr, mult, rr, sl, tl, dt2, rs, dt, d2r, ssgEnv;
     DivMacroSTD<unsigned char> amMacro;
@@ -239,7 +235,15 @@ struct DivInstrumentSTD {
     algMacro(DivMacroSTD<int>("alg")),
     fbMacro(DivMacroSTD<int>("fb")),
     fmsMacro(DivMacroSTD<int>("fms")),
-    amsMacro(DivMacroSTD<int>("ams")) { }
+    amsMacro(DivMacroSTD<int>("ams")),
+    panLMacro(DivMacroSTD<int>("panl")),
+    panRMacro(DivMacroSTD<int>("panr")),
+    phaseResetMacro(DivMacroSTD<int>("phasereset")),
+    ex4Macro(DivMacroSTD<int>("ex4")),
+    ex5Macro(DivMacroSTD<int>("ex5")),
+    ex6Macro(DivMacroSTD<int>("ex6")),
+    ex7Macro(DivMacroSTD<int>("ex7")),
+    ex8Macro(DivMacroSTD<int>("ex8")) { }
 };
 
 struct DivInstrumentGB {
@@ -357,6 +361,17 @@ struct DivInstrumentES5506 {
     envelope(DivInstrumentES5506::Envelope()) {}
 };
 
+struct DivInstrumentFDS {
+  signed char modTable[32];
+  int modSpeed, modDepth;
+  // this is here for compatibility.
+  bool initModTableWithFirstWave;
+  DivInstrumentFDS():
+    modSpeed(0),
+    modDepth(0),
+    initModTableWithFirstWave(false) {
+    memset(modTable,0,32);
+  }
 struct DivInstrument {
   String name;
   bool mode;
@@ -367,6 +382,7 @@ struct DivInstrument {
   DivInstrumentC64 c64;
   DivInstrumentAmiga amiga;
   DivInstrumentN163 n163;
+  DivInstrumentFDS fds;
   DivInstrumentES5506 es5506;
   
   /**

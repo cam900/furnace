@@ -35,6 +35,7 @@
 #include "fileDialog.h"
 
 #define rightClickable if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) ImGui::SetKeyboardFocusHere(-1);
+#define ctrlWheeling ((ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) && wheelY!=0)
 
 #define handleUnimportant if (settings.insFocusesPattern && patternOpen) {nextWindow=GUI_WINDOW_PATTERN;}
 #define unimportant(x) if (x) {handleUnimportant}
@@ -53,6 +54,8 @@ enum FurnaceGUIColors {
   GUI_COLOR_TEXT,
   GUI_COLOR_ACCENT_PRIMARY,
   GUI_COLOR_ACCENT_SECONDARY,
+  GUI_COLOR_BORDER,
+  GUI_COLOR_BORDER_SHADOW,
   GUI_COLOR_TOGGLE_OFF,
   GUI_COLOR_TOGGLE_ON,
   GUI_COLOR_EDITING,
@@ -119,6 +122,7 @@ enum FurnaceGUIColors {
   GUI_COLOR_CHANNEL_OP,
   GUI_COLOR_CHANNEL_MUTED,
 
+  GUI_COLOR_PATTERN_PLAY_HEAD,
   GUI_COLOR_PATTERN_CURSOR,
   GUI_COLOR_PATTERN_CURSOR_HOVER,
   GUI_COLOR_PATTERN_CURSOR_ACTIVE,
@@ -131,6 +135,8 @@ enum FurnaceGUIColors {
   GUI_COLOR_PATTERN_ACTIVE,
   GUI_COLOR_PATTERN_INACTIVE,
   GUI_COLOR_PATTERN_INS,
+  GUI_COLOR_PATTERN_INS_WARN,
+  GUI_COLOR_PATTERN_INS_ERROR,
   GUI_COLOR_PATTERN_VOLUME_MAX,
   GUI_COLOR_PATTERN_VOLUME_HALF,
   GUI_COLOR_PATTERN_VOLUME_MIN,
@@ -434,6 +440,12 @@ enum PasteMode {
 #define FURKMOD_ALT (1<<27)
 #define FURK_MASK 0x40ffffff
 
+#ifdef __APPLE__
+#define FURKMOD_CMD FURKMOD_META
+#else
+#define FURKMOD_CMD FURKMOD_CTRL
+#endif
+
 struct SelectionPoint {
   int xCoarse, xFine;
   int y;
@@ -643,6 +655,7 @@ class FurnaceGUI {
   bool quit, warnQuit, willCommit, edit, modified, displayError, displayExporting, vgmExportLoop;
   bool displayNew;
   bool willExport[32];
+  int vgmExportVersion;
 
   FurnaceGUIFileDialogs curFileDialog;
   FurnaceGUIWarnings warnAction;
@@ -728,6 +741,11 @@ class FurnaceGUI {
     int loadJapanese;
     int fmLayout;
     int susPosition;
+    int effectCursorDir;
+    int cursorPastePos;
+    int titleBarInfo;
+    int titleBarSys;
+    int frameBorders;
     unsigned int maxUndoSteps;
     String mainFontPath;
     String patFontPath;
@@ -782,6 +800,11 @@ class FurnaceGUI {
       loadJapanese(0),
       fmLayout(0),
       susPosition(0),
+      effectCursorDir(1),
+      cursorPastePos(1),
+      titleBarInfo(1),
+      titleBarSys(1),
+      frameBorders(0),
       maxUndoSteps(100),
       mainFontPath(""),
       patFontPath(""),
@@ -794,13 +817,23 @@ class FurnaceGUI {
 
   int curIns, curWave, curSample, curOctave, oldRow, oldOrder, oldOrder1, editStep, exportLoops, soloChan, soloTimeout, orderEditMode, orderCursor;
   int loopOrder, loopRow, loopEnd, isClipping, extraChannelButtons, patNameTarget, newSongCategory;
+  int wheelX, wheelY;
+
   bool editControlsOpen, ordersOpen, insListOpen, songInfoOpen, patternOpen, insEditOpen;
   bool waveListOpen, waveEditOpen, sampleListOpen, sampleEditOpen, aboutOpen, settingsOpen;
   bool mixerOpen, debugOpen, inspectorOpen, oscOpen, volMeterOpen, statsOpen, compatFlagsOpen;
   bool pianoOpen, notesOpen, channelsOpen, regViewOpen;
+
+  /* there ought to be a better way...
+  bool editControlsDocked, ordersDocked, insListDocked, songInfoDocked, patternDocked, insEditDocked;
+  bool waveListDocked, waveEditDocked, sampleListDocked, sampleEditDocked, aboutDocked, settingsDocked;
+  bool mixerDocked, debugDocked, inspectorDocked, oscDocked, volMeterDocked, statsDocked, compatFlagsDocked;
+  bool pianoDocked, notesDocked, channelsDocked, regViewDocked;
+  */
+
   SelectionPoint selStart, selEnd, cursor;
   bool selecting, curNibble, orderNibble, followOrders, followPattern, changeAllOrders;
-  bool collapseWindow, demandScrollX, fancyPattern, wantPatName, firstFrame, tempoView, waveHex;
+  bool collapseWindow, demandScrollX, fancyPattern, wantPatName, firstFrame, tempoView, waveHex, lockLayout;
   FurnaceGUIWindows curWindow, nextWindow;
   float peak[2];
   float patChanX[DIV_MAX_CHANS+1];
@@ -938,12 +971,19 @@ class FurnaceGUI {
   void drawES5506Env(unsigned short src, signed char ramp, unsigned short counter, bool slow, const ImVec2& size);
   void drawSysConf(int i);
 
+  // these ones offer ctrl-wheel fine value changes.
+  bool CWSliderScalar(const char* label, ImGuiDataType data_type, void* p_data, const void* p_min, const void* p_max, const char* format=NULL, ImGuiSliderFlags flags=0);
+  bool CWVSliderScalar(const char* label, const ImVec2& size, ImGuiDataType data_type, void* p_data, const void* p_min, const void* p_max, const char* format=NULL, ImGuiSliderFlags flags=0);
+  bool CWSliderInt(const char* label, int* v, int v_min, int v_max, const char* format="%d", ImGuiSliderFlags flags=0);
+  bool CWSliderFloat(const char* label, float* v, float v_min, float v_max, const char* format="%.3f", ImGuiSliderFlags flags=0);
+  bool CWVSliderInt(const char* label, const ImVec2& size, int* v, int v_min, int v_max, const char* format="%d", ImGuiSliderFlags flags=0);
+
   void updateWindowTitle();
   void prepareLayout();
 
   float calcBPM(int s1, int s2, float hz);
 
-  void patternRow(int i, bool isPlaying, float lineHeight, int chans, int ord);
+  void patternRow(int i, bool isPlaying, float lineHeight, int chans, int ord, const DivPattern** patCache);
 
   void actualWaveList();
   void actualSampleList();

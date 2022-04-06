@@ -21,24 +21,27 @@
 #include "instrument.h"
 
 template<typename T>
-void DivMacroIntStruct::doMacro(DivMacroSTD<T>& source) {
+void DivMacroIntStruct::doMacro() {
+  if (source==NULL) {
+    return;
+  }
   if (finished) finished=false;
   if (had!=has) {
     finished=true;
   }
   had=has;
   if (has) {
-    val=source.val[pos++];
-    if (source.rel>=0 && pos>source.rel && !released) {
-      if (source.loop<source.len && source.loop>=0 && source.loop<source.rel) {
-        pos=source.loop;
+    val=source->val[pos++];
+    if (source->rel>=0 && pos>source->rel && !released) {
+      if (source->loop<source->len && source->loop>=0 && source->loop<source->rel) {
+        pos=source->loop;
       } else {
         pos--;
       }
     }
-    if (pos>=source.len) {
-      if (source.loop<source.len && source.loop>=0 && (source.loop>=source.rel || source.rel>=source.len)) {
-        pos=source.loop;
+    if (pos>=source->len) {
+      if (source->loop<source->len && source->loop>=0 && (source->loop>=source->rel || source->rel>=source->len)) {
+        pos=source->loop;
       } else {
         has=false;
       }
@@ -50,20 +53,29 @@ void DivMacroIntStruct::doMacro(DivMacroSTD<T>& source) {
 void DivMacroInt::next() {
   if (ins==NULL) return;
 
-  vol.doMacro(ins->std.volMacro);
-  arp.doMacro(ins->std.arpMacro);
-  duty.doMacro(ins->std.dutyMacro);
-  wave.doMacro(ins->std.waveMacro);
+  vol.doMacro();
+  arp.doMacro();
+  duty.doMacro();
+  wave.doMacro();
   
-  pitch.doMacro(ins->std.pitchMacro);
-  ex1.doMacro(ins->std.ex1Macro);
-  ex2.doMacro(ins->std.ex2Macro);
-  ex3.doMacro(ins->std.ex3Macro);
+  pitch.doMacro();
+  ex1.doMacro();
+  ex2.doMacro();
+  ex3.doMacro();
 
-  alg.doMacro(ins->std.algMacro);
-  fb.doMacro(ins->std.fbMacro);
-  fms.doMacro(ins->std.fmsMacro);
-  ams.doMacro(ins->std.amsMacro);
+  alg.doMacro();
+  fb.doMacro();
+  fms.doMacro();
+  ams.doMacro();
+
+  panL.doMacro();
+  panR.doMacro();
+  phaseReset.doMacro();
+  ex4.doMacro();
+  ex5.doMacro();
+  ex6.doMacro();
+  ex7.doMacro();
+  ex8.doMacro();
 
   for (int i=0; i<4; i++) {
     DivInstrumentSTD::OpMacro& m=ins->std.opMacros[i];
@@ -113,6 +125,14 @@ void DivMacroInt::init(DivInstrument* which) {
   fb.reset();
   fms.reset();
   ams.reset();
+  panL.reset();
+  panR.reset();
+  phaseReset.reset();
+  ex4.reset();
+  ex5.reset();
+  ex6.reset();
+  ex7.reset();
+  ex8.reset();
 
   released=false;
 
@@ -121,49 +141,69 @@ void DivMacroInt::init(DivInstrument* which) {
   op[2]=IntOp();
   op[3]=IntOp();
 
-  arpMode=false;
-
   if (ins==NULL) return;
 
   if (ins->std.volMacro.len>0) {
-    vol.init();
+    vol.init(ins->std.volMacro);
   }
   if (ins->std.arpMacro.len>0) {
-    arp.init();
+    arp.init(ins->std.arpMacro);
   }
   if (ins->std.dutyMacro.len>0) {
-    duty.init();
+    duty.init(ins->std.dutyMacro);
   }
   if (ins->std.waveMacro.len>0) {
-    wave.init();
+    wave.init(ins->std.waveMacro);
   }
   if (ins->std.pitchMacro.len>0) {
-    pitch.init();
+    pitch.init(ins->std.pitchMacro);
   }
   if (ins->std.ex1Macro.len>0) {
-    ex1.init();
+    ex1.init(ins->std.ex1Macro);
   }
   if (ins->std.ex2Macro.len>0) {
-    ex2.init();
+    ex2.init(ins->std.ex2Macro);
   }
   if (ins->std.ex3Macro.len>0) {
-    ex3.init();
+    ex3.init(ins->std.ex3Macro);
   }
   if (ins->std.algMacro.len>0) {
-    alg.init();
+    alg.init(ins->std.algMacro);
   }
   if (ins->std.fbMacro.len>0) {
-    fb.init();
+    fb.init(ins->std.fbMacro);
   }
   if (ins->std.fmsMacro.len>0) {
-    fms.init();
+    fms.init(ins->std.fmsMacro);
   }
   if (ins->std.amsMacro.len>0) {
-    ams.init();
+    ams.init(ins->std.amsMacro);
   }
 
-  if (ins->std.arpMacroMode) {
-    arpMode=true;
+  // TODO: other macros
+  if (ins->std.panLMacro.len>0) {
+    panL.init(ins->std.panLMacro);
+  }
+  if (ins->std.panRMacro.len>0) {
+    panR.init(ins->std.panRMacro);
+  }
+  if (ins->std.phaseResetMacro.len>0) {
+    phaseReset.init(ins->std.phaseResetMacro);
+  }
+  if (ins->std.ex4Macro.len>0) {
+    ex4.init(ins->std.ex4Macro);
+  }
+  if (ins->std.ex5Macro.len>0) {
+    ex5.init(ins->std.ex5Macro);
+  }
+  if (ins->std.ex6Macro.len>0) {
+    ex6.init(ins->std.ex6Macro);
+  }
+  if (ins->std.ex7Macro.len>0) {
+    ex7.init(ins->std.ex7Macro);
+  }
+  if (ins->std.ex8Macro.len>0) {
+    ex8.init(ins->std.ex8Macro);
   }
 
   for (int i=0; i<4; i++) {

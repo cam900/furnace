@@ -19,6 +19,22 @@
 
 // guiConst: constants used in the GUI like arrays, strings and other stuff
 
+struct FurnaceGUIActionDef {
+  const char* name;
+  const char* friendlyName;
+  int defaultBind;
+  FurnaceGUIActionDef(const char* n, const char* fn, int db):
+    name(n), friendlyName(fn), defaultBind(db) {}
+};
+
+struct FurnaceGUIColorDef {
+  const char* name;
+  const char* friendlyName;
+  unsigned int defaultColor;
+  FurnaceGUIColorDef(const char* n, const char* fn, unsigned int dc):
+    name(n), friendlyName(fn), defaultColor(dc) {}
+};
+
 extern const int opOrder[4];
 extern const char* noteNames[180];
 extern const char* noteNamesG[180];
@@ -27,5 +43,7 @@ extern const char* insTypes[];
 extern const char* sampleDepths[17];
 extern const char* resampleStrats[];
 extern const int availableSystems[];
-extern const char* guiActions[][2];
+extern const FurnaceGUIActionDef guiActions[];
+extern const FurnaceGUIColorDef guiColors[];
 extern const int altValues[24];
+extern const int vgmVersions[6];
