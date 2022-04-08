@@ -1300,8 +1300,8 @@ void FurnaceGUI::openFileDialog(FurnaceGUIFileDialogs type) {
       hasOpened=fileDialog->openSave(
         "Save File",
         {"Furnace song", "*.fur",
-         "DefleMask 1.1 module", "*.dmf"},
-        "Furnace song{.fur},DefleMask 1.1 module{.dmf}",
+         "DefleMask 1.1.3 module", "*.dmf"},
+        "Furnace song{.fur},DefleMask 1.1.3 module{.dmf}",
         workingDirSong,
         dpiScale
       );
@@ -1439,6 +1439,66 @@ void FurnaceGUI::openFileDialog(FurnaceGUIFileDialogs type) {
         {"compatible files", "*.ttf *.otf *.ttc"},
         "compatible files{.ttf,.otf,.ttc}",
         workingDirFont,
+        dpiScale
+      );
+      break;
+    case GUI_FILE_IMPORT_COLORS:
+      if (!dirExists(workingDirColors)) workingDirColors=getHomeDir();
+      hasOpened=fileDialog->openLoad(
+        "Select Color File",
+        {"configuration files", "*.cfgc"},
+        "configuration files{.cfgc}",
+        workingDirColors,
+        dpiScale
+      );
+      break;
+    case GUI_FILE_IMPORT_KEYBINDS:
+      if (!dirExists(workingDirKeybinds)) workingDirKeybinds=getHomeDir();
+      hasOpened=fileDialog->openLoad(
+        "Select Keybind File",
+        {"configuration files", "*.cfgk"},
+        "configuration files{.cfgk}",
+        workingDirKeybinds,
+        dpiScale
+      );
+      break;
+    case GUI_FILE_IMPORT_LAYOUT:
+      if (!dirExists(workingDirKeybinds)) workingDirKeybinds=getHomeDir();
+      hasOpened=fileDialog->openLoad(
+        "Select Layout File",
+        {".ini files", "*.ini"},
+        ".ini files{.ini}",
+        workingDirKeybinds,
+        dpiScale
+      );
+      break;
+    case GUI_FILE_EXPORT_COLORS:
+      if (!dirExists(workingDirColors)) workingDirColors=getHomeDir();
+      hasOpened=fileDialog->openSave(
+        "Export Colors",
+        {"configuration files", "*.cfgc"},
+        "configuration files{.cfgc}",
+        workingDirColors,
+        dpiScale
+      );
+      break;
+    case GUI_FILE_EXPORT_KEYBINDS:
+      if (!dirExists(workingDirKeybinds)) workingDirKeybinds=getHomeDir();
+      hasOpened=fileDialog->openSave(
+        "Export Keybinds",
+        {"configuration files", "*.cfgk"},
+        "configuration files{.cfgk}",
+        workingDirKeybinds,
+        dpiScale
+      );
+      break;
+    case GUI_FILE_EXPORT_LAYOUT:
+      if (!dirExists(workingDirKeybinds)) workingDirKeybinds=getHomeDir();
+      hasOpened=fileDialog->openSave(
+        "Export Layout",
+        {".ini files", "*.ini"},
+        ".ini files{.ini}",
+        workingDirKeybinds,
         dpiScale
       );
       break;
@@ -2588,6 +2648,18 @@ bool FurnaceGUI::loop() {
         case GUI_FILE_LOAD_PAT_FONT:
           workingDirFont=fileDialog->getPath()+DIR_SEPARATOR_STR;
           break;
+        case GUI_FILE_IMPORT_COLORS:
+        case GUI_FILE_EXPORT_COLORS:
+          workingDirColors=fileDialog->getPath()+DIR_SEPARATOR_STR;
+          break;
+        case GUI_FILE_IMPORT_KEYBINDS:
+        case GUI_FILE_EXPORT_KEYBINDS:
+          workingDirKeybinds=fileDialog->getPath()+DIR_SEPARATOR_STR;
+          break;
+        case GUI_FILE_IMPORT_LAYOUT:
+        case GUI_FILE_EXPORT_LAYOUT:
+          workingDirLayout=fileDialog->getPath()+DIR_SEPARATOR_STR;
+          break;
       }
       if (fileDialog->accepted()) {
         fileName=fileDialog->getFileName();
@@ -2615,6 +2687,15 @@ bool FurnaceGUI::loop() {
           if (curFileDialog==GUI_FILE_EXPORT_VGM) {
             checkExtension(".vgm");
           }
+          if (curFileDialog==GUI_FILE_EXPORT_COLORS) {
+            checkExtension(".cfgc");
+          }
+          if (curFileDialog==GUI_FILE_EXPORT_KEYBINDS) {
+            checkExtension(".cfgk");
+          }
+          if (curFileDialog==GUI_FILE_EXPORT_LAYOUT) {
+            checkExtension(".ini");
+          }
           String copyOfName=fileName;
           switch (curFileDialog) {
             case GUI_FILE_OPEN:
@@ -2633,7 +2714,7 @@ bool FurnaceGUI::loop() {
                   showError(fmt::sprintf("Error while saving file! (%s)",lastError));
                 }
               } else {
-                if (save(copyOfName,25)>0) {
+                if (save(copyOfName,26)>0) {
                   showError(fmt::sprintf("Error while saving file! (%s)",lastError));
                 }
               }
@@ -2722,6 +2803,24 @@ bool FurnaceGUI::loop() {
               break;
             case GUI_FILE_LOAD_PAT_FONT:
               settings.patFontPath=copyOfName;
+              break;
+            case GUI_FILE_IMPORT_COLORS:
+              importColors(copyOfName);
+              break;
+            case GUI_FILE_IMPORT_KEYBINDS:
+              importKeybinds(copyOfName);
+              break;
+            case GUI_FILE_IMPORT_LAYOUT:
+              importLayout(copyOfName);
+              break;
+            case GUI_FILE_EXPORT_COLORS:
+              exportColors(copyOfName);
+              break;
+            case GUI_FILE_EXPORT_KEYBINDS:
+              exportKeybinds(copyOfName);
+              break;
+            case GUI_FILE_EXPORT_LAYOUT:
+              exportLayout(copyOfName);
               break;
           }
           curFileDialog=GUI_FILE_OPEN;
@@ -2813,6 +2912,12 @@ bool FurnaceGUI::loop() {
             ImGui::LoadIniSettingsFromMemory(defaultLayout);
             ImGui::SaveIniSettingsToDisk(finalLayoutPath);
             break;
+          case GUI_WARN_RESET_KEYBINDS:
+            resetKeybinds();
+            break;
+          case GUI_WARN_RESET_COLORS:
+            resetColors();
+            break;
           case GUI_WARN_GENERIC:
             break;
         }
@@ -2899,6 +3004,9 @@ bool FurnaceGUI::init() {
   workingDirAudioExport=e->getConfString("lastDirAudioExport",workingDir);
   workingDirVGMExport=e->getConfString("lastDirVGMExport",workingDir);
   workingDirFont=e->getConfString("lastDirFont",workingDir);
+  workingDirColors=e->getConfString("lastDirColors",workingDir);
+  workingDirKeybinds=e->getConfString("lastDirKeybinds",workingDir);
+  workingDirLayout=e->getConfString("lastDirLayout",workingDir);
 
   editControlsOpen=e->getConfBool("editControlsOpen",true);
   ordersOpen=e->getConfBool("ordersOpen",true);
@@ -3057,6 +3165,9 @@ bool FurnaceGUI::finish() {
   e->setConf("lastDirAudioExport",workingDirAudioExport);
   e->setConf("lastDirVGMExport",workingDirVGMExport);
   e->setConf("lastDirFont",workingDirFont);
+  e->setConf("lastDirColors",workingDirColors);
+  e->setConf("lastDirKeybinds",workingDirKeybinds);
+  e->setConf("lastDirLayout",workingDirLayout);
 
   // commit last open windows
   e->setConf("editControlsOpen",editControlsOpen);

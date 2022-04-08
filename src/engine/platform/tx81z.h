@@ -17,32 +17,33 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef _AY_H
-#define _AY_H
+#ifndef _TX81Z_H
+#define _TX81Z_H
 #include "../dispatch.h"
-#include "../macroInt.h"
+#include "../instrument.h"
 #include <queue>
-#include "sound/ay8910.h"
+#include "sound/ymfm/ymfm_opz.h"
+#include "../macroInt.h"
 
-class DivPlatformAY8910: public DivDispatch {
+class DivTXInterface: public ymfm::ymfm_interface {
+
+};
+
+class DivPlatformTX81Z: public DivDispatch {
   protected:
-    const unsigned char AY8914RegRemap[16]={
-      0,4,1,5,2,6,9,8,11,12,13,3,7,10,14,15
-    };
-    inline unsigned char regRemap(unsigned char reg) { return intellivision?AY8914RegRemap[reg&0x0f]:reg&0x0f; }
     struct Channel {
-      unsigned char freqH, freqL;
-      int freq, baseFreq, note, pitch;
-      unsigned char ins, psgMode, autoEnvNum, autoEnvDen;
-      signed char konCycles;
-      bool active, insChanged, freqChanged, keyOn, keyOff, portaPause, inPorta;
-      int vol, outVol;
-      unsigned char pan;
+      DivInstrumentFM state;
       DivMacroInt std;
-      Channel(): freqH(0), freqL(0), freq(0), baseFreq(0), note(0), pitch(0), ins(-1), psgMode(1), autoEnvNum(0), autoEnvDen(0), active(false), insChanged(true), freqChanged(false), keyOn(false), keyOff(false), portaPause(false), inPorta(false), vol(0), outVol(15), pan(3) {}
+      unsigned char freqH, freqL;
+      int freq, baseFreq, pitch, note;
+      unsigned char ins;
+      signed char konCycles;
+      bool active, insChanged, freqChanged, keyOn, keyOff, inPorta, portaPause, furnacePCM;
+      int vol, outVol;
+      unsigned char chVolL, chVolR;
+      Channel(): freqH(0), freqL(0), freq(0), baseFreq(0), pitch(0), note(0), ins(-1), active(false), insChanged(true), freqChanged(false), keyOn(false), keyOff(false), inPorta(false), portaPause(false), furnacePCM(false), vol(0), outVol(0), chVolL(127), chVolR(127) {}
     };
-    Channel chan[3];
-    bool isMuted[3];
+    Channel chan[8];
     struct QueuedWrite {
       unsigned short addr;
       unsigned char val;
@@ -50,35 +51,27 @@ class DivPlatformAY8910: public DivDispatch {
       QueuedWrite(unsigned short a, unsigned char v): addr(a), val(v), addrOrVal(false) {}
     };
     std::queue<QueuedWrite> writes;
-    ay8910_device* ay;
-    unsigned char regPool[16];
+    int delay, baseFreqOff;
+    int pcmL, pcmR, pcmCycles;
     unsigned char lastBusy;
-  
-    bool dacMode;
-    int dacPeriod;
-    int dacRate;
-    int dacPos;
-    int dacSample;
-    unsigned char sampleBank;
+    unsigned char amDepth, pmDepth;
 
-    int delay;
+    ymfm::ym2414* fm_ymfm;
+    ymfm::ym2414::output_data out_ymfm;
+    DivTXInterface iface;
+
+    unsigned char regPool[330];
 
     bool extMode;
-    bool stereo, sunsoft, intellivision;
-    bool ioPortA, ioPortB;
-    unsigned char portAVal, portBVal;
+
+    bool isMuted[8];
   
-    short oldWrites[16];
-    short pendingWrites[16];
-    unsigned char ayEnvMode;
-    unsigned short ayEnvPeriod;
-    short ayEnvSlideLow;
-    short ayEnvSlide;
-    short* ayBuf[3];
-    size_t ayBufLen;
+    short oldWrites[330];
+    short pendingWrites[330];
 
-    void updateOutSel(bool immediate=false);
-
+    int octave(int freq);
+    int toFreq(int freq);
+  
     friend void putDispatchChan(void*,int,int);
   
   public:
@@ -87,20 +80,19 @@ class DivPlatformAY8910: public DivDispatch {
     void* getChanState(int chan);
     unsigned char* getRegisterPool();
     int getRegisterPoolSize();
-    void flushWrites();
     void reset();
     void forceIns();
     void tick();
     void muteChannel(int ch, bool mute);
+    void notifyInsChange(int ins);
     void setFlags(unsigned int flags);
     bool isStereo();
-    bool keyOffAffectsArp(int ch);
-    void notifyInsDeletion(void* ins);
     void poke(unsigned int addr, unsigned short val);
     void poke(std::vector<DivRegWrite>& wlist);
     const char** getRegisterSheet();
     const char* getEffectName(unsigned char effect);
     int init(DivEngine* parent, int channels, int sugRate, unsigned int flags);
     void quit();
+    ~DivPlatformTX81Z();
 };
 #endif

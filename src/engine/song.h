@@ -103,6 +103,8 @@ struct DivSong {
   // version number used for saving the song.
   // Furnace will save using the latest possible version,
   // known version numbers:
+  // - 26: v1.1.3
+  //   - changes height of FDS wave to 6-bit (it was 4-bit before)
   // - 25: v1.1
   //   - adds pattern names (in a rather odd way)
   //   - introduces SMS+OPLL system
@@ -309,6 +311,7 @@ struct DivSong {
   bool ignoreJumpAtEnd;
   bool buggyPortaAfterSlide;
   bool gbInsAffectsEnvelope;
+  bool sharedExtStat;
 
   DivOrders orders;
   std::vector<DivInstrument*> ins;
@@ -387,7 +390,8 @@ struct DivSong {
     rowResetsArpPos(false),
     ignoreJumpAtEnd(false),
     buggyPortaAfterSlide(false),
-    gbInsAffectsEnvelope(true) {
+    gbInsAffectsEnvelope(true),
+    sharedExtStat(true) {
     for (int i=0; i<32; i++) {
       system[i]=DIV_SYSTEM_NULL;
       systemVol[i]=64;

@@ -309,6 +309,7 @@ src/engine/sample.cpp
 src/engine/song.cpp
 src/engine/sysDef.cpp
 src/engine/wavetable.cpp
+src/engine/waveSynth.cpp
 src/engine/vgmOps.cpp
 src/engine/platform/abstract.cpp
 src/engine/platform/genesis.cpp
@@ -321,6 +322,7 @@ src/engine/platform/mmc5.cpp
 src/engine/platform/nes.cpp
 src/engine/platform/c64.cpp
 src/engine/platform/arcade.cpp
+src/engine/platform/tx81z.cpp
 src/engine/platform/ym2610.cpp
 src/engine/platform/ym2610ext.cpp
 src/engine/platform/ym2610b.cpp

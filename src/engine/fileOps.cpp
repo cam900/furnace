@@ -69,7 +69,7 @@ bool DivEngine::loadDMF(unsigned char* file, size_t len) {
     }
     ds.version=(unsigned char)reader.readC();
     logI("module version %d (0x%.2x)\n",ds.version,ds.version);
-    if (ds.version>0x19) {
+    if (ds.version>0x1a) {
       logE("this version is not supported by Furnace yet!\n");
       lastError="this version is not supported by Furnace yet";
       delete[] file;
@@ -580,6 +580,12 @@ bool DivEngine::loadDMF(unsigned char* file, size_t len) {
             wave->data[j]=reader.readI();
           }
         }
+        // #FDS4Bit
+        if (ds.system[0]==DIV_SYSTEM_NES_FDS && ds.version<0x1a) {
+          for (int j=0; j<wave->len; j++) {
+            wave->data[j]*=4;
+          }
+        }
         ds.wave.push_back(wave);
       }
     }
@@ -889,6 +895,9 @@ bool DivEngine::loadFur(unsigned char* file, size_t len) {
     if (ds.version<72) {
       ds.buggyPortaAfterSlide=true;
       ds.gbInsAffectsEnvelope=false;
+    }
+    if (ds.version<78) {
+      ds.sharedExtStat=false;
     }
     ds.isDMF=false;
 
@@ -1222,7 +1231,12 @@ bool DivEngine::loadFur(unsigned char* file, size_t len) {
         reader.readC();
         reader.readC();
       }
-      for (int i=0; i<26; i++) {
+      if (ds.version>=78) {
+        ds.sharedExtStat=reader.readC();
+      } else {
+        reader.readC();
+      }
+      for (int i=0; i<25; i++) {
         reader.readC();
       }
     }
@@ -2127,7 +2141,8 @@ SafeWriter* DivEngine::saveFur(bool notPrimary) {
   w->writeC(song.ignoreJumpAtEnd);
   w->writeC(song.buggyPortaAfterSlide);
   w->writeC(song.gbInsAffectsEnvelope);
-  for (int i=0; i<26; i++) {
+  w->writeC(song.sharedExtStat);
+  for (int i=0; i<25; i++) {
     w->writeC(0);
   }
 
@@ -2216,7 +2231,7 @@ SafeWriter* DivEngine::saveFur(bool notPrimary) {
 
 SafeWriter* DivEngine::saveDMF(unsigned char version) {
   // fail if version is not supported
-  if (version<24 || version>25) {
+  if (version<24 || version>26) {
     logE("cannot save in this version!\n");
     lastError="invalid version to save in! this is a bug!";
     return NULL;
@@ -2267,6 +2282,12 @@ SafeWriter* DivEngine::saveDMF(unsigned char version) {
     lastError="NES + VRC7 not supported in 1.0/legacy .dmf!";
     return NULL;
   }
+  // fail if the system is FDS and version<25
+  if (version<25 && song.system[0]==DIV_SYSTEM_NES && song.system[1]==DIV_SYSTEM_FDS) {
+    logE("FDS not supported in 1.0/legacy .dmf!\n");
+    lastError="FDS not supported in 1.0/legacy .dmf!";
+    return NULL;
+  }
   // fail if the system is Furnace-exclusive
   if (!isFlat && systemToFileDMF(song.system[0])==0) {
     logE("cannot save Furnace-exclusive system song!\n");
@@ -2302,7 +2323,7 @@ SafeWriter* DivEngine::saveDMF(unsigned char version) {
     sys=DIV_SYSTEM_NES_VRC7;
   } else if (song.system[0]==DIV_SYSTEM_NES && song.system[1]==DIV_SYSTEM_FDS) {
     w->writeC(systemToFileDMF(DIV_SYSTEM_NES_FDS));
-    sys=DIV_SYSTEM_NES_VRC7;
+    sys=DIV_SYSTEM_NES_FDS;
   } else {
     w->writeC(systemToFileDMF(song.system[0]));
     sys=song.system[0];
@@ -2475,7 +2496,13 @@ SafeWriter* DivEngine::saveDMF(unsigned char version) {
   w->writeC(song.wave.size());
   for (DivWavetable* i: song.wave) {
     w->writeI(i->len);
-    w->write(i->data,4*i->len);
+    if (sys==DIV_SYSTEM_NES_FDS && version<26) {
+      for (int j=0; j<i->len; j++) {
+        w->writeI(i->data[j]>>2);
+      }
+    } else {
+      w->write(i->data,4*i->len);
+    }
   }
 
   for (int i=0; i<getChannelCount(sys); i++) {

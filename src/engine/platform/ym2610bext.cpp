@@ -105,7 +105,12 @@ int DivPlatformYM2610BExt::dispatch(DivCommand c) {
         opChan[ch].pan=((c.value&15)>0)|(((c.value>>4)>0)<<1);
       }
       DivInstrument* ins=parent->getIns(opChan[ch].ins);
-      // TODO: ???
+      if (parent->song.sharedExtStat) {
+        for (int i=0; i<4; i++) {
+          if (ch==i) continue;
+          opChan[i].pan=opChan[ch].pan;
+        }
+      }
       rWrite(chanOffs[2]+0xb4,(opChan[ch].pan<<6)|(ins->fm.fms&7)|((ins->fm.ams&3)<<4));
       break;
     }
@@ -316,9 +321,12 @@ void DivPlatformYM2610BExt::forceIns() {
   for (int i=6; i<16; i++) {
     chan[i].insChanged=true;
   }
-  immWrite(0x0b,ayEnvPeriod);
-  immWrite(0x0c,ayEnvPeriod>>8);
-  immWrite(0x0d,ayEnvMode);
+  ay->forceIns();
+  ay->flushWrites();
+  for (DivRegWrite& i: ay->getRegisterWrites()) {
+    immWrite(i.addr&15,i.val);
+  }
+  ay->getRegisterWrites().clear();
   for (int i=0; i<4; i++) {
     opChan[i].insChanged=true;
     if (opChan[i].active) {

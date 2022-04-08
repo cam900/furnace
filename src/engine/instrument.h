@@ -70,12 +70,12 @@ enum DivInstrumentType {
 // - OPL:
 //   - AM, AR, DR, MULT, RR, SL, TL, SSG-EG&8 = EG-S
 //   - KSL, VIB, WS (OPL2/3), KSR
-// - OPZ: NOT FINAL!
+// - OPZ:
 //   - AM, AR, DR, MULT (CRS), RR, SL, TL, DT2, RS, DT, D2R
-//   - KSL = LS, WS, DVB = MULT (FINE), DAM = REV, EGT = EGShift
+//   - WS, DVB = MULT (FINE), DAM = REV, KSL = EGShift, EGT = Fixed
 
 struct DivInstrumentFM {
-  unsigned char alg, fb, fms, ams, ops, opllPreset;
+  unsigned char alg, fb, fms, ams, fms2, ams2, ops, opllPreset;
   bool fixedDrums;
   unsigned short kickFreq, snareHatFreq, tomTopFreq;
   struct Operator {
@@ -108,6 +108,8 @@ struct DivInstrumentFM {
     fb(0),
     fms(0),
     ams(0),
+    fms2(0),
+    ams2(0),
     ops(2),
     opllPreset(0),
     fixedDrums(false),
@@ -378,6 +380,53 @@ struct DivInstrumentFDS {
     memset(modTable,0,32);
   }
 };
+
+enum DivWaveSynthEffects {
+  DIV_WS_NONE=0,
+  // one waveform effects
+  DIV_WS_INVERT,
+  DIV_WS_ADD,
+  DIV_WS_SUBTRACT,
+  DIV_WS_AVERAGE,
+  DIV_WS_PHASE,
+
+  DIV_WS_SINGLE_MAX,
+  
+  // two waveform effects
+  DIV_WS_NONE_DUAL=128,
+  DIV_WS_WIPE,
+  DIV_WS_FADE,
+  DIV_WS_PING_PONG,
+  DIV_WS_OVERLAY,
+  DIV_WS_NEGATIVE_OVERLAY,
+  DIV_WS_PHASE_DUAL,
+
+  DIV_WS_DUAL_MAX
+};
+
+struct DivInstrumentWaveSynth {
+  int wave1, wave2;
+  unsigned char rateDivider, width, height;
+  unsigned char effect;
+  bool oneShot, enabled, global;
+  unsigned char speed, param1, param2, param3, param4;
+  DivInstrumentWaveSynth():
+    wave1(0),
+    wave2(0),
+    rateDivider(1),
+    width(32),
+    height(32),
+    effect(DIV_WS_NONE),
+    oneShot(false),
+    enabled(false),
+    global(false),
+    speed(1),
+    param1(0),
+    param2(0),
+    param3(0),
+    param4(0) {}
+};
+
 struct DivInstrument {
   String name;
   bool mode;
@@ -390,6 +439,7 @@ struct DivInstrument {
   DivInstrumentN163 n163;
   DivInstrumentFDS fds;
   DivInstrumentES5506 es5506;
+  DivInstrumentWaveSynth ws;
   
   /**
    * save the instrument to a SafeWriter.

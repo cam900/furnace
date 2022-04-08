@@ -132,8 +132,14 @@ enum FurnaceGUIColors {
   GUI_COLOR_PATTERN_HI_1,
   GUI_COLOR_PATTERN_HI_2,
   GUI_COLOR_PATTERN_ROW_INDEX,
+  GUI_COLOR_PATTERN_ROW_INDEX_HI1,
+  GUI_COLOR_PATTERN_ROW_INDEX_HI2,
   GUI_COLOR_PATTERN_ACTIVE,
   GUI_COLOR_PATTERN_INACTIVE,
+  GUI_COLOR_PATTERN_ACTIVE_HI1,
+  GUI_COLOR_PATTERN_INACTIVE_HI1,
+  GUI_COLOR_PATTERN_ACTIVE_HI2,
+  GUI_COLOR_PATTERN_INACTIVE_HI2,
   GUI_COLOR_PATTERN_INS,
   GUI_COLOR_PATTERN_INS_WARN,
   GUI_COLOR_PATTERN_INS_ERROR,
@@ -198,7 +204,13 @@ enum FurnaceGUIFileDialogs {
   GUI_FILE_EXPORT_VGM,
   GUI_FILE_EXPORT_ROM,
   GUI_FILE_LOAD_MAIN_FONT,
-  GUI_FILE_LOAD_PAT_FONT
+  GUI_FILE_LOAD_PAT_FONT,
+  GUI_FILE_IMPORT_COLORS,
+  GUI_FILE_IMPORT_KEYBINDS,
+  GUI_FILE_IMPORT_LAYOUT,
+  GUI_FILE_EXPORT_COLORS,
+  GUI_FILE_EXPORT_KEYBINDS,
+  GUI_FILE_EXPORT_LAYOUT
 };
 
 enum FurnaceGUIWarnings {
@@ -208,6 +220,8 @@ enum FurnaceGUIWarnings {
   GUI_WARN_OPEN_BACKUP,
   GUI_WARN_OPEN_DROP,
   GUI_WARN_RESET_LAYOUT,
+  GUI_WARN_RESET_COLORS,
+  GUI_WARN_RESET_KEYBINDS,
   GUI_WARN_GENERIC
 };
 
@@ -648,7 +662,7 @@ class FurnaceGUI {
   bool updateSampleTex;
 
   String workingDir, fileName, clipboard, warnString, errorString, lastError, curFileName, nextFile;
-  String workingDirSong, workingDirIns, workingDirWave, workingDirSample, workingDirAudioExport, workingDirVGMExport, workingDirFont;
+  String workingDirSong, workingDirIns, workingDirWave, workingDirSample, workingDirAudioExport, workingDirVGMExport, workingDirFont, workingDirColors, workingDirKeybinds, workingDirLayout;
   String mmlString[21];
   String mmlStringW;
 
@@ -746,6 +760,7 @@ class FurnaceGUI {
     int titleBarInfo;
     int titleBarSys;
     int frameBorders;
+    int effectDeletionAltersValue;
     unsigned int maxUndoSteps;
     String mainFontPath;
     String patFontPath;
@@ -805,6 +820,7 @@ class FurnaceGUI {
       titleBarInfo(1),
       titleBarSys(1),
       frameBorders(0),
+      effectDeletionAltersValue(1),
       maxUndoSteps(100),
       mainFontPath(""),
       patFontPath(""),
@@ -1014,6 +1030,16 @@ class FurnaceGUI {
   void parseKeybinds();
   void promptKey(int which);
   void doAction(int what);
+
+  bool importColors(String path);
+  bool exportColors(String path);
+  bool importKeybinds(String path);
+  bool exportKeybinds(String path);
+  bool importLayout(String path);
+  bool exportLayout(String path);
+
+  void resetColors();
+  void resetKeybinds();
 
   void syncSettings();
   void commitSettings();
