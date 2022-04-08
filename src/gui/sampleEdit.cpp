@@ -112,6 +112,8 @@ void FurnaceGUI::drawSampleEdit() {
             updateSampleTex=true;
           }
           // sample loop mode
+          ImGui::TableNextRow();
+          ImGui::TableNextColumn();
           ImGui::Text("Loop Mode");
           ImGui::SameLine();
           if (ImGui::RadioButton("Foward",sample->loopMode==DIV_SAMPLE_LOOP_FOWARD)) {
