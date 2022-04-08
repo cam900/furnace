@@ -2603,6 +2603,8 @@ void FurnaceGUI::drawInsEdit() {
 
             ImGui::InputScalar("Amount",ImGuiDataType_U8,&ins->ws.param1,&_ONE,&_SEVEN);
 
+            ImGui::Checkbox("Global",&ins->ws.global);
+
             ImGui::EndTabItem();
           }
         }

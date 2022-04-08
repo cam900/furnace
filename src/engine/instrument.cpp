@@ -467,6 +467,20 @@ void DivInstrument::putInsData(SafeWriter* w) {
   // OPZ
   w->writeC(fm.fms2);
   w->writeC(fm.ams2);
+
+  // wave synth
+  w->writeI(ws.wave1);
+  w->writeI(ws.wave2);
+  w->writeC(ws.rateDivider);
+  w->writeC(ws.effect);
+  w->writeC(ws.enabled);
+  w->writeC(ws.global);
+  w->writeC(ws.speed);
+  w->writeC(ws.param1);
+  w->writeC(ws.param2);
+  w->writeC(ws.param3);
+  w->writeC(ws.param4);
+
   // ES5506
 }
 
@@ -896,6 +910,22 @@ DivDataErrors DivInstrument::readInsData(SafeReader& reader, short version) {
     fm.fms2=reader.readC();
     fm.ams2=reader.readC();
   }
+
+  // wave synth
+  if (version>=79) {
+    ws.wave1=reader.readI();
+    ws.wave2=reader.readI();
+    ws.rateDivider=reader.readC();
+    ws.effect=reader.readC();
+    ws.enabled=reader.readC();
+    ws.global=reader.readC();
+    ws.speed=reader.readC();
+    ws.param1=reader.readC();
+    ws.param2=reader.readC();
+    ws.param3=reader.readC();
+    ws.param4=reader.readC();
+  }
+
   // ES5506
   return DIV_DATA_SUCCESS;
 }
