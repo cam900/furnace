@@ -26,7 +26,8 @@ class DivMacroInt {
   DivInstrument* ins;
   bool released;
   public:
-    template<typename T> struct DivMacroIntStruct {
+    template<typename T>
+    struct DivMacroIntStruct {
       DivMacroSTD<T>* source;
       int pos, val;
       bool has, had, finished, will;
@@ -45,8 +46,8 @@ class DivMacroInt {
         has=had=finished=will=true;
         mode=src->mode;
       }
-	    void doMacro();
-      DivMacroIntStruct():
+	    void doMacro(bool released);
+      DivMacroIntStruct<T>():
         source(NULL),
         pos(0),
         val(0),
@@ -68,6 +69,28 @@ class DivMacroInt {
       DivMacroIntStruct<unsigned char> rs, dt, d2r, ssg;
       DivMacroIntStruct<unsigned char> dam, dvb, egt, ksl;
       DivMacroIntStruct<unsigned char> sus, vib, ws, ksr;
+      void reset() {
+        am.reset();
+        ar.reset();
+        dr.reset();
+        mult.reset();
+        rr.reset();
+        sl.reset();
+        tl.reset();
+        dt2.reset();
+        rs.reset();
+        dt.reset();
+        d2r.reset();
+        ssg.reset();
+        dam.reset();
+        dvb.reset();
+        egt.reset();
+        ksl.reset();
+        sus.reset();
+        vib.reset();
+        ws.reset();
+        ksr.reset();
+      }
       IntOp():
         am(DivMacroIntStruct<unsigned char>()),
         ar(DivMacroIntStruct<unsigned char>()),
@@ -135,7 +158,8 @@ class DivMacroInt {
       ex5(DivMacroIntStruct<int>()),
       ex6(DivMacroIntStruct<int>()),
       ex7(DivMacroIntStruct<int>()),
-      ex8(DivMacroIntStruct<int>()) {}
+      ex8(DivMacroIntStruct<int>()),
+      op{IntOp(),IntOp(),IntOp(),IntOp()} {}
 };
 
 #endif

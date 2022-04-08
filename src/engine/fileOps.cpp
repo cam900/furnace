@@ -456,9 +456,9 @@ bool DivEngine::loadDMF(unsigned char* file, size_t len) {
           ins->std.arpMacro.open=false;
         }
         if (ds.version>0x0f) {
-          ins->std.arpMacroMode=reader.readC();
+          ins->std.arpMacro.mode=reader.readC();
         }
-        if (!ins->std.arpMacroMode) {
+        if (!ins->std.arpMacro.mode) {
           for (int j=0; j<ins->std.arpMacro.len; j++) {
             ins->std.arpMacro.val[j]-=12;
           }
@@ -2410,7 +2410,7 @@ SafeWriter* DivEngine::saveDMF(unsigned char version) {
       }
 
       w->writeC(i->std.arpMacro.len);
-      if (i->std.arpMacroMode) {
+      if (i->std.arpMacro.mode) {
         w->write(i->std.arpMacro.val,4*i->std.arpMacro.len);
       } else {
         for (int j=0; j<i->std.arpMacro.len; j++) {
@@ -2420,7 +2420,7 @@ SafeWriter* DivEngine::saveDMF(unsigned char version) {
       if (i->std.arpMacro.len>0) {
         w->writeC(i->std.arpMacro.loop);
       }
-      w->writeC(i->std.arpMacroMode);
+      w->writeC(i->std.arpMacro.mode);
 
       w->writeC(i->std.dutyMacro.len);
       w->write(i->std.dutyMacro.val,4*i->std.dutyMacro.len);

@@ -21,7 +21,7 @@
 #include "instrument.h"
 
 template<typename T>
-void DivMacroIntStruct::doMacro() {
+void DivMacroInt::DivMacroIntStruct<T>::doMacro(bool released) {
   if (source==NULL) {
     return;
   }
@@ -53,57 +53,56 @@ void DivMacroIntStruct::doMacro() {
 void DivMacroInt::next() {
   if (ins==NULL) return;
 
-  vol.doMacro();
-  arp.doMacro();
-  duty.doMacro();
-  wave.doMacro();
+  vol.doMacro(released);
+  arp.doMacro(released);
+  duty.doMacro(released);
+  wave.doMacro(released);
   
-  pitch.doMacro();
-  ex1.doMacro();
-  ex2.doMacro();
-  ex3.doMacro();
+  pitch.doMacro(released);
+  ex1.doMacro(released);
+  ex2.doMacro(released);
+  ex3.doMacro(released);
 
-  alg.doMacro();
-  fb.doMacro();
-  fms.doMacro();
-  ams.doMacro();
+  alg.doMacro(released);
+  fb.doMacro(released);
+  fms.doMacro(released);
+  ams.doMacro(released);
 
-  panL.doMacro();
-  panR.doMacro();
-  phaseReset.doMacro();
-  ex4.doMacro();
-  ex5.doMacro();
-  ex6.doMacro();
-  ex7.doMacro();
-  ex8.doMacro();
+  panL.doMacro(released);
+  panR.doMacro(released);
+  phaseReset.doMacro(released);
+  ex4.doMacro(released);
+  ex5.doMacro(released);
+  ex6.doMacro(released);
+  ex7.doMacro(released);
+  ex8.doMacro(released);
 
   for (int i=0; i<4; i++) {
-    DivInstrumentSTD::OpMacro& m=ins->std.opMacros[i];
     IntOp& o=op[i];
-    o.am.doMacro(m.amMacro);
-    o.ar.doMacro(m.arMacro);
-    o.dr.doMacro(m.drMacro);
-    o.mult.doMacro(m.multMacro);
+    o.am.doMacro(released);
+    o.ar.doMacro(released);
+    o.dr.doMacro(released);
+    o.mult.doMacro(released);
 
-    o.rr.doMacro(m.rrMacro);
-    o.sl.doMacro(m.slMacro);
-    o.tl.doMacro(m.tlMacro);
-    o.dt2.doMacro(m.dt2Macro);
+    o.rr.doMacro(released);
+    o.sl.doMacro(released);
+    o.tl.doMacro(released);
+    o.dt2.doMacro(released);
 
-    o.rs.doMacro(m.rsMacro);
-    o.dt.doMacro(m.dtMacro);
-    o.d2r.doMacro(m.d2rMacro);
-    o.ssg.doMacro(m.ssgMacro);
+    o.rs.doMacro(released);
+    o.dt.doMacro(released);
+    o.d2r.doMacro(released);
+    o.ssg.doMacro(released);
 
-    o.dam.doMacro(m.damMacro);
-    o.dvb.doMacro(m.dvbMacro);
-    o.egt.doMacro(m.egtMacro);
-    o.ksl.doMacro(m.kslMacro);
+    o.dam.doMacro(released);
+    o.dvb.doMacro(released);
+    o.egt.doMacro(released);
+    o.ksl.doMacro(released);
 
-    o.sus.doMacro(m.susMacro);
-    o.vib.doMacro(m.vibMacro);
-    o.ws.doMacro(m.wsMacro);
-    o.ksr.doMacro(m.ksrMacro);
+    o.sus.doMacro(released);
+    o.vib.doMacro(released);
+    o.ws.doMacro(released);
+    o.ksr.doMacro(released);
   }
 }
 
@@ -136,74 +135,74 @@ void DivMacroInt::init(DivInstrument* which) {
 
   released=false;
 
-  op[0]=IntOp();
-  op[1]=IntOp();
-  op[2]=IntOp();
-  op[3]=IntOp();
+  op[0].reset();
+  op[1].reset();
+  op[2].reset();
+  op[3].reset();
 
   if (ins==NULL) return;
 
   if (ins->std.volMacro.len>0) {
-    vol.init(ins->std.volMacro);
+    vol.init(&ins->std.volMacro);
   }
   if (ins->std.arpMacro.len>0) {
-    arp.init(ins->std.arpMacro);
+    arp.init(&ins->std.arpMacro);
   }
   if (ins->std.dutyMacro.len>0) {
-    duty.init(ins->std.dutyMacro);
+    duty.init(&ins->std.dutyMacro);
   }
   if (ins->std.waveMacro.len>0) {
-    wave.init(ins->std.waveMacro);
+    wave.init(&ins->std.waveMacro);
   }
   if (ins->std.pitchMacro.len>0) {
-    pitch.init(ins->std.pitchMacro);
+    pitch.init(&ins->std.pitchMacro);
   }
   if (ins->std.ex1Macro.len>0) {
-    ex1.init(ins->std.ex1Macro);
+    ex1.init(&ins->std.ex1Macro);
   }
   if (ins->std.ex2Macro.len>0) {
-    ex2.init(ins->std.ex2Macro);
+    ex2.init(&ins->std.ex2Macro);
   }
   if (ins->std.ex3Macro.len>0) {
-    ex3.init(ins->std.ex3Macro);
+    ex3.init(&ins->std.ex3Macro);
   }
   if (ins->std.algMacro.len>0) {
-    alg.init(ins->std.algMacro);
+    alg.init(&ins->std.algMacro);
   }
   if (ins->std.fbMacro.len>0) {
-    fb.init(ins->std.fbMacro);
+    fb.init(&ins->std.fbMacro);
   }
   if (ins->std.fmsMacro.len>0) {
-    fms.init(ins->std.fmsMacro);
+    fms.init(&ins->std.fmsMacro);
   }
   if (ins->std.amsMacro.len>0) {
-    ams.init(ins->std.amsMacro);
+    ams.init(&ins->std.amsMacro);
   }
 
   // TODO: other macros
   if (ins->std.panLMacro.len>0) {
-    panL.init(ins->std.panLMacro);
+    panL.init(&ins->std.panLMacro);
   }
   if (ins->std.panRMacro.len>0) {
-    panR.init(ins->std.panRMacro);
+    panR.init(&ins->std.panRMacro);
   }
   if (ins->std.phaseResetMacro.len>0) {
-    phaseReset.init(ins->std.phaseResetMacro);
+    phaseReset.init(&ins->std.phaseResetMacro);
   }
   if (ins->std.ex4Macro.len>0) {
-    ex4.init(ins->std.ex4Macro);
+    ex4.init(&ins->std.ex4Macro);
   }
   if (ins->std.ex5Macro.len>0) {
-    ex5.init(ins->std.ex5Macro);
+    ex5.init(&ins->std.ex5Macro);
   }
   if (ins->std.ex6Macro.len>0) {
-    ex6.init(ins->std.ex6Macro);
+    ex6.init(&ins->std.ex6Macro);
   }
   if (ins->std.ex7Macro.len>0) {
-    ex7.init(ins->std.ex7Macro);
+    ex7.init(&ins->std.ex7Macro);
   }
   if (ins->std.ex8Macro.len>0) {
-    ex8.init(ins->std.ex8Macro);
+    ex8.init(&ins->std.ex8Macro);
   }
 
   for (int i=0; i<4; i++) {
@@ -211,65 +210,65 @@ void DivMacroInt::init(DivInstrument* which) {
     IntOp& o=op[i];
 
     if (m.amMacro.len>0) {
-      o.am.init();
+      o.am.init(&m.amMacro);
     }
     if (m.arMacro.len>0) {
-      o.ar.init();
+      o.ar.init(&m.arMacro);
     }
     if (m.drMacro.len>0) {
-      o.dr.init();
+      o.dr.init(&m.drMacro);
     }
     if (m.multMacro.len>0) {
-      o.mult.init();
+      o.mult.init(&m.multMacro);
     }
     if (m.rrMacro.len>0) {
-      o.rr.init();
+      o.rr.init(&m.rrMacro);
     }
     if (m.slMacro.len>0) {
-      o.sl.init();
+      o.sl.init(&m.slMacro);
     }
     if (m.tlMacro.len>0) {
-      o.tl.init();
+      o.tl.init(&m.tlMacro);
     }
     if (m.dt2Macro.len>0) {
-      o.dt2.init();
+      o.dt2.init(&m.dt2Macro);
     }
     if (m.rsMacro.len>0) {
-      o.rs.init();
+      o.rs.init(&m.rsMacro);
     }
     if (m.dtMacro.len>0) {
-      o.dt.init();
+      o.dt.init(&m.dtMacro);
     }
     if (m.d2rMacro.len>0) {
-      o.d2r.init();
+      o.d2r.init(&m.d2rMacro);
     }
     if (m.ssgMacro.len>0) {
-      o.ssg.init();
+      o.ssg.init(&m.ssgMacro);
     }
 
     if (m.damMacro.len>0) {
-      o.dam.init();
+      o.dam.init(&m.damMacro);
     }
     if (m.dvbMacro.len>0) {
-      o.dvb.init();
+      o.dvb.init(&m.dvbMacro);
     }
     if (m.egtMacro.len>0) {
-      o.egt.init();
+      o.egt.init(&m.egtMacro);
     }
     if (m.kslMacro.len>0) {
-      o.ksl.init();
+      o.ksl.init(&m.kslMacro);
     }
     if (m.susMacro.len>0) {
-      o.sus.init();
+      o.sus.init(&m.susMacro);
     }
     if (m.vibMacro.len>0) {
-      o.vib.init();
+      o.vib.init(&m.vibMacro);
     }
     if (m.wsMacro.len>0) {
-      o.ws.init();
+      o.ws.init(&m.wsMacro);
     }
     if (m.ksrMacro.len>0) {
-      o.ksr.init();
+      o.ksr.init(&m.ksrMacro);
     }
   }
 }

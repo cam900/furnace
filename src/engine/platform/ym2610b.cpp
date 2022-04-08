@@ -441,7 +441,7 @@ void DivPlatformYM2610B::tick() {
     }
     if (chan[i].std.arp.had) {
       if (!chan[i].inPorta) {
-        if (chan[i].std.arpMode) {
+        if (chan[i].std.arp.mode) {
           chan[i].baseFreq=NOTE_PERIODIC(chan[i].std.arp.val);
         } else {
           chan[i].baseFreq=NOTE_PERIODIC(chan[i].note+chan[i].std.arp.val);
@@ -449,7 +449,7 @@ void DivPlatformYM2610B::tick() {
       }
       chan[i].freqChanged=true;
     } else {
-      if (chan[i].std.arpMode && chan[i].std.arp.finished) {
+      if (chan[i].std.arp.mode && chan[i].std.arp.finished) {
         chan[i].baseFreq=NOTE_PERIODIC(chan[i].note);
         chan[i].freqChanged=true;
       }
@@ -549,7 +549,7 @@ void DivPlatformYM2610B::tick() {
 
     if (chan[i].std.arp.had) {
       if (!chan[i].inPorta) {
-        if (chan[i].std.arpMode) {
+        if (chan[i].std.arp.mode) {
           chan[i].baseFreq=NOTE_FREQUENCY(chan[i].std.arp.val);
         } else {
           chan[i].baseFreq=NOTE_FREQUENCY(chan[i].note+(signed char)chan[i].std.arp.val);
@@ -557,7 +557,7 @@ void DivPlatformYM2610B::tick() {
       }
       chan[i].freqChanged=true;
     } else {
-      if (chan[i].std.arpMode && chan[i].std.arp.finished) {
+      if (chan[i].std.arp.mode && chan[i].std.arp.finished) {
         chan[i].baseFreq=NOTE_FREQUENCY(chan[i].note);
         chan[i].freqChanged=true;
       }
@@ -662,7 +662,7 @@ void DivPlatformYM2610B::tick() {
 
     if (chan[15].std.arp.had) {
       if (!chan[15].inPorta) {
-        if (chan[15].std.arpMode) {
+        if (chan[15].std.arp.mode) {
           chan[15].baseFreq=NOTE_ADPCMB(chan[15].std.arp.val);
         } else {
           chan[15].baseFreq=NOTE_ADPCMB(chan[15].note+(signed char)chan[15].std.arp.val);
@@ -670,7 +670,7 @@ void DivPlatformYM2610B::tick() {
       }
       chan[15].freqChanged=true;
     } else {
-      if (chan[15].std.arpMode && chan[15].std.arp.finished) {
+      if (chan[15].std.arp.mode && chan[15].std.arp.finished) {
         chan[15].baseFreq=NOTE_ADPCMB(chan[15].note);
         chan[15].freqChanged=true;
       }

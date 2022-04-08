@@ -189,7 +189,7 @@ void DivPlatformAY8910::tick() {
     }
     if (chan[i].std.arp.had) {
       if (!chan[i].inPorta) {
-        if (chan[i].std.arpMode) {
+        if (chan[i].std.arp.mode) {
           chan[i].baseFreq=NOTE_PERIODIC(chan[i].std.arp.val);
         } else {
           chan[i].baseFreq=NOTE_PERIODIC(chan[i].note+chan[i].std.arp.val);
@@ -197,7 +197,7 @@ void DivPlatformAY8910::tick() {
       }
       chan[i].freqChanged=true;
     } else {
-      if (chan[i].std.arpMode && chan[i].std.arp.finished) {
+      if (chan[i].std.arp.mode && chan[i].std.arp.finished) {
         chan[i].baseFreq=NOTE_PERIODIC(chan[i].note);
         chan[i].freqChanged=true;
       }

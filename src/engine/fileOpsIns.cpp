@@ -184,15 +184,15 @@ void DivEngine::loadDMP(SafeReader& reader, std::vector<DivInstrument*>& ret, St
         ins->std.volMacro.len=reader.readC();
         if (version>5) {
           for (int i=0; i<ins->std.volMacro.len; i++) {
-            ins->std.volMacro[i]=reader.readI();
+            ins->std.volMacro.val[i]=reader.readI();
           }
         } else {
           for (int i=0; i<ins->std.volMacro.len; i++) {
-            ins->std.volMacro[i]=reader.readC();
+            ins->std.volMacro.val[i]=reader.readC();
           }
         }
         if (version<11) for (int i=0; i<ins->std.volMacro.len; i++) {
-          if (ins->std.volMacro[i]>15 && ins->type==DIV_INS_STD) ins->type=DIV_INS_PCE;
+          if (ins->std.volMacro.val[i]>15 && ins->type==DIV_INS_STD) ins->type=DIV_INS_PCE;
         }
         if (ins->std.volMacro.len>0) {
           ins->std.volMacro.open=true;
@@ -205,11 +205,11 @@ void DivEngine::loadDMP(SafeReader& reader, std::vector<DivInstrument*>& ret, St
       ins->std.arpMacro.len=reader.readC();
       if (version>5) {
         for (int i=0; i<ins->std.arpMacro.len; i++) {
-          ins->std.arpMacro[i]=reader.readI();
+          ins->std.arpMacro.val[i]=reader.readI();
         }
       } else {
         for (int i=0; i<ins->std.arpMacro.len; i++) {
-          ins->std.arpMacro[i]=reader.readC();
+          ins->std.arpMacro.val[i]=reader.readC();
         }
       }
       if (ins->std.arpMacro.len>0) {
@@ -219,17 +219,17 @@ void DivEngine::loadDMP(SafeReader& reader, std::vector<DivInstrument*>& ret, St
         ins->std.arpMacro.open=false;
       }
       if (version>8) { // TODO: when?
-        ins->std.arpMacroMode=reader.readC();
+        ins->std.arpMacro.mode=reader.readC();
       }
 
       ins->std.dutyMacro.len=reader.readC();
       if (version>5) {
         for (int i=0; i<ins->std.dutyMacro.len; i++) {
-          ins->std.dutyMacro[i]=reader.readI();
+          ins->std.dutyMacro.val[i]=reader.readI();
         }
       } else {
         for (int i=0; i<ins->std.dutyMacro.len; i++) {
-          ins->std.dutyMacro[i]=reader.readC();
+          ins->std.dutyMacro.val[i]=reader.readC();
         }
       }
       if (ins->std.dutyMacro.len>0) {
@@ -242,11 +242,11 @@ void DivEngine::loadDMP(SafeReader& reader, std::vector<DivInstrument*>& ret, St
       ins->std.waveMacro.len=reader.readC();
       if (version>5) {
         for (int i=0; i<ins->std.waveMacro.len; i++) {
-          ins->std.waveMacro[i]=reader.readI();
+          ins->std.waveMacro.val[i]=reader.readI();
         }
       } else {
         for (int i=0; i<ins->std.waveMacro.len; i++) {
-          ins->std.waveMacro[i]=reader.readC();
+          ins->std.waveMacro.val[i]=reader.readC();
         }
       }
       if (ins->std.waveMacro.len>0) {

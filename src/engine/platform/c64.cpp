@@ -131,7 +131,7 @@ void DivPlatformC64::tick() {
         if (ins->c64.filterIsAbs) {
           filtCut=MIN(2047,chan[i].std.vol.val);
         } else {
-          filtCut-=((signed char)chan[i].std.vol-18)*7;
+          filtCut-=((signed char)chan[i].std.vol.val-18)*7;
           if (filtCut>2047) filtCut=2047;
           if (filtCut<0) filtCut=0;
         }
@@ -143,7 +143,7 @@ void DivPlatformC64::tick() {
     }
     if (chan[i].std.arp.had) {
       if (!chan[i].inPorta) {
-        if (chan[i].std.arpMode) {
+        if (chan[i].std.arp.mode) {
           chan[i].baseFreq=NOTE_FREQUENCY(chan[i].std.arp.val);
         } else {
           chan[i].baseFreq=NOTE_FREQUENCY(chan[i].note+(signed char)chan[i].std.arp.val);
@@ -151,7 +151,7 @@ void DivPlatformC64::tick() {
       }
       chan[i].freqChanged=true;
     } else {
-      if (chan[i].std.arpMode && chan[i].std.arp.finished) {
+      if (chan[i].std.arp.mode && chan[i].std.arp.finished) {
         chan[i].baseFreq=NOTE_FREQUENCY(chan[i].note);
         chan[i].freqChanged=true;
       }
@@ -161,7 +161,7 @@ void DivPlatformC64::tick() {
       if (ins->c64.dutyIsAbs) {
         chan[i].duty=chan[i].std.duty.val;
       } else {
-        chan[i].duty-=((signed char)chan[i].std.duty-12)*4;
+        chan[i].duty-=((signed char)chan[i].std.duty.val-12)*4;
       }
       rWrite(i*7+2,chan[i].duty&0xff);
       rWrite(i*7+3,chan[i].duty>>8);
@@ -188,8 +188,8 @@ void DivPlatformC64::tick() {
       updateFilter();
     }
     if (chan[i].std.ex3.had) {
-      chan[i].sync=chan[i].std.ex3&1;
-      chan[i].ring=chan[i].std.ex3&2;
+      chan[i].sync=chan[i].std.ex3.val&1;
+      chan[i].ring=chan[i].std.ex3.val&2;
       chan[i].freqChanged=true;
     }
 
@@ -333,7 +333,7 @@ int DivPlatformC64::dispatch(DivCommand c) {
       rWrite(c.chan*7+4,(isMuted[c.chan]?8:(chan[c.chan].wave<<4))|(chan[c.chan].ring<<2)|(chan[c.chan].sync<<1)|chan[c.chan].active);
       break;
     case DIV_CMD_LEGATO:
-      chan[c.chan].baseFreq=NOTE_FREQUENCY(c.value+((chan[c.chan].std.arp.will && !chan[c.chan].std.arpMode)?(chan[c.chan].std.arp.val):(0)));
+      chan[c.chan].baseFreq=NOTE_FREQUENCY(c.value+((chan[c.chan].std.arp.will && !chan[c.chan].std.arp.mode)?(chan[c.chan].std.arp.val):(0)));
       chan[c.chan].freqChanged=true;
       chan[c.chan].note=c.value;
       break;

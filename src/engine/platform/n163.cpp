@@ -216,7 +216,7 @@ void DivPlatformN163::tick() {
     }
     if (chan[i].std.arp.had) {
       if (!chan[i].inPorta) {
-        if (chan[i].std.arpMode) {
+        if (chan[i].std.arp.mode) {
           chan[i].baseFreq=NOTE_FREQUENCY(chan[i].std.arp.val);
         } else {
           chan[i].baseFreq=NOTE_FREQUENCY(chan[i].note+(signed char)chan[i].std.arp.val);
@@ -224,7 +224,7 @@ void DivPlatformN163::tick() {
       }
       chan[i].freqChanged=true;
     } else {
-      if (chan[i].std.arpMode && chan[i].std.arp.finished) {
+      if (chan[i].std.arp.mode && chan[i].std.arp.finished) {
         chan[i].baseFreq=NOTE_FREQUENCY(chan[i].note);
         chan[i].freqChanged=true;
       }
@@ -513,7 +513,7 @@ int DivPlatformN163::dispatch(DivCommand c) {
       }
       break;
     case DIV_CMD_LEGATO:
-      chan[c.chan].baseFreq=NOTE_FREQUENCY(c.value+((chan[c.chan].std.arp.will && !chan[c.chan].std.arpMode)?(chan[c.chan].std.arp.val):(0)));
+      chan[c.chan].baseFreq=NOTE_FREQUENCY(c.value+((chan[c.chan].std.arp.will && !chan[c.chan].std.arp.mode)?(chan[c.chan].std.arp.val):(0)));
       chan[c.chan].freqChanged=true;
       chan[c.chan].note=c.value;
       break;

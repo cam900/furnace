@@ -717,6 +717,7 @@ SafeWriter* DivEngine::saveVGM(bool* sysToExport, bool loop, int version) {
   bool writeSegaPCM=false;
   bool writeX1010=false;
   bool writeQSound=false;
+  bool writeES5506=false;
 
   for (int i=0; i<song.systemLen; i++) {
     willExport[i]=false;
@@ -945,6 +946,21 @@ SafeWriter* DivEngine::saveVGM(bool* sysToExport, bool loop, int version) {
           isSecond[i]=true;
           willExport[i]=true;
           hasSwan|=0x40000000;
+          howManyChips++;
+        }
+        break;
+      case DIV_SYSTEM_ES5506:
+        if (!hasES5505) {
+          hasES5505=0x80000000|disCont[i].dispatch->chipClock;
+          willExport[i]=true;
+          writeES5506=true;
+        } else if (!(hasES5505&0x80000000)) {
+          hasES5505|=0x80000000;
+          willExport[i]=true;
+        } else if (!(hasES5505&0x40000000)) {
+          isSecond[i]=true;
+          willExport[i]=true;
+          hasES5505|=0xc0000000;
           howManyChips++;
         }
         break;
@@ -1286,6 +1302,16 @@ SafeWriter* DivEngine::saveVGM(bool* sysToExport, bool loop, int version) {
     w->writeI(x1_010MemLen);
     w->writeI(0);
     w->write(x1_010Mem,x1_010MemLen);
+  }
+
+  if (writeES5506 && es5506MemLen>0) {
+    w->writeC(0x67);
+    w->writeC(0x66);
+    w->writeC(0x8F);
+    w->writeI(es5506MemLen+8);
+    w->writeI(es5506MemLen);
+    w->writeI(0);
+    w->write(es5506Mem,es5506MemLen);
   }
 
   // initialize streams

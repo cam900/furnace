@@ -152,6 +152,16 @@ const char* cmdName[DIV_CMD_MAX]={
   "N163_GLOBAL_WAVE_LOADLEN",
   "N163_GLOBAL_WAVE_LOADMODE",
 
+  "ES5506_FILTER_MODE",
+  "ES5506_PAUSE",
+  "ES5506_SLICE",
+  "ES5506_ENVELOPE_COUNT",
+  "ES5506_K1_RAMP",
+  "ES5506_K2_RAMP",
+  "ES5506_SLICE_POS",
+  "ES5506_K1",
+  "ES5506_K2",
+
   "ALWAYS_SET_VOLUME"
 };
 
@@ -469,6 +479,46 @@ bool DivEngine::perSystemEffect(int ch, unsigned char effect, unsigned char effe
           break;
         default:
           return false;
+      }
+    case DIV_SYSTEM_ES5506:
+      switch (effect) {
+        case 0x10: // Transwave/Sample index
+          dispatchCmd(DivCommand(DIV_CMD_WAVE,ch,effectVal));
+          break;
+        case 0x11: // Filter mode
+          dispatchCmd(DivCommand(DIV_CMD_ES5506_FILTER_MODE,ch,effectVal&3));
+          break;
+        case 0x12: // Pause/Resume
+          dispatchCmd(DivCommand(DIV_CMD_ES5506_PAUSE,ch,effectVal&1));
+          break;
+        case 0x13: // Transwave slice mode
+          dispatchCmd(DivCommand(DIV_CMD_ES5506_SLICE,ch,effectVal&1));
+          break;
+        case 0x20:
+        case 0x21: // Envelope counter
+          dispatchCmd(DivCommand(DIV_CMD_ES5506_ENVELOPE_COUNT,ch,effectVal&0x1ff));
+          break;
+        case 0x22:
+        case 0x23: // Filter K1 ramp
+          dispatchCmd(DivCommand(DIV_CMD_ES5506_K1_RAMP,ch,effectVal&0xff,effectVal>>8&1));
+          break;
+        case 0x24:
+        case 0x25: // Filter K2 ramp
+          dispatchCmd(DivCommand(DIV_CMD_ES5506_K2_RAMP,ch,effectVal&0xff,effectVal>>8&1));
+          break;
+        default: { // 12 bit commands
+          unsigned short val12=((effect&0x0f)<<8)|effectVal;
+          if ((effect&0xf0)==0x30) { // Transwave slice position
+            dispatchCmd(DivCommand(DIV_CMD_ES5506_SLICE_POS,ch,val12));
+          } else if ((effect&0xf0)==0x40) { // Filter K1
+            dispatchCmd(DivCommand(DIV_CMD_ES5506_K1,ch,val12));
+          } else if ((effect&0xf0)==0x50) { // Filter K2
+            dispatchCmd(DivCommand(DIV_CMD_ES5506_K2,ch,val12));
+          } else {
+            return false;
+          }
+          break;
+        }
       }
       break;
     default:

@@ -374,6 +374,17 @@ void FurnaceGUI::drawSysConf(int i) {
       } rightClickable
       break;
     }
+    case DIV_SYSTEM_ES5506: {
+      ImGui::Text("Channel limit:");
+      int initialChannelLimit=(flags&31)+1;
+      if (CWSliderInt("##InitialChannelLimit",&initialChannelLimit,5,32)) {
+        if (initialChannelLimit<5) initialChannelLimit=5;
+        if (initialChannelLimit>32) initialChannelLimit=32;
+        e->setSysFlags(i,(flags & ~(31)) | (((initialChannelLimit-1) & 31)),restart);
+        updateWindowTitle();
+      } rightClickable
+      break;
+    }
     case DIV_SYSTEM_GB:
     case DIV_SYSTEM_SWAN:
     case DIV_SYSTEM_VERA:

@@ -20,17 +20,18 @@
 #ifndef _ES5506_H
 #define _ES5506_H
 
+#include "../engine.h"
 #include "../dispatch.h"
 #include <queue>
 #include "../macroInt.h"
-#include "sound/es550x/es550x.hpp"
+#include "sound/es550x/es5506.hpp"
 
 class DivES5506Interface: public es550x_intf {
   public:
     DivEngine* parent;
     bool irq=false;
     int sampleBank;
-    virtual void irqb(bool state) { irq=state; }
+    virtual void irqb(bool state) override { irq=state; }
     virtual s16 read_sample(u8 voice, u8 bank, u32 address) override {
       if (parent->es5506Mem==NULL) return 0;
       return parent->es5506Mem[(u32(bank)<<21)|(address & 0x1fffff)];
@@ -51,21 +52,21 @@ class DivPlatformES5506: public DivDispatch {
         }
         SampleState(T i):
           init(i), curr(i), next(i) {}
-      }
+      };
       double freqOffs;
-      SampleState<int> sample;
+      SampleState<int> index;
       SampleState<unsigned int> start, loop, end, bank;
-      SampleState<double> sliceSize, sliceStart;
+      SampleState<double> sliceSize, sliceBound;
       SampleState<unsigned int> sliceLoop, sliceEnd;
       Sample():
-        freqOffs(0),
-        sample(-1),
+        freqOffs(0.0),
+        index(-1),
         start(0),
         loop(0),
         end(0),
         bank(0),
         sliceSize(0.0),
-        sliceStart(0.0),
+        sliceBound(0.0),
         sliceLoop(0),
         sliceEnd(0) {}
     };
@@ -87,26 +88,25 @@ class DivPlatformES5506: public DivDispatch {
         k2Offset(0) {}
     };
     int freq, baseFreq, pitch;
-    unsigned short audLen;
-    unsigned int audPos;
     int sample, wave, slice;
     unsigned char ins;
     int note;
     int panning;
     unsigned short cr;
-    bool active, insChanged, freqChanged, volumeChanged, sampleChanged, transWaveChanged, filterChanged, filterRampChanged, envChanged, keyOn, keyOff, inPorta, useWave, pause, sliceEnable;
-    int vol, outVol, lvol, rvol;
+    bool active;
+    bool insChanged, freqChanged, volumeChanged, sampleChanged, transWaveChanged, filterChanged, filterRampChanged, envChanged;
+    bool keyOn, keyOff, inPorta;
+    bool useWave, sliceEnable, pause;
+    unsigned int vol, lvol, rvol, outVol, outLVol, outRVol;
     Sample pcm;
     TransWave transWave;
     Filter filter;
     DivInstrumentES5506::Envelope envelope;
     DivMacroInt std;
-    Channel(DivDispatch &p):
+    Channel():
       freq(0),
       baseFreq(0),
       pitch(0),
-      audLen(0),
-      audPos(0),
       sample(-1),
       slice(0),
       ins(-1),
@@ -126,17 +126,18 @@ class DivPlatformES5506: public DivDispatch {
       keyOff(false),
       inPorta(false),
       useWave(false),
-      pause(false),
       sliceEnable(false),
-      vol(255<<8),
-      outVol(255<<8),
-      lvol(255<<8),
-      rvol(255<<8),
+      pause(false),
+      vol(255),
+      lvol(65535),
+      rvol(65535),
+      outVol(65535),
+      outLVol(65535),
+      outRVol(65535),
       pcm(DivPlatformES5506::Channel::Sample()),
       transWave(DivPlatformES5506::Channel::TransWave()),
-      filter(DivInstrumentES5506::Filter()),
-      envelope(DivInstrumentES5506::Envelope()),
-      std(p) {}
+      filter(DivPlatformES5506::Channel::Filter()),
+      envelope(DivInstrumentES5506::Envelope()) {}
   };
   Channel chan[32];
   bool isMuted[32];
@@ -145,9 +146,18 @@ class DivPlatformES5506: public DivDispatch {
       unsigned int val;
       unsigned int mask;
       int delay;
-      QueuedWrite(unsigned char a, unsigned int v, unsigned int m=~0, int d=2): addr(a), val(v), mask(m), delay(d) {} // delay for simulate 8->32 bit bottleneck
+      QueuedWrite(unsigned char a, unsigned int v, unsigned int m=~0, int d=0): addr(a), val(v), mask(m), delay(d) {}
   };
   std::queue<QueuedWrite> writes;
+  struct QueuedWrite8 {
+      unsigned char addr;
+      unsigned char val;
+      unsigned char mask;
+      int delay;
+      bool masked;
+      QueuedWrite8(unsigned char a, unsigned char v, unsigned char m=~0, int d=0): addr(a), val(v), mask(m), delay(d), masked(false) {}
+  };
+  std::queue<QueuedWrite8> writes8;
   unsigned char lastPan;
   unsigned char initChanMax, chanMax;
 
@@ -181,13 +191,8 @@ class DivPlatformES5506: public DivDispatch {
     const char* getEffectName(unsigned char effect);
     int init(DivEngine* parent, int channels, int sugRate, unsigned int flags);
     void quit();
-  DivPlatformES5506(DivDispatch &p):
-    DivDispatch(),
-    es5506(intf),
-    chan{*this,*this,*this,*this,*this,*this,*this,*this,
-         *this,*this,*this,*this,*this,*this,*this,*this,
-         *this,*this,*this,*this,*this,*this,*this,*this,
-         *this,*this,*this,*this,*this,*this,*this,*this} {} // up to 32 PCM channels
+  DivPlatformES5506():
+    es5506(intf) {} // up to 32 PCM channels
 };
 
 #endif

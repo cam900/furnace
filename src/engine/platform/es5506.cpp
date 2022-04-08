@@ -25,10 +25,9 @@
 
 #define CHIP_FREQBASE (16*2048)
 
-#define QS_NOTE_FREQUENCY(x) parent->calcBaseFreq(chipClock,0x1000,x,false)
-
 #define rWrite(a,v) {if(!skipRegisterWrites) {writes.emplace(a,v); }}
 #define rWriteMask(a,v,m) {if(!skipRegisterWrites) {writes.emplace(a,v,m); }}
+#define rWriteDelay(a,v,d) {if(!skipRegisterWrites) {writes.emplace(a,v,~0,d); }}
 #define rWriteMaskDelay(a,v,m,d) {if(!skipRegisterWrites) {writes.emplace(a,v,m,d); }}
 #define pageWrite(p,a,v) \
   if (!skipRegisterWrites) { \
@@ -39,6 +38,15 @@
     rWrite(a,v); \
   }
 
+#define pageWriteDelay(p,a,v,d) \
+  if (!skipRegisterWrites) { \
+    if (curPage!=(p)) { \
+      curPage=(p); \
+      rWrite(0x0f,curPage); \
+    } \
+    rWriteDelay(a,v,d); \
+  }
+
 #define pageWriteMask(p,a,v,m) \
   if (!skipRegisterWrites) { \
     if (curPage!=(p)) { \
@@ -46,6 +54,15 @@
       rWrite(0x0f,curPage); \
     } \
     rWriteMask(a,v,m); \
+  }
+
+#define commonPageWrite(p,pm,a,v) \
+  if (!skipRegisterWrites) { \
+    if ((curPage&(pm))!=((p)&(pm))) { \
+      curPage=(curPage&~(pm))|((p)&(pm)); \
+      rWriteMask(0x0f,curPage,pm); \
+    } \
+    rWrite(a,v); \
   }
 
 #define commonPageWriteMask(p,pm,a,v,vm) \
@@ -74,31 +91,6 @@
     } \
   }
 
-#define pageWriteImm(p,a,v) \
-  if (!skipRegisterWrites) { \
-    if (curPage!=(p)) { \
-      for (int byte=0; byte<4; byte++) { \
-        unsigned char addr=(0x0f<<2)+byte; \
-        unsigned char val=(p)>>(24-(byte<<3)); \
-        es5506.write(addr,val,true); \
-        if (dumpWrites) { \
-          addWrite(addr,val); \
-        } \
-      } \
-      curPage=(p); \
-      cycles+=2; \
-    } \
-    for (int byte=0; byte<4; byte++) { \
-      unsigned char addr=((a)<<2)+byte; \
-      unsigned char val=(v)>>(24-(byte<<3)); \
-      es5506.write(addr,val,true); \
-      if (dumpWrites) { \
-        addWrite(addr,val); \
-      } \
-      cycles+=2; \
-    } \
-  }
-
 #define crRefresh(c) \
   if (!skipRegisterWrites) { \
     if ((curPage&(0x5f))!=((c)&(0x1f))) { \
@@ -106,7 +98,7 @@
       for (int byte=0; byte<4; byte++) { \
         pagemask|=es5506.read((0x0f<<2)+byte,true)<<(24-(byte<<3)); \
       } \
-      cycles+=2; \
+      cycles+=4; \
       for (int byte=0; byte<4; byte++) { \
         unsigned char addr=(0x0f<<2)+byte; \
         unsigned char val=((pagemask&~(0x5f))|((c)&(0x1f)))>>(24-(byte<<3)); \
@@ -116,53 +108,13 @@
         } \
       } \
       curPage=(curPage&~(0x5f))|((c)&(0x1f)); \
-      cycles+=2; \
+      cycles+=4; \
     } \
     chan[c].cr=0; \
     for (int byte=0; byte<4; byte++) { \
       chan[c].cr|=es5506.read((0x00<<2)+byte,true)<<(24-(byte<<3)); \
     } \
-    cycles+=2; \
-  }
-
-#define crWriteMaskImm(c,v,m) \
-  if (!skipRegisterWrites) { \
-    if ((curPage&(0x5f))!=((c)&(0x1f))) { \
-      unsigned int pagemask=0; \
-      for (int byte=0; byte<4; byte++) { \
-        pagemask|=es5506.read((0x0f<<2)+byte,true)<<(24-(byte<<3)); \
-      } \
-      cycles+=2; \
-      for (int byte=0; byte<4; byte++) { \
-        unsigned char addr=(0x0f<<2)+byte; \
-        unsigned char val=((pagemask&~(0x5f))|((c)&(0x1f)))>>(24-(byte<<3)); \
-        es5506.write(addr,val,true); \
-        if (dumpWrites) { \
-          addWrite(addr,val); \
-        } \
-      } \
-      curPage=(curPage&~(0x5f))|((c)&(0x1f)); \
-      cycles+=2; \
-    } \
-    chan[c].cr=0; \
-    if ((m)!=((unsigned int)(~0))) { \
-      for (int byte=0; byte<4; byte++) { \
-        chan[c].cr|=es5506.read((0x0f<<2)+byte,true)<<(24-(byte<<3)); \
-      } \
-      cycles+=2; \
-    } \
-    if (chan[c].cr&(m)!=((v)&(m))) { \
-      chan[c].cr=(chan[c].cr&~(m))|((v)&(m)); \
-      for (int byte=0; byte<4; byte++) { \
-        unsigned char addr=(0x00<<2)+byte; \
-        unsigned char val=(chan[c].cr)>>(24-(byte<<3)); \
-        es5506.write(addr,val,true); \
-        if (dumpWrites) { \
-          addWrite(addr,val); \
-        } \
-        cycles+=2; \
-      } \
-    } \
+    cycles+=4; \
   }
 
 
@@ -233,7 +185,25 @@ const char* DivPlatformES5506::getEffectName(unsigned char effect) {
       return "120x: Set pause/resume sample (0: Resume, 1: Pause)";
       break;
     case 0x13:
-      return "130x: Set transwave slice mode (0: Enable, 1: Disable";
+      return "130x: Set transwave slice mode (0: Enable, 1: Disable)";
+      break;
+    case 0x20:
+      return "20xx: Set envelope counter (000 to 0FF)";
+      break;
+    case 0x21:
+      return "21xx: Set envelope counter (100 to 1FF)";
+      break;
+    case 0x22:
+      return "22xx: Set filter K1 envelope ramp (normal speed, signed 8 bit)";
+      break;
+    case 0x23:
+      return "23xx: Set filter K1 envelope ramp (slowed down, signed 8 bit)";
+      break;
+    case 0x24:
+      return "24xx: Set filter K2 envelope ramp (normal speed, signed 8 bit)";
+      break;
+    case 0x25:
+      return "25xx: Set filter K2 envelope ramp (slowed down, signed 8 bit)";
       break;
     default:
       if ((effect&0xf0)==0x30) {
@@ -250,31 +220,39 @@ const char* DivPlatformES5506::getEffectName(unsigned char effect) {
 void DivPlatformES5506::acquire(short* bufL, short* bufR, size_t start, size_t len) {
   for (size_t h=start; h<start+len; h++) {
     // Command handler
-    while ((!writes.empty()) && ((cycles--)>0)) { // wait until cycles
+    while (!writes.empty()) {
       QueuedWrite w=writes.front();
       // convert 32 bit access to 8 bit access in chip
-      unsigned int m=0;
-      if (w.mask!=(~0)) { // get mask
-        for (int byte=0; byte<4; byte++) {
-          m|=es5506.read((w.addr<<2)+byte,true)<<(24-(byte<<3));
-        }
-        cycles+=w.delay;
-      }
       for (int byte=0; byte<4; byte++) {
         unsigned char a=(w.addr<<2)+byte;
-        unsigned char v=((m&~w.mask)|(w.val&w.mask))>>(24-(byte<<3));
-        es5506.write(a,v,true);
-        if (dumpWrites) {
-          addWrite(a,v);
-        }
-        cycles+=w.delay;
+        unsigned char v=w.val>>(24-(byte<<3));
+        unsigned char m=w.mask>>(24-(byte<<3));
+        writes8.emplace(a,v,m,(byte==3)?w.delay:0);
       }
       writes.pop();
     }
     es5506.tick();
+    if (es5506.e_rising_edge()) {
+      if ((!writes8.empty())) {
+        QueuedWrite8 w=writes8.front();
+        if ((w.mask!=((unsigned char)(~0))) && (!w.masked)) {
+          w.val=(es5506.host_r(w.addr)&~w.mask)|(w.val&w.mask);
+          w.masked=true;
+        } else {
+          es5506.host_w(w.addr,w.val);
+          if (dumpWrites) {
+            addWrite(w.addr,w.val);
+          }
+          cycles+=w.delay;
+          writes8.pop();
+        }
+      } else if (cycles>0) { // wait until cycles
+        cycles--;
+      }
+    }
     bufL[h]=es5506.lout(0);
     bufR[h]=es5506.rout(0);
-    // Reversed loop uses IRQ
+    // Reversed loop, Transwave uses IRQ
     if (intf.irq)
     {
       while (!intf.irq) {
@@ -283,11 +261,11 @@ void DivPlatformES5506::acquire(short* bufL, short* bufR, size_t start, size_t l
         for (int byte=0; byte<4; byte++) {
           irqv|=es5506.read((0x0e<<2)+byte,true)<<(24-(byte<<3));
         }
-        cycles+=2;
         // end if irqv is cleared
         if (irqv&0x80) {
           break;
         }
+        // get voice from IRQV register
         updateIRQ(irqv);
       }
     }
@@ -296,36 +274,35 @@ void DivPlatformES5506::acquire(short* bufL, short* bufR, size_t start, size_t l
 
 void DivPlatformES5506::updateIRQ(unsigned char ch)
 {
-  // get voice from IRQV register
   crRefresh(ch);
   // Reversed Loop: DIR, IRQE, BLE, LPE flag enabled
   if ((chan[ch].cr&0x0078)==0x0078) {
     // Set DIR, clear IRQE, BLE
-    crWriteMaskImm(ch,0x0040,0x00f0);
+    crWriteMask(ch,0x0040,0x00f0);
   }
   if (chan[ch].transWave.trigger) {
     if ((chan[ch].cr&0x0024)==0x0024) { // Transwave: IRQE, LEI flag enabled
       unsigned int cr=chan[ch].cr;
       // clear IRQE, IRQ, LEI
       cr&=~0x00a4;
-      if (chan[ch].pcm.sample.next>=0 && chan[ch].pcm.sample.next<parent->song.sampleLen) { // sample change
-        chan[ch].pcm.sample.curr=chan[ch].pcm.sample.next;
-        DivSample* s=parent->getSample(chan[ch].pcm.sample.curr);
+      if (chan[ch].pcm.index.next>=0 && chan[ch].pcm.index.next<parent->song.sampleLen) { // sample change
+        chan[ch].pcm.index.curr=chan[ch].pcm.index.next;
+        DivSample* s=parent->getSample(chan[ch].pcm.index.curr);
         if (chan[ch].sliceEnable) {
           if (cr&0x0040) { // Backward
-            pageWriteImm(0x20+ch,0x01,chan[ch].pcm.sliceLoop.next); // Set loop start address
-            pageWriteImm(0x20+ch,0x03,chan[ch].pcm.sliceEnd.next); // initial accumulator
+            pageWrite(0x20+ch,0x01,chan[ch].pcm.sliceLoop.next); // Set loop start address
+            pageWrite(0x20+ch,0x03,chan[ch].pcm.sliceEnd.next); // initial accumulator
           } else { // Foward
-            pageWriteImm(0x20+ch,0x02,chan[ch].pcm.sliceEnd.next); // Set loop end address
-            pageWriteImm(0x20+ch,0x03,chan[ch].pcm.sliceLoop.next); // initial accumulator
+            pageWrite(0x20+ch,0x02,chan[ch].pcm.sliceEnd.next); // Set loop end address
+            pageWrite(0x20+ch,0x03,chan[ch].pcm.sliceLoop.next); // initial accumulator
           }
         }
         if (cr&0x0040) { // Backward
-          pageWriteImm(0x20+ch,0x01,chan[ch].pcm.loop.next); // Set loop start address
-          pageWriteImm(0x20+ch,0x03,chan[ch].pcm.end.next); // initial accumulator
+          pageWrite(0x20+ch,0x01,chan[ch].pcm.loop.next); // Set loop start address
+          pageWrite(0x20+ch,0x03,chan[ch].pcm.end.next); // initial accumulator
         } else { // Foward
-          pageWriteImm(0x20+ch,0x02,chan[ch].pcm.end.next); // Set loop end address
-          pageWriteImm(0x20+ch,0x03,chan[ch].pcm.loop.next); // initial accumulator
+          pageWrite(0x20+ch,0x02,chan[ch].pcm.end.next); // Set loop end address
+          pageWrite(0x20+ch,0x03,chan[ch].pcm.loop.next); // initial accumulator
         }
         if (s->centerRate<1) {
           chan[ch].pcm.freqOffs=1.0;
@@ -335,49 +312,58 @@ void DivPlatformES5506::updateIRQ(unsigned char ch)
         chan[ch].freq=parent->calcFreq((chan[ch].pcm.freqOffs*(double)(chan[ch].baseFreq))*(chanMax+1),chan[ch].pitch,false);
         if (chan[ch].freq<0) chan[ch].freq=0;
         if (chan[ch].freq>0x1ffff) chan[ch].freq=0x1ffff;
-        pageWriteImm(0x00+ch,0x01,chan[ch].freq);
+        pageWrite(0x00+ch,0x01,chan[ch].freq);
         chan[ch].pcm.bank.pop();
         chan[ch].pcm.start.pop();
         chan[ch].pcm.loop.pop();
         chan[ch].pcm.end.pop();
         chan[ch].pcm.sliceSize.pop();
-        chan[ch].pcm.sliceStart.pop();
+        chan[ch].pcm.sliceBound.pop();
         chan[ch].pcm.sliceLoop.pop();
         chan[ch].pcm.sliceEnd.pop();
         cr=(cr&~0xc0ff)|(chan[ch].pcm.bank.curr<<14)|((s->loopMode==DIV_SAMPLE_LOOP_PINGPONG)?0x0018:((s->loopMode==DIV_SAMPLE_LOOP_BACKWARD)?0x0038:0x0008));
         chan[ch].freqChanged=true;
-        chan[ch].pcm.sample.next=-1;
+        chan[ch].pcm.index.next=-1;
       } else { // just loop position changed
         if (cr&0x0040) { // Backward
-          pageWriteImm(0x20+ch,0x01,chan[ch].pcm.loop.curr); // Set loop start address
-          pageWriteImm(0x20+ch,0x03,chan[ch].pcm.end.curr); // initial accumulator
+          pageWrite(0x20+ch,0x01,chan[ch].pcm.loop.curr); // Set loop start address
+          pageWrite(0x20+ch,0x03,chan[ch].pcm.end.curr); // initial accumulator
         } else { // Foward
-          pageWriteImm(0x20+ch,0x02,chan[ch].pcm.end.curr); // Set loop end address
-          pageWriteImm(0x20+ch,0x03,chan[ch].pcm.start.curr); // initial accumulator
+          pageWrite(0x20+ch,0x02,chan[ch].pcm.end.curr); // Set loop end address
+          pageWrite(0x20+ch,0x03,chan[ch].pcm.start.curr); // initial accumulator
         }
-        DivSample* s=parent->getSample(chan[ch].pcm.sample.curr);
+        DivSample* s=parent->getSample(chan[ch].pcm.index.curr);
         if (s->loopMode!=DIV_SAMPLE_LOOP_PINGPONG) {
           cr=(cr&~0x0078)|((s->loopMode==DIV_SAMPLE_LOOP_BACKWARD)?0x0038:0x0008);
         }
-        pageWriteImm(0x20+ch,0x01,chan[ch].pcm.loop.curr);
+        pageWrite(0x20+ch,0x01,chan[ch].pcm.loop.curr);
       }
-      crWriteMaskImm(ch,cr,0x3c00); // update CR
+      crWriteMask(ch,cr,0x3c00); // update CR
     }
     chan[ch].transWave.trigger=false;
   }
 }
 
 void DivPlatformES5506::tick() {
-  // Macro
-  for (int i=0; i<=chanMax; i++) {
-    chan[i].std.next();
-  }
-  macroThread.wait();
-
   // ES5506 PCMs
   for (int i=0; i<=chanMax; i++) {
+    chan[i].std.next();
     if (chan[i].std.vol.had) {
-      chan[i].outVol=(((chan[i].vol&0xff)<<8)*MIN(65535,chan[i].std.vol.val))/65535;
+      chan[i].outVol=((chan[i].vol&0xff)*MIN(65535,chan[i].std.vol.val))/255;
+      // Check if enabled and write volume
+      if (chan[i].active && !isMuted[i]) {
+        chan[i].volumeChanged=true;
+      }
+    }
+    if (chan[i].std.panL.had) {
+      chan[i].lvol=chan[i].std.panL.val;
+      // Check if enabled and write volume
+      if (chan[i].active && !isMuted[i]) {
+        chan[i].volumeChanged=true;
+      }
+    }
+    if (chan[i].std.panR.had) {
+      chan[i].rvol=chan[i].std.panR.val;
       // Check if enabled and write volume
       if (chan[i].active && !isMuted[i]) {
         chan[i].volumeChanged=true;
@@ -456,8 +442,8 @@ void DivPlatformES5506::tick() {
         chan[i].pause=(chan[i].std.alg.val&1);
         crWriteMask(i,chan[i].pause?0x0002:0x0000,0x0002); // Set STOP1 to pause flag
       }
-      if (chan[i].pcm.sliceEnable!=(chan[i].std.alg.val&2)) {
-        chan[i].pcm.sliceEnable=(chan[i].std.alg.val&2);
+      if (chan[i].sliceEnable!=(chan[i].std.alg.val&2)) {
+        chan[i].sliceEnable=(chan[i].std.alg.val&2);
         chan[i].transWaveChanged=true;
       }
       if (chan[i].envelope.k1Slow!=(chan[i].std.alg.val&4)) { // K1 slow bit
@@ -504,26 +490,26 @@ void DivPlatformES5506::tick() {
       chan[i].insChanged=false;
     }
     if (chan[i].sampleChanged) { // Sample change routine
-      crWriteMaskImm(i,0x0003,0x00e3); // Set Stop bits
+      crWriteMask(i,0x0003,0x00e3); // Set Stop bits
       bool vaild=false;
       bool loopEnable=false;
       if (chan[i].transWave.enable) { // transwave
-        chan[i].pcm.sample.curr=chan[i].transWave.next;
-        if (chan[i].pcm.sample.curr>=0 && chan[i].pcm.sample.curr<parent->song.sampleLen) {
+        chan[i].pcm.index.curr=chan[i].transWave.next;
+        if (chan[i].pcm.index.curr>=0 && chan[i].pcm.index.curr<parent->song.sampleLen) {
           DivInstrument* ins=parent->getIns(chan[i].ins);
-          DivSample* s=parent->getSample(chan[i].pcm.sample.curr);
+          DivSample* s=parent->getSample(chan[i].pcm.index.curr);
           DivInstrumentES5506::Sample::TransWave& table=ins->es5506.sample.transWaveTable[chan[i].transWave.next];
-          chan[i].pcm.loop.curr=(s->offES5506<<10)+(table.loopStart<<11)&0xfffff800;
-          chan[i].pcm.end.curr=((unsigned int)((double)(s->offES5506*1024)+((table.loopEnd-1)*2048)))&0xffffff80;
-          chan[i].pcm.sliceSize.curr=table.loopEnd-(double)(table.loopStart);
-          chan[i].pcm.sliceStart.curr=(double)(s->length8-1)-chan[i].pcm.sliceSize.curr;
+          chan[i].pcm.loop.curr=((unsigned int)((double)(s->offES5506*1024.0)+(table.loopStart*2048.0)))&0xfffff800;
+          chan[i].pcm.end.curr=((unsigned int)((double)(s->offES5506*1024.0)+((table.loopEnd-1)*2048.0)))&0xffffff80;
+          chan[i].pcm.sliceSize.curr=table.sliceSize;
+          chan[i].pcm.sliceBound.curr=table.sliceBound;
           loopEnable=true;
           vaild=true;
         }
       } else { // amiga format
-        chan[i].pcm.sample.curr=chan[i].sample;
-        if (chan[i].pcm.sample.curr>=0 && chan[i].pcm.sample.curr<parent->song.sampleLen) {
-          DivSample* s=parent->getSample(chan[i].pcm.sample.curr);
+        chan[i].pcm.index.curr=chan[i].sample;
+        if (chan[i].pcm.index.curr>=0 && chan[i].pcm.index.curr<parent->song.sampleLen) {
+          DivSample* s=parent->getSample(chan[i].pcm.index.curr);
           chan[i].pcm.loop.curr=(s->loopStart>=0)?(((s->offES5506<<10)+(s->loopStart<<11))&0xfffff800):s->loopStart;
           chan[i].pcm.end.curr=(((s->offES5506<<10)+((s->length16)<<10))-0x800)&0xffffff80;
           loopEnable=(s->loopStart>=0);
@@ -531,7 +517,7 @@ void DivPlatformES5506::tick() {
         }
       }
       if (vaild) {
-        DivSample* s=parent->getSample(chan[i].pcm.sample.curr);
+        DivSample* s=parent->getSample(chan[i].pcm.index.curr);
         if (s->centerRate<1) {
           chan[i].pcm.freqOffs=1.0;
         } else {
@@ -543,7 +529,7 @@ void DivPlatformES5506::tick() {
         crWriteMask(i,(chan[i].pcm.bank.curr<<14)|0x0300,0xc300); // Set Bank, LP3, LP4 bit to 1 (Lowpass filter mode)
         pageWrite(0x20+i,0x03,chan[i].pcm.start.curr); // Set accumulator to Start address
         pageWrite(0x00+i,0x07,0xffff); // Initialize filter (4 sample period delay needs)
-        pageWrite(0x00+i,0x09,0xffff,(chanMax+1)*4);
+        pageWriteDelay(0x00+i,0x09,0xffff,(chanMax+1)*4);
         if (loopEnable) {
           pageWrite(0x20+i,0x01,chan[i].pcm.loop.curr); // Set loop start address
           crWriteMask(i,((s->loopMode==DIV_SAMPLE_LOOP_PINGPONG)?0x0018:((s->loopMode==DIV_SAMPLE_LOOP_BACKWARD)?0x0038:0x0008)),0x3cfc); // Set loop mode
@@ -562,7 +548,7 @@ void DivPlatformES5506::tick() {
         chan[i].pcm.start.reset();
         chan[i].pcm.loop.reset();
         chan[i].pcm.end.reset();
-        chan[i].pcm.sliceStart.reset();
+        chan[i].pcm.sliceBound.reset();
         chan[i].pcm.sliceSize.reset();
         chan[i].pcm.sliceLoop.reset();
         chan[i].pcm.sliceEnd.reset();
@@ -576,20 +562,20 @@ void DivPlatformES5506::tick() {
           chan[i].transWave.index=chan[i].transWave.next;
           crRefresh(i);
           DivInstrumentES5506::Sample::TransWave& table=ins->es5506.sample.transWaveTable[chan[i].transWave.index];
-          if (chan[i].pcm.sample!=table.index) { // change sample index
+          if (chan[i].pcm.index.curr!=table.index) { // change sample index
             if (table.index>=0 && table.index<parent->song.sampleLen) {
               crWriteMask(i,0x0030,0x00bc); // Set BLE, IRQE (Set Transwave mode)
               DivSample* s=parent->getSample(table.index);
-              chan[i].pcm.sample.next=table.index;
+              chan[i].pcm.index.next=table.index;
               chan[i].pcm.bank.next=(s->offES5506>>22)&3;
               chan[i].pcm.start.next=(s->offES5506<<10)&0xffffffff;
-              chan[i].pcm.loop.next=(s->offES5506<<10)+(table.loopStart<<11)&0xfffff800;
-              chan[i].pcm.end.next=((unsigned int)((double)(s->offES5506*1024)+((table.loopEnd-1)*2048)))&0xffffff80;
-              chan[i].pcm.sliceSize.next=table.loopEnd.next-(double)(table.loopStart.next);
-              chan[i].pcm.sliceStart.next=(double)(s->length8-1)-chan[i].pcm.sliceSize.next;
+              chan[i].pcm.loop.next=((unsigned int)((double)(s->offES5506*1024.0)+(table.loopStart*2048.0)))&0xfffff800;
+              chan[i].pcm.end.next=((unsigned int)((double)(s->offES5506*1024.0)+((table.loopEnd-1)*2048.0)))&0xffffff80;
+              chan[i].pcm.sliceSize.next=table.sliceSize;
+              chan[i].pcm.sliceBound.next=table.sliceBound;
               if (chan[i].sliceEnable) { // sliced?
-                chan[i].sliceLoop.next=(unsigned int)((double)(s->offES5506*1024.0)+(((double)(chan[i].slice*chan[i].pcm.sliceStart.next)*2048.0)/4095.0))&0xfffff800;
-                chan[i].sliceEnd.next=(unsigned int)((double)(s->offES5506*1024.0)+(chan[i].pcm.sliceSize.next*2048.0)+((double)((chan[i].slice*chan[i].pcm.sliceStart.next)*2048.0)/4095.0))&0xffffff80;
+                chan[i].pcm.sliceLoop.next=(unsigned int)((double)(s->offES5506*1024.0)+(((double)(chan[i].slice*chan[i].pcm.sliceBound.next)*2048.0)/4095.0))&0xfffff800;
+                chan[i].pcm.sliceEnd.next=(unsigned int)((double)(s->offES5506*1024.0)+((chan[i].pcm.sliceSize.next-1.0)*2048.0)+((double)((chan[i].slice*chan[i].pcm.sliceBound.next)*2048.0)/4095.0))&0xffffff80;
                 if (chan[i].cr&0x0040) { // Backward
                   pageWrite(0x20+i,0x02,chan[i].pcm.sliceEnd.next); // Set loop end address
                 } else { // Foward
@@ -604,12 +590,12 @@ void DivPlatformES5506::tick() {
               }
             }
           } else { // just loop postiion changes
-            DivSample* s=parent->getSample(chan[i].pcm.sample.curr);
-            chan[i].pcm.loop.curr=(s->offES5506<<10)+(table.loopStart<<11)&0xfffff800;
+            DivSample* s=parent->getSample(chan[i].pcm.index.curr);
+            chan[i].pcm.loop.curr=((unsigned int)((double)(s->offES5506*1024.0)+(table.loopStart*2048.0)))&0xfffff800;
             chan[i].pcm.end.curr=((unsigned int)((double)(s->offES5506*1024.0)+((table.loopEnd-1)*2048.0)))&0xffffff80;
             if (chan[i].sliceEnable) { // sliced?
-              chan[i].pcm.sliceLoop.curr=(unsigned int)((double)(s->offES5506*1024.0)+(((double)(chan[i].slice*chan[i].pcm.sliceStart.curr)*2048.0)/4095.0))&0xfffff800;
-              chan[i].pcm.sliceEnd.curr=(unsigned int)((double)(s->offES5506*1024.0)+(chan[i].pcm.sliceSize.curr*2048.0)+((double)((chan[i].slice*chan[i].pcm.sliceStart.curr)*2048.0)/4095.0))&0xffffff80;
+              chan[i].pcm.sliceLoop.curr=(unsigned int)((double)(s->offES5506*1024.0)+(((double)(chan[i].slice*chan[i].pcm.sliceBound.curr)*2048.0)/4095.0))&0xfffff800;
+              chan[i].pcm.sliceEnd.curr=(unsigned int)((double)(s->offES5506*1024.0)+((chan[i].pcm.sliceSize.curr-1)*2048.0)+((double)((chan[i].slice*chan[i].pcm.sliceBound.curr)*2048.0)/4095.0))&0xffffff80;
               pageWrite(0x20+i,0x01,chan[i].pcm.sliceLoop.curr); // Set loop start address
               pageWrite(0x20+i,0x02,chan[i].pcm.sliceEnd.curr); // Set loop end address
             } else {
@@ -630,14 +616,14 @@ void DivPlatformES5506::tick() {
     }
     if (chan[i].volumeChanged) {
       if (!isMuted[i]) {
-        chan[i].lvol=MAX(0,MIN(65535,(chan[i].outVol*((chan[i].panning>>4)&0xf))/0xf));
-        chan[i].rvol=MAX(0,MIN(65535,(chan[i].outVol*((chan[i].panning>>0)&0xf))/0xf));
+        chan[i].outLVol=MAX(0,MIN(65535,((chan[i].outVol*(chan[i].lvol*((chan[i].panning>>4)&0xf)))/0xfff)/0xf));
+        chan[i].outRVol=MAX(0,MIN(65535,((chan[i].outVol*(chan[i].rvol*((chan[i].panning>>0)&0xf)))/0xfff)/0xf));
       } else {
-        chan[i].lvol=0;
-        chan[i].rvol=0;
+        chan[i].outLVol=0;
+        chan[i].outRVol=0;
       }
-      pageWrite(0x00+i,0x02,chan[i].lvol);
-      pageWrite(0x00+i,0x04,chan[i].rvol);
+      pageWrite(0x00+i,0x02,chan[i].outLVol);
+      pageWrite(0x00+i,0x04,chan[i].outRVol);
       chan[i].volumeChanged=false;
     }
     if (chan[i].filterRampChanged) {
@@ -677,6 +663,8 @@ int DivPlatformES5506::dispatch(DivCommand c) {
       DivInstrument* ins=parent->getIns(chan[c.chan].ins);
       if (ins->es5506.sample.transWaveEnable) { // transwave
         chan[c.chan].transWave.next=chan[c.chan].sample=ins->es5506.sample.init;
+        chan[c.chan].sliceEnable=ins->es5506.sample.sliceEnable;
+        chan[c.chan].slice=ins->es5506.sample.sliceInit;
       } else { // amiga format
         chan[c.chan].sample=ins->amiga.initSample;
         if (chan[c.chan].sample<0 || chan[c.chan].sample>=parent->song.sampleLen) {
@@ -747,8 +735,9 @@ int DivPlatformES5506::dispatch(DivCommand c) {
       }
       return chan[c.chan].outVol;
       break;
+    // Sample commands
     case DIV_CMD_WAVE:
-      if (chan[c.chan].pcm.sample.curr>=0 && chan[c.chan].pcm.sample.curr<parent->song.sampleLen) {
+      if (chan[c.chan].pcm.index.curr>=0 && chan[c.chan].pcm.index.curr<parent->song.sampleLen) {
         chan[c.chan].sliceEnable=false;
         chan[c.chan].slice=0;
         if (chan[c.chan].transWave.enable) { // transwave
@@ -761,30 +750,22 @@ int DivPlatformES5506::dispatch(DivCommand c) {
       }
       break;
     case DIV_CMD_SAMPLE_POS: {
-      if (chan[c.chan].pcm.sample.curr>=0 && chan[c.chan].pcm.sample.curr<parent->song.sampleLen) {
+      if (chan[c.chan].pcm.index.curr>=0 && chan[c.chan].pcm.index.curr<parent->song.sampleLen) {
         unsigned int pos=(c.value<<11); // sample position
         if (chan[c.chan].transWave.enable) { // transwave
           if (chan[c.chan].sliceEnable) { // slice mode?
-            pageWriteImm(0x20+c.chan,0x03,MAX(chan[c.chan].pcm.sliceLoop.curr,MIN(chan[c.chan].pcm.sliceEnd.curr,chan[c.chan].pcm.sliceLoop.curr+pos)));
+            pageWrite(0x20+c.chan,0x03,MAX(chan[c.chan].pcm.sliceLoop.curr,MIN(chan[c.chan].pcm.sliceEnd.curr,chan[c.chan].pcm.sliceLoop.curr+pos)));
           } else {
-            pageWriteImm(0x20+c.chan,0x03,MAX(chan[c.chan].pcm.loop.curr,MIN(chan[c.chan].end.curr,chan[c.chan].pcm.loop.curr+pos)));
+            pageWrite(0x20+c.chan,0x03,MAX(chan[c.chan].pcm.loop.curr,MIN(chan[c.chan].pcm.end.curr,chan[c.chan].pcm.loop.curr+pos)));
           }
         } else { // amiga format
-          pageWriteImm(0x20+c.chan,0x03,MAX(chan[c.chan].pcm.start.curr,MIN(chan[c.chan].end.curr,chan[c.chan].pcm.start.curr+pos)));
+          pageWrite(0x20+c.chan,0x03,MAX(chan[c.chan].pcm.start.curr,MIN(chan[c.chan].pcm.end.curr,chan[c.chan].pcm.start.curr+pos)));
         }
       }
       break;
     }
-    case DIV_CMD_ES5506_PAUSE: // toggle pause
-      if (chan[c.chan].pcm.sample.curr>=0 && chan[c.chan].pcm.sample.curr<parent->song.sampleLen) {
-        if (chan[c.chan].pause!=(c.value&1)) {
-          chan[c.chan].pause=c.value&1;
-          crWriteMask(c.chan,chan[c.chan].pause?0x0002:0x0000,0x0002); // Set STOP1 to pause flag
-        }
-      }
-      break;
     case DIV_CMD_ES5506_SLICE: // toggle slice
-      if (chan[c.chan].pcm.sample.curr>=0 && chan[c.chan].pcm.sample.curr<parent->song.sampleLen) {
+      if (chan[c.chan].pcm.index.curr>=0 && chan[c.chan].pcm.index.curr<parent->song.sampleLen) {
         if (chan[c.chan].sliceEnable!=(c.value&1)) {
           chan[c.chan].sliceEnable=c.value&1;
           chan[c.chan].transWaveChanged=true;
@@ -792,9 +773,17 @@ int DivPlatformES5506::dispatch(DivCommand c) {
       }
       break;
     case DIV_CMD_ES5506_SLICE_POS: // adjust slice position
-      if (chan[c.chan].pcm.sample.curr>=0 && chan[c.chan].pcm.sample.curr<parent->song.sampleLen) {
+      if (chan[c.chan].pcm.index.curr>=0 && chan[c.chan].pcm.index.curr<parent->song.sampleLen) {
         chan[c.chan].slice=c.value2;
         chan[c.chan].transWaveChanged=true;
+      }
+      break;
+    case DIV_CMD_ES5506_PAUSE: // toggle pause
+      if (chan[c.chan].pcm.index.curr>=0 && chan[c.chan].pcm.index.curr<parent->song.sampleLen) {
+        if (chan[c.chan].pause!=(c.value&1)) {
+          chan[c.chan].pause=c.value&1;
+          crWriteMask(c.chan,chan[c.chan].pause?0x0002:0x0000,0x0002); // Set STOP1 to pause flag
+        }
       }
       break;
     // Filter commands
@@ -901,7 +890,7 @@ void DivPlatformES5506::forceIns() {
     chan[i].filterChanged=true;
     chan[i].filterRampChanged=true;
     chan[i].envChanged=true;
-    chan[i].pcm.sample.reset();
+    chan[i].pcm.index.reset();
   }
 }
 
@@ -915,11 +904,11 @@ void DivPlatformES5506::reset() {
     chan[i]=DivPlatformES5506::Channel();
   }
   es5506.reset();
-  commonPageWriteMask(0x20,0x60,0x0a,0x01); // W_ST
-  commonPageWriteMask(0x20,0x60,0x0b,0x11); // W_END
-  commonPageWriteMask(0x20,0x60,0x0c,0x20); // LR_END
-  commonPageWriteMask(0x00,0x00,0x0b,chanMax); // Set max channel number
-  commonPageWriteMask(0x00,0x00,0x0c,0x08); // Enable serial output, Single/Master mode
+  commonPageWrite(0x20,0x60,0x0a,0x01); // W_ST
+  commonPageWrite(0x20,0x60,0x0b,0x11); // W_END
+  commonPageWrite(0x20,0x60,0x0c,0x20); // LR_END
+  commonPageWrite(0x00,0x00,0x0b,chanMax); // Set max channel number
+  commonPageWrite(0x00,0x00,0x0c,0x08); // Enable serial output, Single/Master mode
 }
 
 bool DivPlatformES5506::isStereo() {
@@ -951,11 +940,11 @@ void DivPlatformES5506::notifyInsDeletion(void* ins) {
 
 void DivPlatformES5506::setFlags(unsigned int flags) {
   chipClock=16000000; //mostly used clock
-  rate=chipClock/16; // 4 BCLK per voice, 4 clock per BCLK (16 clock per voice)
+  rate=chipClock*2; // clock pulse, 4 BCLK per voice, 4 clock per BCLK (16 clock per voice)
   initChanMax=MAX(4,(flags>>4)&0x1f);
   if (chanMax!=initChanMax) {
     chanMax=initChanMax;
-    commonPageWriteMask(0x00,0x60,0x0b,chanMax,0x1f);
+    commonPageWrite(0x00,0x60,0x0b,chanMax);
     forceIns();
   }
 }

@@ -649,7 +649,7 @@ class FurnaceGUI {
 
   String workingDir, fileName, clipboard, warnString, errorString, lastError, curFileName, nextFile;
   String workingDirSong, workingDirIns, workingDirWave, workingDirSample, workingDirAudioExport, workingDirVGMExport, workingDirFont;
-  String mmlString[13];
+  String mmlString[21];
   String mmlStringW;
 
   bool quit, warnQuit, willCommit, edit, modified, displayError, displayExporting, vgmExportLoop;
@@ -968,7 +968,6 @@ class FurnaceGUI {
   void drawWaveform(unsigned char type, bool opz, const ImVec2& size);
   void drawAlgorithm(unsigned char alg, FurnaceGUIFMAlgs algType, const ImVec2& size);
   void drawFMEnv(unsigned char tl, unsigned char ar, unsigned char dr, unsigned char d2r, unsigned char rr, unsigned char sl, float maxTl, float maxArDr, const ImVec2& size);
-  void drawES5506Env(unsigned short src, signed char ramp, unsigned short counter, bool slow, const ImVec2& size);
   void drawSysConf(int i);
 
   // these ones offer ctrl-wheel fine value changes.
@@ -1074,10 +1073,11 @@ class FurnaceGUI {
   void applyUISettings();
   void initSystemPresets();
 
-  template<typename T> void encodeMMLStr(String& target, DivMacroSTD<T>& macro, bool hex=false);
-  template<typename T> void encodeMMLStr(String& target, DivMacroSTD<T>& macro);
-  template<typename T> void decodeMMLStr(String& source, DivMacroSTD<T>& macro, int macroMin, int macroMax);
-  template<typename T> void decodeMMLStrW(String& source, DivMacroSTD<T>& macro, int macroMax, bool hex=false);
+  void encodeMMLStr(String& target, int* macro, int macroLen, int macroLoop, int macroRel, bool hex=false);
+  void encodeMMLStr(String& target, unsigned char* macro, unsigned char macroLen, signed char macroLoop, signed char macroRel);
+  void decodeMMLStr(String& source, unsigned char* macro, unsigned char& macroLen, signed char& macroLoop, int macroMin, int macroMax, signed char& macroRel);
+  void decodeMMLStr(String& source, int* macro, unsigned char& macroLen, signed char& macroLoop, int macroMin, int macroMax, signed char& macroRel);
+  void decodeMMLStrW(String& source, int* macro, int& macroLen, int macroMax, bool hex=false);
 
   String encodeKeyMap(std::map<int,int>& map);
   void decodeKeyMap(std::map<int,int>& map, String source);

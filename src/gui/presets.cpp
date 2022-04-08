@@ -172,6 +172,12 @@ void FurnaceGUI::initSystemPresets() {
       0
     }
   ));
+  cat.systems.push_back(FurnaceGUISysDef(
+    "Ensoniq ES5506", {
+      DIV_SYSTEM_ES5506, 64, 0, 31,
+      0
+    }
+  ));
   sysCategories.push_back(cat);
 
   cat=FurnaceGUISysCategory("Game consoles");
@@ -556,6 +562,13 @@ void FurnaceGUI::initSystemPresets() {
     }
   ));
   cat.systems.push_back(FurnaceGUISysDef(
+    "PC + SoundScape S-2000", {
+      DIV_SYSTEM_ES5506, 64, 0, 31, // imagine if its firmware and sample ROMs are replaced to custom one...
+      DIV_SYSTEM_PCSPKR, 64, 0, 0,
+      0
+    }
+  ));
+  cat.systems.push_back(FurnaceGUISysDef(
     "Sharp X1", {
       DIV_SYSTEM_AY8910, 64, 0, 3,
       0
@@ -662,6 +675,12 @@ void FurnaceGUI::initSystemPresets() {
       DIV_SYSTEM_AY8910, 64, 0, 0,
       DIV_SYSTEM_BUBSYS_WSG, 64, 0, 0,
       // VLM5030 exists but not used for music at all
+      0
+    }
+  ));
+  cat.systems.push_back(FurnaceGUISysDef(
+    "Seta/Sammy/Visco SSV", {
+      DIV_SYSTEM_ES5506, 64, 0, 31,
       0
     }
   ));

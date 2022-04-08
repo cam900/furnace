@@ -159,12 +159,12 @@ void DivPlatformVERA::tick() {
   for (int i=0; i<16; i++) {
     chan[i].std.next();
     if (chan[i].std.vol.had) {
-      chan[i].outVol=MAX(chan[i].vol+chan[i].std.vol-63,0);
+      chan[i].outVol=MAX(chan[i].vol+chan[i].std.vol.val-63,0);
       rWriteLo(i,2,chan[i].outVol);
     }
     if (chan[i].std.arp.had) {
       if (!chan[i].inPorta) {
-        if (chan[i].std.arpMode) {
+        if (chan[i].std.arp.mode) {
           chan[i].baseFreq=calcNoteFreq(0,chan[i].std.arp.val);
         } else {
           chan[i].baseFreq=calcNoteFreq(0,chan[i].note+chan[i].std.arp.val);
@@ -172,7 +172,7 @@ void DivPlatformVERA::tick() {
       }
       chan[i].freqChanged=true;
     } else {
-      if (chan[i].std.arpMode && chan[i].std.arp.finished) {
+      if (chan[i].std.arp.mode && chan[i].std.arp.finished) {
         chan[i].baseFreq=calcNoteFreq(0,chan[i].note);
         chan[i].freqChanged=true;
       }
@@ -194,12 +194,12 @@ void DivPlatformVERA::tick() {
   // PCM
   chan[16].std.next();
   if (chan[16].std.vol.had) {
-    chan[16].outVol=MAX(chan[16].vol+MIN(chan[16].std.vol/4,15)-15,0);
+    chan[16].outVol=MAX(chan[16].vol+MIN(chan[16].std.vol.val/4,15)-15,0);
     rWritePCMVol(chan[16].outVol&15);
   }
   if (chan[16].std.arp.had) {
     if (!chan[16].inPorta) {
-      if (chan[16].std.arpMode) {
+      if (chan[16].std.arp.mode) {
         chan[16].baseFreq=calcNoteFreq(16,chan[16].std.arp.val);
       } else {
         chan[16].baseFreq=calcNoteFreq(16,chan[16].note+chan[16].std.arp.val);
@@ -207,7 +207,7 @@ void DivPlatformVERA::tick() {
     }
     chan[16].freqChanged=true;
   } else {
-    if (chan[16].std.arpMode && chan[16].std.arp.finished) {
+    if (chan[16].std.arp.mode && chan[16].std.arp.finished) {
       chan[16].baseFreq=calcNoteFreq(16,chan[16].note);
       chan[16].freqChanged=true;
     }
@@ -311,7 +311,7 @@ int DivPlatformVERA::dispatch(DivCommand c) {
       break;
     }
     case DIV_CMD_LEGATO:
-      chan[c.chan].baseFreq=calcNoteFreq(c.chan,c.value+((chan[c.chan].std.arp.will && !chan[c.chan].std.arpMode)?(chan[c.chan].std.arp.val):(0)));
+      chan[c.chan].baseFreq=calcNoteFreq(c.chan,c.value+((chan[c.chan].std.arp.will && !chan[c.chan].std.arp.mode)?(chan[c.chan].std.arp.val):(0)));
       chan[c.chan].freqChanged=true;
       chan[c.chan].note=c.value;
       break;

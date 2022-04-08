@@ -19,6 +19,7 @@
 
 #ifndef _INSTRUMENT_H
 #define _INSTRUMENT_H
+#include <vector>
 #include "safeWriter.h"
 #include "dataErrors.h"
 #include "../ta-utils.h"
@@ -150,7 +151,6 @@ struct DivInstrumentFM {
 };
 
 template<typename T> struct DivMacroSTD {
-  const char* name;
   T val[256];
   bool mode;
   unsigned char height;
@@ -158,10 +158,9 @@ template<typename T> struct DivMacroSTD {
   unsigned char len;
   signed char loop;
   signed char rel;
-  DivMacroSTD(const char* macroName, unsigned char h=~0):
-    name(macroName),
-    mode(false),
+  DivMacroSTD(unsigned char h=~0):
     val{0},
+    mode(false),
     height(h),
     open(false),
     len(0),
@@ -212,38 +211,38 @@ struct DivInstrumentSTD {
     DivMacroSTD<unsigned char> wsMacro;
     DivMacroSTD<unsigned char> ksrMacro;
     OpMacro():
-      amMacro(DivMacroSTD<unsigned char>("am")), arMacro(DivMacroSTD<unsigned char>("ar")),
-      drMacro(DivMacroSTD<unsigned char>("dr")), multMacro(DivMacroSTD<unsigned char>("mult")),
-      rrMacro(DivMacroSTD<unsigned char>("rr")), slMacro(DivMacroSTD<unsigned char>("sl")),
-      tlMacro(DivMacroSTD<unsigned char>("tl")), dt2Macro(DivMacroSTD<unsigned char>("dt2")),
-      rsMacro(DivMacroSTD<unsigned char>("rs")), dtMacro(DivMacroSTD<unsigned char>("dt2")),
-      d2rMacro(DivMacroSTD<unsigned char>("d2r")), ssgMacro(DivMacroSTD<unsigned char>("ssg")),
-      damMacro(DivMacroSTD<unsigned char>("dam")), dvbMacro(DivMacroSTD<unsigned char>("dvb")),
-      egtMacro(DivMacroSTD<unsigned char>("egt")), kslMacro(DivMacroSTD<unsigned char>("ksl")),
-      susMacro(DivMacroSTD<unsigned char>("sus")), vibMacro(DivMacroSTD<unsigned char>("vib")),
-      wsMacro(DivMacroSTD<unsigned char>("ws")), ksrMacro(DivMacroSTD<unsigned char>("ksr")) { }
+      amMacro(DivMacroSTD<unsigned char>()), arMacro(DivMacroSTD<unsigned char>()),
+      drMacro(DivMacroSTD<unsigned char>()), multMacro(DivMacroSTD<unsigned char>()),
+      rrMacro(DivMacroSTD<unsigned char>()), slMacro(DivMacroSTD<unsigned char>()),
+      tlMacro(DivMacroSTD<unsigned char>()), dt2Macro(DivMacroSTD<unsigned char>()),
+      rsMacro(DivMacroSTD<unsigned char>()), dtMacro(DivMacroSTD<unsigned char>()),
+      d2rMacro(DivMacroSTD<unsigned char>()), ssgMacro(DivMacroSTD<unsigned char>()),
+      damMacro(DivMacroSTD<unsigned char>()), dvbMacro(DivMacroSTD<unsigned char>()),
+      egtMacro(DivMacroSTD<unsigned char>()), kslMacro(DivMacroSTD<unsigned char>()),
+      susMacro(DivMacroSTD<unsigned char>()), vibMacro(DivMacroSTD<unsigned char>()),
+      wsMacro(DivMacroSTD<unsigned char>()), ksrMacro(DivMacroSTD<unsigned char>()) { }
   } opMacros[4];
   DivInstrumentSTD():
-    volMacro(DivMacroSTD<int>("vol",15)),
-    arpMacro(DivMacroSTD<int>("arp")),
-    dutyMacro(DivMacroSTD<int>("duty",3)),
-    waveMacro(DivMacroSTD<int>("wave",63)),
-    pitchMacro(DivMacroSTD<int>("pitch")),
-    ex1Macro(DivMacroSTD<int>("ex1")),
-    ex2Macro(DivMacroSTD<int>("ex2")),
-    ex3Macro(DivMacroSTD<int>("ex3")),
-    algMacro(DivMacroSTD<int>("alg")),
-    fbMacro(DivMacroSTD<int>("fb")),
-    fmsMacro(DivMacroSTD<int>("fms")),
-    amsMacro(DivMacroSTD<int>("ams")),
-    panLMacro(DivMacroSTD<int>("panl")),
-    panRMacro(DivMacroSTD<int>("panr")),
-    phaseResetMacro(DivMacroSTD<int>("phasereset")),
-    ex4Macro(DivMacroSTD<int>("ex4")),
-    ex5Macro(DivMacroSTD<int>("ex5")),
-    ex6Macro(DivMacroSTD<int>("ex6")),
-    ex7Macro(DivMacroSTD<int>("ex7")),
-    ex8Macro(DivMacroSTD<int>("ex8")) { }
+    volMacro(DivMacroSTD<int>(15)),
+    arpMacro(DivMacroSTD<int>()),
+    dutyMacro(DivMacroSTD<int>(3)),
+    waveMacro(DivMacroSTD<int>(63)),
+    pitchMacro(DivMacroSTD<int>()),
+    ex1Macro(DivMacroSTD<int>()),
+    ex2Macro(DivMacroSTD<int>()),
+    ex3Macro(DivMacroSTD<int>()),
+    algMacro(DivMacroSTD<int>()),
+    fbMacro(DivMacroSTD<int>()),
+    fmsMacro(DivMacroSTD<int>()),
+    amsMacro(DivMacroSTD<int>()),
+    panLMacro(DivMacroSTD<int>()),
+    panRMacro(DivMacroSTD<int>()),
+    phaseResetMacro(DivMacroSTD<int>()),
+    ex4Macro(DivMacroSTD<int>()),
+    ex5Macro(DivMacroSTD<int>()),
+    ex6Macro(DivMacroSTD<int>()),
+    ex7Macro(DivMacroSTD<int>()),
+    ex8Macro(DivMacroSTD<int>()) { }
 };
 
 struct DivInstrumentGB {
@@ -318,20 +317,26 @@ struct DivInstrumentN163 {
 struct DivInstrumentES5506 {
   struct Sample {
     struct TransWave {
-      int index, loopStart;
-      double loopEnd;
+      int index;
+      double loopStart, loopEnd, sliceSize, sliceBound;
       TransWave():
         index(-1),
-        loopStart(0),
-        loopEnd(16777216.0) {}
+        loopStart(0.0),
+        loopEnd(16777216.0),
+        sliceSize(0.0),
+        sliceBound(0.0) {}
     };
     int init;
     bool transWaveEnable;
     std::vector<TransWave> transWaveTable;
+    bool sliceEnable;
+    int sliceInit;
     Sample():
       init(-1),
       transWaveEnable(false),
-      transWaveTable{DivInstrumentES5506::Sample::TransWave()} {}
+      transWaveTable{DivInstrumentES5506::Sample::TransWave()},
+      sliceEnable(false),
+      sliceInit(0) {}
   };
   struct Filter {
     signed int k1, k2;
@@ -372,6 +377,7 @@ struct DivInstrumentFDS {
     initModTableWithFirstWave(false) {
     memset(modTable,0,32);
   }
+};
 struct DivInstrument {
   String name;
   bool mode;

@@ -431,28 +431,28 @@ void DivInstrument::putInsData(SafeWriter* w) {
   w->writeC(std.ex8Macro.open);
 
   for (int j=0; j<std.panLMacro.len; j++) {
-    w->writeI(std.panLMacro[j]);
+    w->writeI(std.panLMacro.val[j]);
   }
   for (int j=0; j<std.panRMacro.len; j++) {
-    w->writeI(std.panRMacro[j]);
+    w->writeI(std.panRMacro.val[j]);
   }
   for (int j=0; j<std.phaseResetMacro.len; j++) {
-    w->writeI(std.phaseResetMacro[j]);
+    w->writeI(std.phaseResetMacro.val[j]);
   }
   for (int j=0; j<std.ex4Macro.len; j++) {
-    w->writeI(std.ex4Macro[j]);
+    w->writeI(std.ex4Macro.val[j]);
   }
   for (int j=0; j<std.ex5Macro.len; j++) {
-    w->writeI(std.ex5Macro[j]);
+    w->writeI(std.ex5Macro.val[j]);
   }
   for (int j=0; j<std.ex6Macro.len; j++) {
-    w->writeI(std.ex6Macro[j]);
+    w->writeI(std.ex6Macro.val[j]);
   }
   for (int j=0; j<std.ex7Macro.len; j++) {
-    w->writeI(std.ex7Macro[j]);
+    w->writeI(std.ex7Macro.val[j]);
   }
   for (int j=0; j<std.ex8Macro.len; j++) {
-    w->writeI(std.ex8Macro[j]);
+    w->writeI(std.ex8Macro.val[j]);
   }
 
   // FDS
@@ -867,14 +867,14 @@ DivDataErrors DivInstrument::readInsData(SafeReader& reader, short version) {
     std.ex7Macro.open=reader.readC();
     std.ex8Macro.open=reader.readC();
 
-    reader.read(std.panLMacro,4*std.panLMacro.len);
-    reader.read(std.panRMacro,4*std.panRMacro.len);
-    reader.read(std.phaseResetMacro,4*std.phaseResetMacro.len);
-    reader.read(std.ex4Macro,4*std.ex4Macro.len);
-    reader.read(std.ex5Macro,4*std.ex5Macro.len);
-    reader.read(std.ex6Macro,4*std.ex6Macro.len);
-    reader.read(std.ex7Macro,4*std.ex7Macro.len);
-    reader.read(std.ex8Macro,4*std.ex8Macro.len);
+    reader.read(std.panLMacro.val,4*std.panLMacro.len);
+    reader.read(std.panRMacro.val,4*std.panRMacro.len);
+    reader.read(std.phaseResetMacro.val,4*std.phaseResetMacro.len);
+    reader.read(std.ex4Macro.val,4*std.ex4Macro.len);
+    reader.read(std.ex5Macro.val,4*std.ex5Macro.len);
+    reader.read(std.ex6Macro.val,4*std.ex6Macro.len);
+    reader.read(std.ex7Macro.val,4*std.ex7Macro.len);
+    reader.read(std.ex8Macro.val,4*std.ex8Macro.len);
   }
 
   // FDS

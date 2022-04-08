@@ -161,7 +161,7 @@ void DivPlatformAmiga::tick() {
     }
     if (chan[i].std.arp.had) {
       if (!chan[i].inPorta) {
-        if (chan[i].std.arpMode) {
+        if (chan[i].std.arp.mode) {
           chan[i].baseFreq=round(off*NOTE_PERIODIC_NOROUND(chan[i].std.arp.val));
         } else {
           chan[i].baseFreq=round(off*NOTE_PERIODIC_NOROUND(chan[i].note+chan[i].std.arp.val));
@@ -169,7 +169,7 @@ void DivPlatformAmiga::tick() {
       }
       chan[i].freqChanged=true;
     } else {
-      if (chan[i].std.arpMode && chan[i].std.arp.finished) {
+      if (chan[i].std.arp.mode && chan[i].std.arp.finished) {
         chan[i].baseFreq=round(off*NOTE_PERIODIC_NOROUND(chan[i].note));
         chan[i].freqChanged=true;
       }
@@ -315,7 +315,7 @@ int DivPlatformAmiga::dispatch(DivCommand c) {
           off=8363.0/(double)s->centerRate;
         }
       }
-      chan[c.chan].baseFreq=round(off*NOTE_PERIODIC_NOROUND(c.value+((chan[c.chan].std.arp.will && !chan[c.chan].std.arpMode)?(chan[c.chan].std.arp.val-12):(0))));
+      chan[c.chan].baseFreq=round(off*NOTE_PERIODIC_NOROUND(c.value+((chan[c.chan].std.arp.will && !chan[c.chan].std.arp.mode)?(chan[c.chan].std.arp.val-12):(0))));
       chan[c.chan].freqChanged=true;
       chan[c.chan].note=c.value;
       break;

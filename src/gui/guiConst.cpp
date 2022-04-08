@@ -106,7 +106,8 @@ const char* insTypes[DIV_INS_MAX]={
   "Atari Lynx",
   "VERA",
   "X1-010",
-  "VRC6 (saw)"
+  "VRC6 (saw)",
+  "ES5506"
 };
 
 const char* sampleDepths[17]={
@@ -508,6 +509,7 @@ const int availableSystems[]={
   DIV_SYSTEM_VRC6,
   DIV_SYSTEM_FDS,
   DIV_SYSTEM_MMC5,
+  DIV_SYSTEM_ES5506,
   0 // don't remove this last one!
 };
 

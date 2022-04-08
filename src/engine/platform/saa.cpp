@@ -146,7 +146,7 @@ void DivPlatformSAA1099::tick() {
     }
     if (chan[i].std.arp.had) {
       if (!chan[i].inPorta) {
-        if (chan[i].std.arpMode) {
+        if (chan[i].std.arp.mode) {
           chan[i].baseFreq=NOTE_PERIODIC(chan[i].std.arp.val);
         } else {
           chan[i].baseFreq=NOTE_PERIODIC(chan[i].note+chan[i].std.arp.val);
@@ -154,13 +154,13 @@ void DivPlatformSAA1099::tick() {
       }
       chan[i].freqChanged=true;
     } else {
-      if (chan[i].std.arpMode && chan[i].std.arp.finished) {
+      if (chan[i].std.arp.mode && chan[i].std.arp.finished) {
         chan[i].baseFreq=NOTE_PERIODIC(chan[i].note);
         chan[i].freqChanged=true;
       }
     }
     if (chan[i].std.duty.had) {
-      saaNoise[i/3]=chan[i].std.duty&3;
+      saaNoise[i/3]=chan[i].std.duty.val&3;
       rWrite(0x16,saaNoise[0]|(saaNoise[1]<<4));
     }
     if (chan[i].std.wave.had) {
