@@ -23,7 +23,7 @@
 #include <math.h>
 #include <map>
 
-#define CHIP_FREQBASE (16*2048)
+#define CHIP_FREQBASE (2048)
 
 #define rWrite(a,v) {if(!skipRegisterWrites) {writes.emplace(a,v); }}
 #define rWriteMask(a,v,m) {if(!skipRegisterWrites) {writes.emplace(a,v,m); }}
@@ -232,30 +232,12 @@ void DivPlatformES5506::acquire(short* bufL, short* bufR, size_t start, size_t l
       writes.pop();
     }
     es5506.tick();
-    if (es5506.e_rising_edge()) {
-      if ((!writes8.empty())) {
-        QueuedWrite8 w=writes8.front();
-        if ((w.mask!=((unsigned char)(~0))) && (!w.masked)) {
-          w.val=(es5506.host_r(w.addr)&~w.mask)|(w.val&w.mask);
-          w.masked=true;
-        } else {
-          es5506.host_w(w.addr,w.val);
-          if (dumpWrites) {
-            addWrite(w.addr,w.val);
-          }
-          cycles+=w.delay;
-          writes8.pop();
-        }
-      } else if (cycles>0) { // wait until cycles
-        cycles--;
-      }
-    }
     bufL[h]=es5506.lout(0);
     bufR[h]=es5506.rout(0);
     // Reversed loop, Transwave uses IRQ
-    if (intf.irq)
+    if (irq)
     {
-      while (!intf.irq) {
+      while (!irq) {
         // get irqv
         unsigned int irqv=0;
         for (int byte=0; byte<4; byte++) {
@@ -268,6 +250,29 @@ void DivPlatformES5506::acquire(short* bufL, short* bufR, size_t start, size_t l
         // get voice from IRQV register
         updateIRQ(irqv);
       }
+    }
+  }
+}
+
+void DivPlatformES5506::e(bool state)
+{
+  // flush output
+  if (es5506.e_rising_edge()) {
+    if ((!writes8.empty())) {
+      QueuedWrite8 w=writes8.front();
+      if ((w.mask!=((unsigned char)(~0))) && (!masked)) {
+        w.val=(es5506.host_r(w.addr)&~w.mask)|(w.val&w.mask);
+        masked=true;
+      } else {
+        es5506.host_w(w.addr,w.val);
+        if (dumpWrites) {
+          addWrite(w.addr,w.val);
+        }
+        cycles+=w.delay;
+        writes8.pop();
+      }
+    } else if (cycles>0) { // wait until cycles
+      cycles--;
     }
   }
 }
@@ -692,7 +697,7 @@ int DivPlatformES5506::dispatch(DivCommand c) {
       chan[c.chan].filterRampChanged=true;
       chan[c.chan].envChanged=true;
       if (!chan[c.chan].std.vol.will) {
-        chan[c.chan].outVol=chan[c.chan].vol;
+        chan[c.chan].outVol=(0xffff*chan[c.chan].vol)/0xff;
       }
       if (!isMuted[c.chan]) {
         chan[c.chan].volumeChanged=true;
@@ -900,10 +905,17 @@ void* DivPlatformES5506::getChanState(int ch) {
 
 void DivPlatformES5506::reset() {
   while (!writes.empty()) writes.pop();
+  while (!writes8.empty()) writes8.pop();
   for (int i=0; i<32; i++) {
     chan[i]=DivPlatformES5506::Channel();
   }
   es5506.reset();
+  cycles=0;
+  curPage=0;
+  delay=0;
+  masked=false;
+  irq=false;
+  sampleBank=0;
   commonPageWrite(0x20,0x60,0x0a,0x01); // W_ST
   commonPageWrite(0x20,0x60,0x0b,0x11); // W_END
   commonPageWrite(0x20,0x60,0x0c,0x20); // LR_END
@@ -961,7 +973,7 @@ unsigned char* DivPlatformES5506::getRegisterPool() {
   for (int page=0; page<128; page++) {
     for (int reg=0; reg<16; reg++) {
       for (int byte=0; byte<4; byte++) {
-        regPool[byte+(reg<<2)+(page<<6)]=es5506.regs_r(page,reg,false); // register is 32 bit, host access is 8 bit
+        regPool[byte+(reg<<2)+(page<<6)]=es5506.regs_r(page,reg,false)>>(24-(byte<<3)); // register is 32 bit, host access is 8 bit
       }
     }
   }
@@ -974,7 +986,6 @@ int DivPlatformES5506::getRegisterPoolSize() {
 
 int DivPlatformES5506::init(DivEngine* p, int channels, int sugRate, unsigned int flags) {
   parent=p;
-  intf.parent=parent;
   dumpWrites=false;
   skipRegisterWrites=false;
 

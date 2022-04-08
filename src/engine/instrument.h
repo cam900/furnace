@@ -332,7 +332,7 @@ struct DivInstrumentES5506 {
     bool sliceEnable;
     int sliceInit;
     Sample():
-      init(-1),
+      init(0),
       transWaveEnable(false),
       transWaveTable{DivInstrumentES5506::Sample::TransWave()},
       sliceEnable(false),

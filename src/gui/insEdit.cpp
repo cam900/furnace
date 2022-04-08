@@ -2134,7 +2134,6 @@ void FurnaceGUI::drawInsEdit() {
                 if (ins->es5506.sample.init<0) ins->es5506.sample.init=0;
                 if (ins->es5506.sample.init>=ins->es5506.sample.transWaveTable.size()) ins->es5506.sample.init=ins->es5506.sample.transWaveTable.size()-1;
               }
-              ImGui::SameLine();
               int tableSize=ins->es5506.sample.transWaveTable.size();
               if (ImGui::InputInt("Transwave Table Size##TABLESIZE",&tableSize,1,10)) { PARAMETER
                 if (tableSize<1) tableSize=1;
@@ -2150,16 +2149,15 @@ void FurnaceGUI::drawInsEdit() {
               P(ImGui::Checkbox("Transwave slice enable",&ins->es5506.sample.sliceEnable))
               if (ins->es5506.sample.sliceEnable) {
                 ImGui::SameLine();
-                int sliceInit=ins->es5506.sample.sliceInit;
+                int &sliceInit=ins->es5506.sample.sliceInit;
                 if (ImGui::InputInt("Initial slice position ##SLICEINIT",&sliceInit,1,10)) { PARAMETER
                   if (sliceInit<0) sliceInit=0;
                   if (sliceInit>4095) sliceInit=4095;
                 }
-                ImGui::SameLine();
                 DivInstrumentES5506::Sample::TransWave &seq=ins->es5506.sample.transWaveTable[ins->es5506.sample.init];
-                ImGui::Text("Initial slice boundary: %.f~%.f",((double)(sliceInit)*seq.sliceBound)/4095,((((double)(sliceInit)*seq.sliceBound)/4095)+seq.sliceSize));
+                ImGui::Text("Initial slice boundary: %.4f~%.4f",((double)(sliceInit)*seq.sliceBound)/4095,((((double)(sliceInit)*seq.sliceBound)/4095)+seq.sliceSize));
               }
-              if (ImGui::BeginTable("transWaveTable",3,ImGuiTableFlags_ScrollY|ImGuiTableFlags_Borders|ImGuiTableFlags_SizingStretchSame)) {
+              if (ImGui::BeginTable("transWaveTable",6,ImGuiTableFlags_ScrollY|ImGuiTableFlags_Borders|ImGuiTableFlags_SizingStretchSame)) {
                 ImGui::TableSetupColumn("c0",ImGuiTableColumnFlags_WidthFixed); // Transwave sequence no.
                 ImGui::TableSetupColumn("c1",ImGuiTableColumnFlags_WidthStretch); // Sample index
                 ImGui::TableSetupColumn("c2",ImGuiTableColumnFlags_WidthStretch); // Loop start position
@@ -2218,9 +2216,9 @@ void FurnaceGUI::drawInsEdit() {
                   }
                   ImGui::TableNextColumn(); // Loop start position
                   ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                  if (seq.index<0 || seq.index>=e->song.sampleLen) {
+                  if (seq.index>=0 || seq.index<e->song.sampleLen) {
                     DivSample &s=*e->getSample(seq.index);
-                    if (ImGui::InputDouble("##SS",&seq.loopStart,256,32768)) { PARAMETER
+                    if (ImGui::InputDouble("##SS",&seq.loopStart,256,32768,"%.f")) { PARAMETER
                       if (seq.loopStart<0) seq.loopStart=0;
                       if (seq.loopStart>s.length8) seq.loopStart=s.length8;
                       seq.sliceSize=seq.loopEnd-seq.loopStart;
@@ -2229,9 +2227,9 @@ void FurnaceGUI::drawInsEdit() {
                   }
                   ImGui::TableNextColumn(); // Loop end position
                   ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                  if (seq.index<0 || seq.index>=e->song.sampleLen) {
+                  if (seq.index>=0 || seq.index<e->song.sampleLen) {
                     DivSample &s=*e->getSample(seq.index);
-                    if (ImGui::InputDouble("##SE",&seq.loopEnd,256,32768)) { PARAMETER
+                    if (ImGui::InputDouble("##SE",&seq.loopEnd,256,32768,"%.4f")) { PARAMETER
                       if (seq.loopEnd<0) seq.loopEnd=0;
                       if (seq.loopEnd>s.length8) seq.loopEnd=s.length8;
                       seq.sliceSize=seq.loopEnd-seq.loopStart;
@@ -2239,9 +2237,9 @@ void FurnaceGUI::drawInsEdit() {
                     }
                   }
                   ImGui::TableNextColumn(); // Sliced area size
-                  ImGui::Text("%.f",seq.sliceSize);
+                  ImGui::Text("%.4f",seq.sliceSize);
                   ImGui::TableNextColumn(); // Sliced area boundary
-                  ImGui::Text("(0~%.f) to (%.f~%.f)",seq.sliceSize,seq.sliceBound,(seq.sliceBound+seq.sliceSize));
+                  ImGui::Text("(0~%.4f) to (%.4f~%.4f)",seq.sliceSize,seq.sliceBound,(seq.sliceBound+seq.sliceSize));
                   ImGui::PopID();
                 }
                 ImGui::EndTable();
@@ -2250,34 +2248,55 @@ void FurnaceGUI::drawInsEdit() {
             ImGui::EndTabItem();
           }
           if (ImGui::BeginTabItem("Filter/Envelope")) {
-            P(ImGui::SliderScalar("Filter 4, 3 Mode",ImGuiDataType_U8,&ins->es5506.filter.filterMode,&_ZERO,&_THREE,es5506FilterMode[ins->es5506.filter.filterMode])); rightClickable
+            if (ImGui::BeginTable("FilterEnvelopeTable",2,ImGuiTableFlags_ScrollY|ImGuiTableFlags_SizingStretchSame)) {
+              ImGui::TableSetupColumn("c0",ImGuiTableColumnFlags_WidthStretch);
+              ImGui::TableSetupColumn("c1",ImGuiTableColumnFlags_WidthStretch);
 
-            P(ImGui::SliderScalar("Filter K1",ImGuiDataType_S32,&ins->es5506.filter.k1,&_ZERO,&_SIXTY_FIVE_THOUSAND_THIRTY_FIVE)); rightClickable
-            ImGui::SameLine();
-            P(ImGui::SliderScalar("Filter K2",ImGuiDataType_S32,&ins->es5506.filter.k2,&_ZERO,&_SIXTY_FIVE_THOUSAND_THIRTY_FIVE)); rightClickable
+              ImGui::TableSetupScrollFreeze(0,1);
 
-            // Place envelope shape here
-            ImGui::Text("Place envelope shape here");
+              ImGui::TableNextRow();
+              ImGui::TableNextColumn();
+              P(ImGui::SliderScalar("Filter 4, 3 Mode",ImGuiDataType_U8,&ins->es5506.filter.filterMode,&_ZERO,&_THREE,es5506FilterMode[ins->es5506.filter.filterMode])); rightClickable
 
-            P(ImGui::SliderScalar("Envelope Counter",ImGuiDataType_U16,&ins->es5506.envelope.envCount,&_ZERO,&_FIVE_HUNDRED_ELEVEN)); rightClickable
+              ImGui::TableNextRow();
+              ImGui::TableNextColumn();
+              P(ImGui::SliderScalar("Filter K1",ImGuiDataType_S32,&ins->es5506.filter.k1,&_ZERO,&_SIXTY_FIVE_THOUSAND_THIRTY_FIVE)); rightClickable
+              ImGui::TableNextColumn();
+              P(ImGui::SliderScalar("Filter K2",ImGuiDataType_S32,&ins->es5506.filter.k2,&_ZERO,&_SIXTY_FIVE_THOUSAND_THIRTY_FIVE)); rightClickable
 
-            P(ImGui::SliderScalar("Filter K1 Ramp",ImGuiDataType_S16,&ins->es5506.envelope.k1Ramp,&_MINUS_ONE_HUNDRED_TWENTY_EIGHT,&_ONE_HUNDRED_TWENTY_SEVEN)); rightClickable
-            ImGui::SameLine();
-            P(ImGui::SliderScalar("Filter K2 Ramp",ImGuiDataType_S16,&ins->es5506.envelope.k1Ramp,&_MINUS_ONE_HUNDRED_TWENTY_EIGHT,&_ONE_HUNDRED_TWENTY_SEVEN)); rightClickable
+              // Place envelope shape here
+              ImGui::TableNextRow();
+              ImGui::TableNextColumn();
+              ImGui::Text("Place envelope shape here");
 
-            ImGui::Text("Envelope Slowdown");
-            ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Button,TOGGLE_COLOR(ins->es5506.envelope.k1Slow));
-            if (ImGui::Button("k1")) { PARAMETER
-              ins->es5506.envelope.k1Slow=!ins->es5506.envelope.k1Slow;
+              ImGui::TableNextRow();
+              ImGui::TableNextColumn();
+              P(ImGui::SliderScalar("Envelope Counter",ImGuiDataType_U16,&ins->es5506.envelope.envCount,&_ZERO,&_FIVE_HUNDRED_ELEVEN)); rightClickable
+
+              ImGui::TableNextRow();
+              ImGui::TableNextColumn();
+              P(ImGui::SliderScalar("Filter K1 Ramp",ImGuiDataType_S16,&ins->es5506.envelope.k1Ramp,&_MINUS_ONE_HUNDRED_TWENTY_EIGHT,&_ONE_HUNDRED_TWENTY_SEVEN)); rightClickable
+              ImGui::TableNextColumn();
+              P(ImGui::SliderScalar("Filter K2 Ramp",ImGuiDataType_S16,&ins->es5506.envelope.k2Ramp,&_MINUS_ONE_HUNDRED_TWENTY_EIGHT,&_ONE_HUNDRED_TWENTY_SEVEN)); rightClickable
+
+              ImGui::TableNextRow();
+              ImGui::TableNextColumn();
+              ImGui::Text("Envelope Slowdown");
+              ImGui::TableNextRow();
+              ImGui::TableNextColumn();
+              ImGui::PushStyleColor(ImGuiCol_Button,TOGGLE_COLOR(ins->es5506.envelope.k1Slow));
+              if (ImGui::Button("k1")) { PARAMETER
+                ins->es5506.envelope.k1Slow=!ins->es5506.envelope.k1Slow;
+              }
+              ImGui::PopStyleColor();
+              ImGui::SameLine();
+              ImGui::PushStyleColor(ImGuiCol_Button,TOGGLE_COLOR(ins->es5506.envelope.k2Slow));
+              if (ImGui::Button("k2")) { PARAMETER
+                ins->es5506.envelope.k2Slow=!ins->es5506.envelope.k2Slow;
+              }
+              ImGui::PopStyleColor();
+              ImGui::EndTable();
             }
-            ImGui::PopStyleColor();
-            ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_Button,TOGGLE_COLOR(ins->es5506.envelope.k2Slow));
-            if (ImGui::Button("k2")) { PARAMETER
-              ins->es5506.envelope.k2Slow=!ins->es5506.envelope.k2Slow;
-            }
-            ImGui::PopStyleColor();
             ImGui::EndTabItem();
           }
         }

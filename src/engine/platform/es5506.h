@@ -26,20 +26,7 @@
 #include "../macroInt.h"
 #include "sound/es550x/es5506.hpp"
 
-class DivES5506Interface: public es550x_intf {
-  public:
-    DivEngine* parent;
-    bool irq=false;
-    int sampleBank;
-    virtual void irqb(bool state) override { irq=state; }
-    virtual s16 read_sample(u8 voice, u8 bank, u32 address) override {
-      if (parent->es5506Mem==NULL) return 0;
-      return parent->es5506Mem[(u32(bank)<<21)|(address & 0x1fffff)];
-    }
-    DivES5506Interface(): parent(NULL), sampleBank(0) {}
-};
-
-class DivPlatformES5506: public DivDispatch {
+class DivPlatformES5506: public DivDispatch, public es550x_intf {
   struct Channel {
     struct Sample {
       template<typename T> struct SampleState {
@@ -154,22 +141,31 @@ class DivPlatformES5506: public DivDispatch {
       unsigned char val;
       unsigned char mask;
       int delay;
-      bool masked;
-      QueuedWrite8(unsigned char a, unsigned char v, unsigned char m=~0, int d=0): addr(a), val(v), mask(m), delay(d), masked(false) {}
+      QueuedWrite8(unsigned char a, unsigned char v, unsigned char m=~0, int d=0): addr(a), val(v), mask(m), delay(d) {}
   };
   std::queue<QueuedWrite8> writes8;
-  unsigned char lastPan;
   unsigned char initChanMax, chanMax;
 
   int cycles, curPage, delay;
+  bool masked;
 
-  DivES5506Interface intf;
+  bool irq;
+  int sampleBank;
+
   es5506_core es5506;
   unsigned char regPool[4*16*128]; // 7 page bits, 16x32 bit registers per page (big endian format)
   void updateIRQ(unsigned char ch);
   friend void putDispatchChan(void*,int,int);
 
   public:
+    // ES5506 interface override
+    virtual void e(bool state) override;
+    virtual void irqb(bool state) override { irq=state; }
+    virtual s16 read_sample(u8 voice, u8 bank, u32 address) override {
+      if (parent->es5506Mem==NULL) return 0;
+      return parent->es5506Mem[(u32(bank)<<21)|(address & 0x1fffff)];
+    }
+    // Dispatch override
     void acquire(short* bufL, short* bufR, size_t start, size_t len);
     int dispatch(DivCommand c);
     void* getChanState(int chan);
@@ -192,7 +188,9 @@ class DivPlatformES5506: public DivDispatch {
     int init(DivEngine* parent, int channels, int sugRate, unsigned int flags);
     void quit();
   DivPlatformES5506():
-    es5506(intf) {} // up to 32 PCM channels
+    irq(false),
+    sampleBank(0),
+    es5506(*this) {}
 };
 
 #endif
