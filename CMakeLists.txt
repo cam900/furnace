@@ -558,6 +558,7 @@ src/pch.cpp
 
 src/engine/platform/sound/sn76496.cpp
 src/engine/platform/sound/ay8910.cpp
+src/engine/platform/sound/ay8930x.cpp
 src/engine/platform/sound/saa1099.cpp
 src/engine/platform/sound/namco.cpp
 src/engine/platform/sound/segapcm.cpp
@@ -762,6 +763,7 @@ src/engine/platform/ym2610b.cpp
 src/engine/platform/ym2610bext.cpp
 src/engine/platform/ay.cpp
 src/engine/platform/ay8930.cpp
+src/engine/platform/ay8930x.cpp
 src/engine/platform/opl.cpp
 src/engine/platform/fds.cpp
 src/engine/platform/tia.cpp

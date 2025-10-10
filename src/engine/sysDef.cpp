@@ -290,6 +290,8 @@ const char* DivEngine::getSystemNameJ(DivSystem sys) {
       return "";
     case DIV_SYSTEM_AY8930:
       return "";
+    case DIV_SYSTEM_AY8930X:
+      return "";
     default: // TODO
       return "";
   }
@@ -2341,6 +2343,18 @@ void DivEngine::registerSystems() {
     {},
     {},
     c64PostEffectHandlerMap
+  );
+
+  sysDefs[DIV_SYSTEM_AY8930X]=new DivSysDef(
+    _("AY8930X"), NULL, 0xfe /* placeholder */, 0, 3, false, true, 0, false, 1U<<DIV_SAMPLE_DEPTH_8BIT, 0, 0,
+    _("an improved version of the AY8930 with a bigger frequency range, duty cycles, per-channel noise and envelopes!"),
+    {_("PSG 1"), _("PSG 2"), _("PSG 3")},
+    {"S1", "S2", "S3"},
+    {DIV_CH_PULSE, DIV_CH_PULSE, DIV_CH_PULSE},
+    {DIV_INS_AY8930X, DIV_INS_AY8930X, DIV_INS_AY8930X},
+    {DIV_INS_AMIGA, DIV_INS_AMIGA, DIV_INS_AMIGA},
+    {},
+    ay8930PostEffectHandlerMap
   );
 
   sysDefs[DIV_SYSTEM_DUMMY]=new DivSysDef(

@@ -3822,6 +3822,11 @@ void FurnaceGUI::initSystemPresets() {
     }
   );
   ENTRY(
+    _("AY8930X"), {
+      CH(DIV_SYSTEM_AY8930X, 1.0f, 0, "")
+    }
+  );
+  ENTRY(
     _("Game Boy"), {
       CH(DIV_SYSTEM_GB, 1.0f, 0, "")
     }

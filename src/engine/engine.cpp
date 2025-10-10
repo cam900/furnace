@@ -1008,6 +1008,7 @@ void DivEngine::delUnusedSamples() {
         (i->type==DIV_INS_SWAN && i->amiga.useSample) ||
         (i->type==DIV_INS_AY && i->amiga.useSample) ||
         (i->type==DIV_INS_AY8930 && i->amiga.useSample) ||
+        (i->type==DIV_INS_AY8930X && i->amiga.useSample) ||
         (i->type==DIV_INS_VRC6 && i->amiga.useSample) ||
         (i->type==DIV_INS_SU && i->amiga.useSample) ||
         i->type==DIV_INS_SNES ||

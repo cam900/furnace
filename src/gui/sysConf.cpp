@@ -992,6 +992,45 @@ bool FurnaceGUI::drawSysConf(int chan, int sysPos, DivSystem type, DivConfig& fl
       }
       break;
     }
+    case DIV_SYSTEM_AY8930X: {
+      int clockSel=flags.getInt("clockSel",0);
+      bool halfClock=flags.getBool("halfClock",false);
+
+      ImGui::Text(_("Clock rate:"));
+      ImGui::Indent();
+      if (ImGui::RadioButton(_("14.32MHz (NTSC)"),clockSel==0)) {
+        clockSel=0;
+        altered=true;
+      }
+      if (ImGui::RadioButton(_("14.19MHz (PAL)"),clockSel==1)) {
+        clockSel=1;
+        altered=true;
+      }
+      if (ImGui::RadioButton(_("16MHz"),clockSel==2)) {
+        clockSel=2;
+        altered=true;
+      }
+      if (ImGui::RadioButton(_("12MHz"),clockSel==3)) {
+        clockSel=3;
+        altered=true;
+      }
+      if (ImGui::RadioButton(_("12.288MHz"),clockSel==4)) {
+        clockSel=4;
+        altered=true;
+      }
+      ImGui::Unindent();
+      if (ImGui::Checkbox(_("Half Clock divider##_AY8930X_CLKSEL"),&halfClock)) {
+        altered=true;
+      }
+
+      if (altered) {
+        e->lockSave([&]() {
+          flags.set("clockSel",clockSel);
+          flags.set("halfClock",halfClock);
+        });
+      }
+      break;
+    }
     case DIV_SYSTEM_SAA1099: {
       int clockSel=flags.getInt("clockSel",0);
 

@@ -113,6 +113,9 @@ const char* FurnaceGUI::getSystemPartNumber(DivSystem sys, DivConfig& flags) {
     case DIV_SYSTEM_AY8930:
       return "AY8930";
       break;
+    case DIV_SYSTEM_AY8930X:
+      return "AY8930X";
+      break;
     case DIV_SYSTEM_VIC20:
       return "VIC";
       break;
@@ -371,6 +374,7 @@ void FurnaceGUI::drawSystemChannelInfoText(const DivSysDef* whichDef) {
         break;
       case DIV_INS_AY:
       case DIV_INS_AY8930:
+      case DIV_INS_AY8930X:
         chanCount[CHANNEL_TYPE_PSG]++;
         break;
       case DIV_INS_OPL_DRUMS:

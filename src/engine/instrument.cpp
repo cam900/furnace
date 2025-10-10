@@ -1230,6 +1230,10 @@ void DivInstrument::putInsData2(SafeWriter* w, bool fui, const DivSong* song, bo
         featureSM=true;
         if (amiga.useSample) featureSL=true;
         break;
+      case DIV_INS_AY8930X:
+        featureSM=true;
+        if (amiga.useSample) featureSL=true;
+        break;
       case DIV_INS_TIA:
         break;
       case DIV_INS_SAA1099:

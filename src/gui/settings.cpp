@@ -4205,6 +4205,7 @@ void FurnaceGUI::drawSettings() {
           UI_COLOR_CONFIG(GUI_COLOR_INSTR_SUPERVISION,_("Supervision"));
           UI_COLOR_CONFIG(GUI_COLOR_INSTR_UPD1771C,_("μPD1771C"));
           UI_COLOR_CONFIG(GUI_COLOR_INSTR_SID3,_("SID3"));
+          UI_COLOR_CONFIG(GUI_COLOR_INSTR_AY8930X,_("AY8930X"));
           UI_COLOR_CONFIG(GUI_COLOR_INSTR_UNKNOWN,_("Other/Unknown"));
           ImGui::TreePop();
         }

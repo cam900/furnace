@@ -44,6 +44,7 @@
 #include "platform/ym2610bext.h"
 #include "platform/ay.h"
 #include "platform/ay8930.h"
+#include "platform/ay8930x.h"
 #include "platform/opl.h"
 #include "platform/tia.h"
 #include "platform/saa.h"
@@ -412,6 +413,9 @@ void DivDispatchContainer::init(DivSystem sys, DivEngine* eng, int chanCount, do
       break;
     case DIV_SYSTEM_AY8930:
       dispatch=new DivPlatformAY8930;
+      break;
+    case DIV_SYSTEM_AY8930X:
+      dispatch=new DivPlatformAY8930X;
       break;
     case DIV_SYSTEM_FDS:
       dispatch=new DivPlatformFDS;
