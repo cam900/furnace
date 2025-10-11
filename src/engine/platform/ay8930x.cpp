@@ -250,22 +250,16 @@ void DivPlatformAY8930X::acquireDirect(blip_buffer_t** bb, size_t len) {
 }
 
 void DivPlatformAY8930X::updateOutSel(bool immediate) {
+  lastFlag=~((chan[0].curPSGMode.getTone())|
+           ((chan[1].curPSGMode.getTone())<<1)|
+           ((chan[2].curPSGMode.getTone())<<2)|
+           ((chan[0].curPSGMode.getNoise())<<2)|
+           ((chan[1].curPSGMode.getNoise())<<3)|
+           ((chan[2].curPSGMode.getNoise())<<4));
   if (immediate) {
-    immWrite(0x07,
-          ~((chan[0].curPSGMode.getTone())|
-           ((chan[1].curPSGMode.getTone())<<1)|
-           ((chan[2].curPSGMode.getTone())<<2)|
-           ((chan[0].curPSGMode.getNoise())<<2)|
-           ((chan[1].curPSGMode.getNoise())<<3)|
-           ((chan[2].curPSGMode.getNoise())<<4)));
+    immWrite(0x07,lastFlag);
   } else {
-    rWrite(0x07,
-          ~((chan[0].curPSGMode.getTone())|
-           ((chan[1].curPSGMode.getTone())<<1)|
-           ((chan[2].curPSGMode.getTone())<<2)|
-           ((chan[0].curPSGMode.getNoise())<<2)|
-           ((chan[1].curPSGMode.getNoise())<<3)|
-           ((chan[2].curPSGMode.getNoise())<<4)));
+    rWrite(0x07,lastFlag);
   }
 }
 
@@ -923,6 +917,7 @@ void DivPlatformAY8930X::reset() {
     pendingWrites[i]=-1;
   }
 
+  lastFlag=0;
   sampleBank=0;
   ayNoiseAnd=2;
   ayNoiseOr=0;

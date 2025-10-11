@@ -434,13 +434,14 @@ void putDispatchChip(void* data, int type) {
     }
     case DIV_SYSTEM_AY8930X: {
       DivPlatformAY8930X* ch=(DivPlatformAY8930X*)data;
-      ImGui::Text("> AY8930");
+      ImGui::Text("> AY8930X");
       COMMON_CHIP_DEBUG;
       ImGui::Text("* noise:");
       ImGui::Text(" - and: %d",ch->ayNoiseAnd);
       ImGui::Text(" - or: %d",ch->ayNoiseOr);
       ImGui::Text("- sampleBank: %d",ch->sampleBank);
       ImGui::Text("- delay: %d",ch->delay);
+      ImGui::Text("- lastFlag: %d",ch->lastFlag);
       COMMON_CHIP_DEBUG_BOOL;
       ImGui::TextColored(ch->bank?colorOn:colorOff,">> Bank");
       ImGui::TextColored(ch->clockSel?colorOn:colorOff,">> ClockSel");

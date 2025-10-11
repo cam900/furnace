@@ -126,6 +126,7 @@ class DivPlatformAY8930X: public DivDispatch {
     int lastOut[2];
 
     bool clockSel;
+    unsigned char lastFlag;
   
     short oldWrites[32];
     short pendingWrites[32];
