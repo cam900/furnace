@@ -200,8 +200,16 @@ bool opnx_registers::write(uint16_t index, uint8_t data, uint32_t &channel, uint
 	// borrow unused registers 0xb8-bf/0x1b8-bf as temporary holding locations
 	if ((index & 0xf0) == 0xa0)
 	{
-		if (((index & 0xf8) == 0xa8) && (bitfield(index, 0, 2) == 3))
-			return false;
+		if (is_native_mode())
+		{
+			if (((index & 0xf8) == 0xa8) && (bitfield(index, 0, 2) == 3))
+				return false;
+		}
+		else
+		{
+			if ((bitfield(index, 0, 2) == 3) || (!is_ym2610b() && (bitfield(index, 0, 2) == 0)))
+				return false;
+		}
 
 		uint32_t latchindex = 0xb8 | bitfield(index, 3);
 		latchindex |= index & 0x100;
