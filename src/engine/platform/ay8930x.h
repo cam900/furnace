@@ -125,13 +125,18 @@ class DivPlatformAY8930X: public DivDispatch {
     int delay;
     int lastOut[2];
 
+    bool extMode;
+    unsigned int extClock;
+    int dacRate;
+    unsigned int extDiv;
+    unsigned int dacRateDiv;
+
     bool clockSel;
     unsigned char lastFlag;
   
     short oldWrites[32];
     short pendingWrites[32];
 
-    void runDAC(int advance);
     void checkWrites();
     void updateOutSel(bool immediate=false);
     void immWrite(unsigned char a, unsigned char v);
@@ -140,7 +145,10 @@ class DivPlatformAY8930X: public DivDispatch {
     friend void putDispatchChan(void*,int,int);
   
   public:
+    void runDAC(int runRate=0, int advance=1);
+    void setExtClockDiv(unsigned int eclk=COLOR_NTSC*4.0, unsigned char ediv=64);
     void acquireDirect(blip_buffer_t** bb, size_t len);
+    void fillStream(std::vector<DivDelayedWrite>& stream, int sRate, size_t len);
     int dispatch(DivCommand c);
     void* getChanState(int chan);
     DivDispatchOscBuffer* getOscBuffer(int chan);
@@ -148,6 +156,7 @@ class DivPlatformAY8930X: public DivDispatch {
     float getGain(int ch, int vol);
     unsigned char* getRegisterPool();
     int getRegisterPoolSize();
+    void flushWrites();
     void reset();
     void forceIns();
     void tick(bool sysTick=true);
@@ -166,5 +175,11 @@ class DivPlatformAY8930X: public DivDispatch {
     const char** getRegisterSheet();
     int init(DivEngine* parent, int channels, int sugRate, const DivConfig& flags);
     void quit();
+    DivPlatformAY8930X(bool useExtMode=false, unsigned int eclk=COLOR_NTSC*4.0, unsigned int ediv=64, unsigned int ddiv=576):
+      DivDispatch(),
+      extMode(useExtMode),
+      extClock(eclk),
+      extDiv(ediv),
+      dacRateDiv(ddiv) {}
 };
 #endif

@@ -37,6 +37,8 @@
 #include "../engine/platform/ym2610ext.h"
 #include "../engine/platform/ym2610b.h"
 #include "../engine/platform/ym2610bext.h"
+#include "../engine/platform/ym2610x.h"
+#include "../engine/platform/ym2610xext.h"
 #include "../engine/platform/ay.h"
 #include "../engine/platform/ay8930.h"
 #include "../engine/platform/ay8930x.h"
@@ -289,16 +291,26 @@ void putDispatchChip(void* data, int type) {
     case DIV_SYSTEM_YM2610:
     case DIV_SYSTEM_YM2610_EXT:
     case DIV_SYSTEM_YM2610_FULL:
-    case DIV_SYSTEM_YM2610_FULL_EXT: {
+    case DIV_SYSTEM_YM2610_FULL_EXT:
+    case DIV_SYSTEM_YM2610_CSM: {
       DivPlatformYM2610* ch=(DivPlatformYM2610*)data;
       ImGui::Text("> YM2610");
       OPNB_CHIP_DEBUG;
       break;
     }
     case DIV_SYSTEM_YM2610B:
-    case DIV_SYSTEM_YM2610B_EXT: {
+    case DIV_SYSTEM_YM2610B_EXT:
+    case DIV_SYSTEM_YM2610B_CSM: {
       DivPlatformYM2610B* ch=(DivPlatformYM2610B*)data;
       ImGui::Text("> YM2610B");
+      OPNB_CHIP_DEBUG;
+      break;
+    }
+    case DIV_SYSTEM_YM2610X:
+    case DIV_SYSTEM_YM2610X_EXT:
+    case DIV_SYSTEM_YM2610X_CSM: {
+      DivPlatformYM2610X* ch=(DivPlatformYM2610X*)data;
+      ImGui::Text("> YM2610X");
       OPNB_CHIP_DEBUG;
       break;
     }
@@ -693,6 +705,24 @@ void putDispatchChan(void* data, int chanNum, int type) {
       } else {
         DivPlatformOPN::OPNChannelStereo* ch=(DivPlatformOPN::OPNChannelStereo*)data;
         ImGui::Text("> YM2610B");
+        OPNB_CHAN_DEBUG;
+      }
+      break;
+    }
+    case DIV_SYSTEM_YM2610X: {
+      DivPlatformOPN::OPNChannelStereo* ch=(DivPlatformOPN::OPNChannelStereo*)data;
+      ImGui::Text("> YM2610X");
+      OPNB_CHAN_DEBUG;
+      break;
+    }
+    case DIV_SYSTEM_YM2610X_EXT: {
+      if (chanNum>=2 && chanNum<=5) {
+        DivPlatformOPN::OPNOpChannelStereo* ch=(DivPlatformOPN::OPNOpChannelStereo*)data;
+        ImGui::Text("> YM2610X (per operator)");
+        OPNB_OPCHAN_DEBUG;
+      } else {
+        DivPlatformOPN::OPNChannelStereo* ch=(DivPlatformOPN::OPNChannelStereo*)data;
+        ImGui::Text("> YM2610X");
         OPNB_CHAN_DEBUG;
       }
       break;

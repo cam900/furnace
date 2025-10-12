@@ -112,14 +112,15 @@ const unsigned char dacLogTableAY8930[256]={
   30, 30, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31, 31
 };
 
-void DivPlatformAY8930X::runDAC(int advance) {
+void DivPlatformAY8930X::runDAC(int runRate, int advance) {
+  if (runRate==0) runRate=dacRate;
   for (int i=0; i<3; i++) {
     if (chan[i].active && (chan[i].curPSGMode.val&8) && chan[i].dac.sample!=-1) {
       chan[i].dac.period+=chan[i].dac.rate*advance;
       bool end=false;
       bool changed=false;
       int prevOut=chan[i].dac.out;
-      while (chan[i].dac.period>=rate && !end) {
+      while (chan[i].dac.period>=runRate && !end) {
         DivSample* s=parent->getSample(chan[i].dac.sample);
         if (s->samples<=0 || chan[i].dac.pos<0 || chan[i].dac.pos>=(int)s->samples) {
           chan[i].dac.sample=-1;
@@ -142,7 +143,7 @@ void DivPlatformAY8930X::runDAC(int advance) {
           end=true;
           break;
         }
-        chan[i].dac.period-=rate;
+        chan[i].dac.period-=runRate;
       }
       if (changed && !end) {
         if (!isMuted[i]) {
@@ -222,7 +223,7 @@ void DivPlatformAY8930X::acquireDirect(blip_buffer_t** bb, size_t len) {
 
     if (advance<1) advance=1;
     
-    runDAC(advance);
+    runDAC(0,advance);
     checkWrites();
 
     ay->sound_stream_update(ayBuf,advance);
@@ -246,6 +247,18 @@ void DivPlatformAY8930X::acquireDirect(blip_buffer_t** bb, size_t len) {
 
   for (int i=0; i<3; i++) {
     oscBuf[i]->end(len);
+  }
+}
+
+void DivPlatformAY8930X::fillStream(std::vector<DivDelayedWrite>& stream, int sRate, size_t len) {
+  writes.clear();
+  for (size_t i=0; i<len; i++) {
+    runDAC(sRate,1);
+    while (!writes.empty()) {
+      QueuedWrite& w=writes.front();
+      stream.push_back(DivDelayedWrite(i,w.addr,w.val));
+      writes.pop_front();
+    }
   }
 }
 
@@ -713,7 +726,7 @@ int DivPlatformAY8930X::dispatch(DivCommand c) {
           }
         }
       } else {
-        chan[c.chan].duty=c.value&31;
+        chan[c.chan].duty=(c.value-0x10)&31;
         immWrite(0x16+c.chan,chan[c.chan].duty);
       }
       break;
@@ -894,6 +907,10 @@ int DivPlatformAY8930X::getRegisterPoolSize() {
   return 32;
 }
 
+void DivPlatformAY8930X::flushWrites() {
+  while (!writes.empty()) writes.pop();
+}
+
 void DivPlatformAY8930X::reset() {
   while (!writes.empty()) writes.pop();
   ay->device_reset();
@@ -962,27 +979,42 @@ void DivPlatformAY8930X::poke(std::vector<DivRegWrite>& wlist) {
   for (DivRegWrite& i: wlist) immWrite(i.addr,i.val);
 }
 
-void DivPlatformAY8930X::setFlags(const DivConfig& flags) {
-  clockSel=flags.getBool("halfClock",false);
-  switch (flags.getInt("clockSel",0)) {
-    case 1:
-      chipClock=COLOR_PAL*16.0/5.0;
-      break;
-    case 2:
-      chipClock=16000000;
-      break;
-    case 3:
-      chipClock=12000000;
-      break;
-    case 4:
-      chipClock=12288000;
-      break;
-    default:
-      chipClock=COLOR_NTSC*4.0;
-      break;
+void DivPlatformAY8930X::setExtClockDiv(unsigned int eclk, unsigned char ediv) {
+  if (extMode) {
+    extClock=eclk;
+    extDiv=ediv;
   }
-  CHECK_CUSTOM_CLOCK;
-  rate=chipClock/32;
+}
+
+void DivPlatformAY8930X::setFlags(const DivConfig& flags) {
+  if (extMode) {
+    chipClock=extClock;
+    rate=chipClock/extDiv;
+    clockSel=false;
+    dacRate=chipClock/dacRateDiv;
+  } else {
+    clockSel=flags.getBool("halfClock",false);
+    switch (flags.getInt("clockSel",0)) {
+      case 1:
+        chipClock=COLOR_PAL*16.0/5.0;
+        break;
+      case 2:
+        chipClock=16000000;
+        break;
+      case 3:
+        chipClock=12000000;
+        break;
+      case 4:
+        chipClock=12288000;
+        break;
+      default:
+        chipClock=COLOR_NTSC*4.0;
+        break;
+    }
+    CHECK_CUSTOM_CLOCK;
+    rate=chipClock/32;
+    dacRate=rate;
+  }
   for (int i=0; i<3; i++) {
     oscBuf[i]->setRate(rate);
   }

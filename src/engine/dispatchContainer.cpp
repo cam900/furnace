@@ -42,6 +42,8 @@
 #include "platform/ym2610ext.h"
 #include "platform/ym2610b.h"
 #include "platform/ym2610bext.h"
+#include "platform/ym2610x.h"
+#include "platform/ym2610xext.h"
 #include "platform/ay.h"
 #include "platform/ay8930.h"
 #include "platform/ay8930x.h"
@@ -399,6 +401,17 @@ void DivDispatchContainer::init(DivSystem sys, DivEngine* eng, int chanCount, do
         ((DivPlatformYM2610BExt*)dispatch)->setCombo(eng->getConfInt("opnbCore",1));
       }
       ((DivPlatformYM2610BExt*)dispatch)->setCSM(1);
+      break;
+    case DIV_SYSTEM_YM2610X:
+      dispatch=new DivPlatformYM2610X;
+      break;
+    case DIV_SYSTEM_YM2610X_EXT:
+      dispatch=new DivPlatformYM2610XExt;
+      ((DivPlatformYM2610XExt*)dispatch)->setCSM(0);
+      break;
+    case DIV_SYSTEM_YM2610X_CSM:
+      dispatch=new DivPlatformYM2610XExt;
+      ((DivPlatformYM2610XExt*)dispatch)->setCSM(1);
       break;
     case DIV_SYSTEM_AMIGA:
       dispatch=new DivPlatformAmiga;

@@ -203,6 +203,11 @@ const char* FurnaceGUI::getSystemPartNumber(DivSystem sys, DivConfig& flags) {
     case DIV_SYSTEM_YM2610B_EXT:
       return "YM2610B";
       break;
+    case DIV_SYSTEM_YM2610X:
+    case DIV_SYSTEM_YM2610X_CSM:
+    case DIV_SYSTEM_YM2610X_EXT:
+      return "YM2610X";
+      break;
     case DIV_SYSTEM_SFX_BEEPER:
     case DIV_SYSTEM_SFX_BEEPER_QUADTONE:
       return "ZXS Beeper";
@@ -391,6 +396,7 @@ void FurnaceGUI::drawSystemChannelInfoText(const DivSysDef* whichDef) {
         }
         break;
       case DIV_INS_FM:
+      case DIV_INS_OPNX:
         if (whichDef->chanTypes[i]==DIV_CH_OP) {
           chanCount[CHANNEL_TYPE_OPERATOR]++; // ext. ops
         } else if (whichDef->chanTypes[i]==DIV_CH_NOISE) {

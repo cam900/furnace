@@ -852,6 +852,40 @@ bool FurnaceGUI::drawSysConf(int chan, int sysPos, DivSystem type, DivConfig& fl
       }
       break;
     }
+    case DIV_SYSTEM_YM2610X:
+    case DIV_SYSTEM_YM2610X_EXT:
+    case DIV_SYSTEM_YM2610X_CSM: {
+      bool fbAllOps=flags.getBool("fbAllOps",false);
+      int ssgVol=flags.getInt("ssgVol",128);
+      int fmVol=flags.getInt("fmVol",256);
+
+      if (type==DIV_SYSTEM_YM2610X_EXT || type==DIV_SYSTEM_YM2610X_CSM) {
+        if (ImGui::Checkbox(_("Ins change in ExtCh operator 2-4 affects FB (compatibility)"),&fbAllOps)) {
+          altered=true;
+        }
+      }
+
+      if (CWSliderInt(_("SSG Volume"),&ssgVol,0,256)) {
+        if (ssgVol<0) ssgVol=0;
+        if (ssgVol>256) ssgVol=256;
+        altered=true;
+      } rightClickable
+
+      if (CWSliderInt(_("FM/ADPCM Volume"),&fmVol,0,256)) {
+        if (fmVol<0) fmVol=0;
+        if (fmVol>256) fmVol=256;
+        altered=true;
+      } rightClickable
+
+      if (altered) {
+        e->lockSave([&]() {
+          flags.set("fbAllOps",fbAllOps);
+          flags.set("ssgVol",ssgVol);
+          flags.set("fmVol",fmVol);
+        });
+      }
+      break;
+    }
     case DIV_SYSTEM_AY8910:
     case DIV_SYSTEM_AY8930: {
       int clockSel=flags.getInt("clockSel",0);
