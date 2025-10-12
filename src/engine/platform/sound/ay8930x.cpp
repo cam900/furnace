@@ -344,16 +344,7 @@ void ay8930x_device::sound_stream_update(short* outputs, int advance)
 		if (tone_envelope(tone) != 0)
 		{
 			envelope = &m_envelope[get_envelope_chan(chan)];
-			unsigned int env_volume = envelope->volume;
-			if (!is_expanded_mode())
-			{
-				env_volume >>= 1;
-				out = m_vol_table[chan][m_vol_enabled[chan] ? (env_volume >> envelope->shift) : 0];
-			}
-			else
-			{
-				out = m_env_table[chan][m_vol_enabled[chan] ? (env_volume >> envelope->shift) : 0];
-			}
+			out = m_env_table[chan][m_vol_enabled[chan] ? (envelope->volume >> envelope->shift) : 0];
 		}
 		else
 		{
