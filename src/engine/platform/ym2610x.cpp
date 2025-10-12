@@ -736,7 +736,7 @@ void DivPlatformYM2610X::tick(bool sysTick) {
     if (chan[adpcmBChanOffs].furnacePCM) {
       if (chan[adpcmBChanOffs].sample>=0 && chan[adpcmBChanOffs].sample<parent->song.sampleLen) {
         double off=65535.0*(double)(parent->getSample(chan[adpcmBChanOffs].sample)->centerRate)/parent->getCenterRate();
-        chan[adpcmBChanOffs].freq=parent->calcFreq(chan[adpcmBChanOffs].baseFreq,chan[adpcmBChanOffs].pitch,chan[adpcmBChanOffs].fixedArp?chan[adpcmBChanOffs].baseNoteOverride:chan[adpcmBChanOffs].arpOff,chan[adpcmBChanOffs].fixedArp,false,4,chan[adpcmBChanOffs].pitch2,(double)chipClock/144,off);
+        chan[adpcmBChanOffs].freq=parent->calcFreq(chan[adpcmBChanOffs].baseFreq,chan[adpcmBChanOffs].pitch,chan[adpcmBChanOffs].fixedArp?chan[adpcmBChanOffs].baseNoteOverride:chan[adpcmBChanOffs].arpOff,chan[adpcmBChanOffs].fixedArp,false,4,chan[adpcmBChanOffs].pitch2,(double)chipClock/576,off);
       } else {
         chan[adpcmBChanOffs].freq=0;
       }
@@ -913,7 +913,7 @@ int DivPlatformYM2610X::dispatch(DivCommand c) {
             immWriteBanked(0x14,(end>>8)&0xff);
             immWriteBanked(0x15,end>>16);
             immWriteBanked(0x11,isMuted[c.chan]?0:(chan[c.chan].pan<<6));
-            int freq=(65536.0*(double)s->rate)/((double)chipClock/144.0);
+            int freq=(65536.0*(double)s->rate)/((double)chipClock/576.0);
             immWriteBanked(0x19,freq&0xff);
             immWriteBanked(0x1a,(freq>>8)&0xff);
             immWriteBanked(0x1b,chan[c.chan].outVol);
