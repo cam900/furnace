@@ -260,7 +260,7 @@ bool opnx_registers::write(uint16_t index, uint8_t data, uint32_t &channel, uint
 
 int32_t opnx_registers::clock_noise_and_lfo()
 {
-	for (int chan = 0; chan < CHANNELS; chan++)
+	for (uint32_t chan = 0; chan < CHANNELS; chan++)
 	{
 		pclfo_t &pclfo = m_pclfo[chan];
 		for (int param = 0; param < 2; param++)
@@ -536,8 +536,8 @@ uint32_t opnx_registers::compute_phase_step(uint32_t choffs, uint32_t opoffs, op
 
 std::string opnx_registers::log_keyon(uint32_t choffs, uint32_t opoffs)
 {
-	uint32_t chnum = (choffs & 3) + 3 * bitfield(choffs, 8);
-	uint32_t opnum = (opoffs & 15) - ((opoffs & 15) / 4) + 12 * bitfield(opoffs, 8);
+	uint32_t chnum = (choffs & 3) + 4 * bitfield(choffs, 8);
+	uint32_t opnum = (opoffs & 15) + 16 * bitfield(opoffs, 8);
 
 	uint32_t block_freq = ch_block_freq(choffs);
 	if (multi_freq() && choffs == 2)
@@ -693,8 +693,10 @@ void ssgx_resampler<OutputType, FirstOutput, MixTo1>::configure(uint32_t outsamp
 	switch (outsamples * 1000 + srcsamples)
 	{
 		case 288*1000 + 1:  /* 288:1 */	m_resampler = &ssgx_resampler::resample_n_1<288>; break;
+		case 576*1000 + 1:  /* 288:1 */	m_resampler = &ssgx_resampler::resample_n_1<576>; break;
 		case 1*1000 + 1:	/* 1:1 */	m_resampler = &ssgx_resampler::resample_n_1<1>; break;
 		case 1*1000 + 288:	/* 1:288 */	m_resampler = &ssgx_resampler::resample_1_n<288>; break;
+		case 1*1000 + 576:	/* 1:288 */	m_resampler = &ssgx_resampler::resample_1_n<576>; break;
 		case 0*1000 + 0:	/* 0:0 */	m_resampler = &ssgx_resampler::resample_nop;    break;
 		default: assert(false); break;
 	}
@@ -1125,18 +1127,18 @@ void ym2610x::update_prescale()
 	// Fidelity:   ---- minimum ----    ---- medium -----    ---- maximum-----
 	//              rate = clock/144     rate = clock/144     rate = clock/16
 	// Prescale    FM rate  SSG rate    FM rate  SSG rate    FM rate  SSG rate
-	//    24          1:1     1:288        1:1     1:288      288:1    1:1
+	//    18          1:1     1:576        1:1     1:576      576:1    1:1
 
 	// compute the number of FM samples per output sample, and select the
 	// resampler function
 	if (m_fidelity == OPNX_FIDELITY_MIN || m_fidelity == OPNX_FIDELITY_MED)
 	{
 		m_fm_samples_per_output = 1;
-		m_ssgx_resampler.configure(1, 288);
+		m_ssgx_resampler.configure(1, 576);
 	}
 	else
 	{
-		m_fm_samples_per_output = 288;
+		m_fm_samples_per_output = 576;
 		m_ssgx_resampler.configure(1, 1);
 	}
 

@@ -78,6 +78,8 @@ class DivPlatformYM2610XBase: public DivPlatformOPN {
     unsigned int* sampleOffB;
 
     unsigned char sampleBank;
+
+    unsigned int ssgBank, adpcmABank, adpcmBBank;
   
     bool extMode;
 
@@ -105,6 +107,51 @@ class DivPlatformYM2610XBase: public DivPlatformOPN {
       }
       return 0;
     }
+
+    inline void immWriteBanked(unsigned int a, unsigned short v) {
+      if ((a&0x1ff)<=0x00f) {
+        if (ssgBank!=((a>>9)&1)) {
+          ssgBank=(a>>9)&1;
+          immWrite(0x00f,0x01|(ssgBank<<1));
+        }
+        if (a==0x00f) {
+          immWrite(0x00f,0x01|(ssgBank<<1)|(v&0xfc));
+        } else {
+          immWrite(a&0x00f,v);
+        }
+      } else if ((a&0x1ff)>=0x010 && (a&0x1ff)<=0x01f) {
+        if (adpcmBBank!=((a>>9)&1)) {
+          adpcmBBank=(a>>9)&1;
+          immWrite(0x01f,0x01|(adpcmBBank<<1));
+        }
+        if (a==0x01f) {
+          immWrite(0x01f,0x01|(adpcmBBank<<1)|(v&0xfc));
+        } else {
+          immWrite(a&0x01f,v);
+        }
+      } else if ((a&0x1ff)>=0x100 && (a&0x1ff)<=0x12f) {
+        if (adpcmABank!=((a>>9)&1)) {
+          adpcmABank=(a>>9)&1;
+          immWrite(0x12f,0x01|(adpcmABank<<1));
+        }
+        if (a==0x12f) {
+          immWrite(0x12f,0x01|(adpcmABank<<1)|(v&0xfc));
+        } else {
+          immWrite(a&0x13f,v);
+        }
+      } else {
+        immWrite(a,v);
+      }
+    }
+
+    inline void immWrite(unsigned int a, unsigned short v) {
+      if (!skipRegisterWrites) {
+        writes.push_back(QueuedWrite(a,v));
+        if (dumpWrites) {
+          addWrite(a,v);
+        }
+      }
+    }
   
   public:
     void fillStream(std::vector<DivDelayedWrite>& stream, int sRate, size_t len) {
@@ -119,6 +166,9 @@ class DivPlatformYM2610XBase: public DivPlatformOPN {
       ay->reset();
       ay->getRegisterWrites().clear();
       ay->flushWrites();
+      ssgBank=0;
+      adpcmABank=0;
+      adpcmBBank=0;
     }
 
     void muteChannel(int ch, bool mute) {
@@ -272,8 +322,8 @@ class DivPlatformYM2610XBase: public DivPlatformOPN {
       fm=new ymfm::ym2610x(iface);
       fm->set_fidelity(ymfm::OPNX_FIDELITY_MED);
       setFlags(flags);
-      // AY8930X, 32MHz
-      ay=new DivPlatformAY8930X(true,chipClock,32,576);
+      // AY8930X, 16MHz
+      ay=new DivPlatformAY8930X(true,chipClock,64,576);
       ay->init(p,3,sugRate,ayFlags);
       ay->toggleRegisterDump(true);
       return 0;
@@ -290,7 +340,7 @@ class DivPlatformYM2610XBase: public DivPlatformOPN {
     }
 
     DivPlatformYM2610XBase(int ext, int psg, int adpcmA, int adpcmB, int chanCount):
-      DivPlatformOPN(ext,psg,adpcmA,adpcmB,chanCount,37762160.0, 288, 2, false, 18) {
+      DivPlatformOPN(ext,psg,adpcmA,adpcmB,chanCount,37762160.0, 576, 2, false, 18) {
       sampleOffA=new unsigned int[32768];
       sampleOffB=new unsigned int[32768];
       sampleLoaded[0]=new bool[32768];

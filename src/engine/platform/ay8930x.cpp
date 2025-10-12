@@ -26,7 +26,7 @@
 #define rWrite(a,v) if (!skipRegisterWrites) {pendingWrites[a]=v;}
 #define immWrite2(a,v) if (!skipRegisterWrites) {writes.push(QueuedWrite(a,v)); if (dumpWrites) {addWrite(a,v);} }
 
-#define CHIP_DIVIDER (clockSel?64:32)
+#define CHIP_DIVIDER (extMode?extDiv:clockSel?64:32)
 
 const char* regCheatSheetAY8930X[]={
   "FreqL_A", "00",
@@ -35,7 +35,7 @@ const char* regCheatSheetAY8930X[]={
   "FreqH_B", "03",
   "FreqL_C", "04",
   "FreqH_C", "05",
-  "FreqNoise", "06",
+  "FreqNoiseA", "06",
   "Enable", "07",
   "Volume_A", "08",
   "Volume_B", "09",
@@ -44,7 +44,7 @@ const char* regCheatSheetAY8930X[]={
   "FreqH_EnvA", "0C",
   "Control_EnvA", "0D",
   "Volume_EnvA", "0E",
-  "PortB", "0F",
+  "Bank", "0F",
   "FreqL_EnvB", "10",
   "FreqH_EnvB", "11",
   "FreqL_EnvC", "12",
@@ -56,11 +56,10 @@ const char* regCheatSheetAY8930X[]={
   "Duty_C", "18",
   "NoiseAND", "19",
   "NoiseOR", "1A",
-  "FreqNoiseA", "1B",
-  "FreqNoiseB", "1C",
-  "Volume_EnvB", "1B",
-  "Volume_EnvC", "1C",
-  "TEST", "1F",
+  "FreqNoiseB", "1B",
+  "FreqNoiseC", "1C",
+  "Volume_EnvB", "1D",
+  "Volume_EnvC", "1E",
   NULL
 };
 
@@ -93,7 +92,7 @@ int main(int argc, char** argv) {
 }
 */
 
-const unsigned char dacLogTableAY8930[256]={
+const unsigned char dacLogTableAY8930X[256]={
   0, 6, 7, 8, 9, 10, 10, 11, 11, 11, 12, 12, 12, 13, 13, 13,
   14, 14, 14, 14, 14, 15, 15, 15, 15, 15, 16, 16, 16, 16, 16, 16,
   17, 17, 17, 17, 17, 17, 18, 18, 18, 18, 18, 18, 18, 18, 19, 19,
@@ -128,7 +127,7 @@ void DivPlatformAY8930X::runDAC(int runRate, int advance) {
           end=true;
           break;
         }
-        unsigned char dacData=dacLogTableAY8930[(unsigned char)s->data8[chan[i].dac.pos]^0x80];
+        unsigned char dacData=dacLogTableAY8930X[(unsigned char)s->data8[chan[i].dac.pos]^0x80];
         chan[i].dac.out=(chan[i].active && !isMuted[i])?MAX(0,dacData-(31-chan[i].outVol)):0;
         if (prevOut!=chan[i].dac.out) {
           prevOut=chan[i].dac.out;

@@ -200,7 +200,7 @@ public:
 	static constexpr uint32_t WAVEFORMS = 16;
 	static constexpr uint32_t REGISTERS = 0x200;
 	static constexpr uint32_t REG_MODE = 0x27;
-	static constexpr uint32_t DEFAULT_PRESCALE = 6;
+	static constexpr uint32_t DEFAULT_PRESCALE = 18;
 	static constexpr uint32_t EG_CLOCK_DIVIDER = 3;
 	static constexpr bool EG_HAS_SSG = true;
 	static constexpr bool MODULATOR_DELAY = false;
@@ -623,7 +623,7 @@ protected:
 	// internal state
 	opnx_fidelity m_fidelity;            // configured fidelity
 	uint16_t m_address;                 // address register
-	uint8_t m_fm_samples_per_output;    // how many samples to repeat
+	uint16_t m_fm_samples_per_output;    // how many samples to repeat
 	uint8_t m_eos_status;               // end-of-sample signals
 	uint8_t m_flag_mask;                // flag mask control
 	fm_engine::output_data m_last_fm;   // last FM output

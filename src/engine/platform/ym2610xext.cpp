@@ -199,7 +199,7 @@ int DivPlatformYM2610XExt::dispatch(DivCommand c) {
     case DIV_CMD_FM_EXTCH: {
       if (extMode==(bool)c.value) break;
       extMode=c.value;
-      immWrite(0x27,extMode?0x40:0);
+      immWriteBanked(0x27,extMode?0x40:0);
       if (!extMode) {
         for (int i=0; i<4; i++) {
           opChan[i].insChanged=true;
@@ -470,7 +470,7 @@ void DivPlatformYM2610XExt::tick(bool sysTick) {
       if (opChan[i].hardReset && opChan[i].keyOn) {
         mustHardReset=true;
         unsigned short baseAddr=chanOffs[extChanOffs]|opOffs[i];
-        immWrite(baseAddr+ADDR_SL_RR,0x0f);
+        immWriteBanked(baseAddr+ADDR_SL_RR,0x0f);
         hardResetElapsed++;
       }
     }
@@ -478,7 +478,7 @@ void DivPlatformYM2610XExt::tick(bool sysTick) {
       if (chan[csmChan].active) { // CSM
         writeMask^=0xf0;
       }
-      immWrite(0x28,writeMask);
+      immWriteBanked(0x28,writeMask);
     }
   }
 
@@ -638,8 +638,8 @@ void DivPlatformYM2610XExt::tick(bool sysTick) {
         opChan[i].freq=(block<<11)|fNum;
       }
       if (opChan[i].freq>0x3fff) opChan[i].freq=0x3fff;
-      immWrite(opChanOffsH[i],opChan[i].freq>>8);
-      immWrite(opChanOffsL[i],opChan[i].freq&0xff);
+      immWriteBanked(opChanOffsH[i],opChan[i].freq>>8);
+      immWriteBanked(opChanOffsL[i],opChan[i].freq&0xff);
     }
     writeMask|=(unsigned char)(opChan[i].mask && opChan[i].active)<<(4+i);
     if (opChan[i].keyOn) {
@@ -661,8 +661,8 @@ void DivPlatformYM2610XExt::tick(bool sysTick) {
       if (chan[csmChan].freq<1) chan[csmChan].freq=1;
       if (chan[csmChan].freq>1024) chan[csmChan].freq=1024;
       int wf=0x400-chan[csmChan].freq;
-      immWrite(0x24,wf>>2);
-      immWrite(0x25,wf&3);
+      immWriteBanked(0x24,wf>>2);
+      immWriteBanked(0x25,wf&3);
       chan[csmChan].freqChanged=false;
     }
 
@@ -678,32 +678,32 @@ void DivPlatformYM2610XExt::tick(bool sysTick) {
       writeMask^=0xf0;
     }
     writeMask^=hardResetMask;
-    immWrite(0x28,writeMask);
+    immWriteBanked(0x28,writeMask);
     writeMask^=hardResetMask;
 
     // hard reset handling
     if (mustHardReset) {
-      immWrite(0xfffffffe,hardResetCycles-hardResetElapsed);
+      immWriteBanked(0xfffffffe,hardResetCycles-hardResetElapsed);
       for (int i=0; i<4; i++) {
         if (opChan[i].keyOn && opChan[i].hardReset) {
           // restore SL/RR
           unsigned short baseAddr=chanOffs[extChanOffs]|opOffs[i];
           DivInstrumentFM::Operator& op=chan[extChanOffs].state.op[i];
-          immWrite(baseAddr+ADDR_SL_RR,(op.rr&15)|(op.sl<<4));
+          immWriteBanked(baseAddr+ADDR_SL_RR,(op.rr&15)|(op.sl<<4));
           opChan[i].keyOn=false;
         }
       }
-      immWrite(0x28,writeMask);
+      immWriteBanked(0x28,writeMask);
     }
   }
 
   if (extMode) {
     if (chan[csmChan].keyOn) {
-      immWrite(0x27,0x81);
+      immWriteBanked(0x27,0x81);
       chan[csmChan].keyOn=false;
     }
     if (chan[csmChan].keyOff) {
-      immWrite(0x27,0x40);
+      immWriteBanked(0x27,0x40);
       chan[csmChan].keyOff=false;
     }
   }
@@ -784,11 +784,11 @@ void DivPlatformYM2610XExt::forceIns() {
   ay->forceIns();
   ay->flushWrites();
   for (DivRegWrite& i: ay->getRegisterWrites()) {
-    if (i.addr>15) continue;
-    immWrite(i.addr&15,i.val);
+    if (i.addr>31) continue;
+    immWriteBanked(((i.addr&0x10)<<5)|(i.addr&15),i.val);
   }
   ay->getRegisterWrites().clear();
-  immWrite(0x22,lfoValue);
+  immWriteBanked(0x22,lfoValue);
   for (int i=0; i<4; i++) {
     opChan[i].insChanged=true;
     if (opChan[i].active) {
@@ -802,7 +802,7 @@ void DivPlatformYM2610XExt::forceIns() {
     chan[csmChan].keyOn=true;
   }
   if (!extMode) {
-    immWrite(0x27,0x00);
+    immWriteBanked(0x27,0x00);
   }
 }
 
@@ -857,7 +857,7 @@ void DivPlatformYM2610XExt::reset() {
   lastExtChPan=3;
 
   // channel 3 mode
-  immWrite(0x27,0x40);
+  immWriteBanked(0x27,0x40);
   extMode=true;
 }
 
@@ -889,7 +889,7 @@ int DivPlatformYM2610XExt::init(DivEngine* parent, int channels, int sugRate, co
   extSys=true;
 
   reset();
-  return 20;
+  return 22;
 }
 
 void DivPlatformYM2610XExt::quit() {
