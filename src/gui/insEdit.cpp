@@ -4035,7 +4035,7 @@ void FurnaceGUI::insTabFMModernHeader(DivInstrument* ins) {
     TOOLTIP_TEXT(FM_NAME(FM_DT2));
     ImGui::TableNextColumn();
   }
-  if (ins->type==DIV_INS_FM || ins->type==DIV_INS_OPNX || ins->type==DIV_INS_OPM) {
+  if (ins->type==DIV_INS_FM || ins->type==DIV_INS_OPM) {
     CENTER_TEXT(FM_SHORT_NAME(FM_AM));
     ImGui::TextUnformatted(FM_SHORT_NAME(FM_AM));
     TOOLTIP_TEXT(FM_NAME(FM_AM));
@@ -4692,7 +4692,7 @@ void FurnaceGUI::insTabFM(DivInstrument* ins) {
               op.dt=detuneUnmap[settings.unsignedDetune?1:0][detune+3];
             } rightClickable
 
-            if (ins->type!=DIV_INS_FM) {
+            if (ins->type!=DIV_INS_FM && ins->type!=DIV_INS_OPNX) {
               ImGui::TableNextColumn();
               CENTER_VSLIDER;
               P(CWVSliderScalar("##DT2",ImVec2(20.0f*dpiScale,sliderHeight),ImGuiDataType_U8,&op.dt2,&_ZERO,&_THREE)); rightClickable
@@ -4748,8 +4748,18 @@ void FurnaceGUI::insTabFM(DivInstrument* ins) {
               }
             } else {
               ImGui::SetCursorPosY(ImGui::GetCursorPosY()+0.5*(sliderHeight-ImGui::GetFrameHeight()));
+              if (ins->type==DIV_INS_OPNX) {
+                CENTER_TEXT(FM_SHORT_NAME(FM_AM));
+                ImGui::TextUnformatted(FM_SHORT_NAME(FM_AM));
+                TOOLTIP_TEXT(FM_NAME(FM_AM));
+              }
               if (ImGui::Checkbox("##AM",&amOn)) { PARAMETER
                 op.am=amOn;
+              }
+
+              if (ins->type==DIV_INS_OPNX) {
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                P(CWSliderScalar("##WS",ImGuiDataType_U8,&op.ws,&_ZERO,&_FIFTEEN,_(opnxWaveforms[op.ws&15]))); rightClickable;
               }
             }
 
@@ -4768,11 +4778,6 @@ void FurnaceGUI::insTabFM(DivInstrument* ins) {
               ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
               if (CWSliderScalar("##SSG",ImGuiDataType_U8,&ssgEnv,&_ZERO,&_SEVEN,_(ssgEnvTypes[ssgEnv]))) { PARAMETER
                 op.ssgEnv=(op.ssgEnv&8)|(ssgEnv&7);
-              }
-
-              if (ins->type==DIV_INS_OPNX) {
-                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                P(CWSliderScalar("##WS",ImGuiDataType_U8,&op.ws,&_ZERO,&_FIFTEEN,_(opnxWaveforms[op.ws&15]))); rightClickable;
               }
             }
           } else if (ins->type==DIV_INS_ESFM) {

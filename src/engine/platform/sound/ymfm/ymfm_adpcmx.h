@@ -390,7 +390,7 @@ private:
 	void loop_start();
 
 	// end checker; stops at the last byte of the chunk described by address_shift()
-	bool at_end() const { return (m_curaddress == ((m_regs.end() + 1) - 1)); }
+	bool at_end() const { return (m_curaddress == (((m_regs.end() | (m_regs.is_native_mode() ? 0xff : 0)) + 1) - 1)); }
 
 	// internal state
 	uint32_t m_status;              // currently playing?

@@ -656,6 +656,7 @@ void DivPlatformYM2610X::tick(bool sysTick) {
     }
   }
 
+  bool adpcmALoopChanged=false;
   // ADPCM-A
   for (int i=adpcmAChanOffs; i<adpcmBChanOffs; i++) {
     if (chan[i].furnacePCM) {
@@ -695,6 +696,7 @@ void DivPlatformYM2610X::tick(bool sysTick) {
         } else {
           writeADPCMALoop&=~(1<<(i-adpcmAChanOffs));
         }
+        adpcmALoopChanged=true;
       }
       chan[i].keyOn=false;
     }
@@ -785,10 +787,10 @@ void DivPlatformYM2610X::tick(bool sysTick) {
     writeADPCMAOn=0;
   }
 
-  if (writeADPCMALoop) {
+  if (adpcmALoopChanged) {
     immWriteBanked(0x300,writeADPCMALoop);
     hardResetElapsed++;
-    writeADPCMALoop=0;
+    adpcmALoopChanged=false;
   }
 
   // PSG

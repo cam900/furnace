@@ -168,10 +168,10 @@ bool adpcmx_a_channel::clock()
 		// note also: end address is inclusive, so wait until we are about to fetch
 		// the sample just after the end before stopping; this is needed for nitd's
 		// jump sound, for example
-		uint32_t end = (m_regs.ch_end(m_choffs) + 1);
-		if (m_regs.is_native_mode() ? (m_curaddress == (end + 1)) : ((m_curaddress ^ end) & 0xfffff) == 0)
+		uint64_t end = ((m_regs.ch_end(m_choffs) | (m_regs.is_native_mode() ? 0xff : 0)) + 1);
+		if (m_regs.is_native_mode() ? (m_curaddress == end) : ((m_curaddress ^ end) & 0xfffff) == 0)
 		{
-			if (m_regs.ch_loop(m_choffs))
+			if (m_regs.is_native_mode() && m_regs.ch_loop(m_choffs))
 			{
 				m_curaddress = m_regs.ch_start(m_choffs);
 				m_curnibble = 0;
@@ -521,14 +521,17 @@ void adpcmx_b_channel::clock()
 			m_curaddress++;
 			m_curaddress &= 0xffffffff;
 
-			if (!m_loop_point && (m_curaddress == m_regs.loopaddr()))
+			if (m_regs.is_native_mode())
 			{
-				m_loopaddress = m_curaddress;
-				m_loopbyte = m_curbyte;
-				m_loopnibble = m_curnibble;
-				m_loop_accumulator = m_accumulator;
-				m_loop_adpcm_step = m_adpcm_step;
-				m_loop_point = true;
+				if (!m_loop_point && (m_curaddress == m_regs.loopaddr()))
+				{
+					m_loopaddress = m_curaddress;
+					m_loopbyte = m_curbyte;
+					m_loopnibble = m_curnibble;
+					m_loop_accumulator = m_accumulator;
+					m_loop_adpcm_step = m_adpcm_step;
+					m_loop_point = true;
+				}
 			}
 		}
 	}
@@ -653,12 +656,19 @@ void adpcmx_b_channel::load_start()
 
 void adpcmx_b_channel::loop_start()
 {
-	m_status = (m_status & ~STATUS_EOS) | STATUS_PLAYING;
-	m_curaddress = m_loopaddress;
-	m_curnibble = m_loopnibble;
-	m_curbyte = m_loopbyte;
-	m_accumulator = m_loop_accumulator;
-	m_adpcm_step = m_loop_adpcm_step;
+	if (m_regs.is_native_mode())
+	{
+		m_status = (m_status & ~STATUS_EOS) | STATUS_PLAYING;
+		m_curaddress = m_loopaddress;
+		m_curnibble = m_loopnibble;
+		m_curbyte = m_loopbyte;
+		m_accumulator = m_loop_accumulator;
+		m_adpcm_step = m_loop_adpcm_step;
+	}
+	else
+	{
+		load_start();
+	}
 }
 
 
