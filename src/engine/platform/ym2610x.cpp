@@ -441,10 +441,6 @@ void DivPlatformYM2610X::acquire(short** buf, size_t len) {
   }
 }
 
-static const unsigned char subCycleMap[6]={
-  3, 4, 5, 0, 1, 2
-};
-
 void DivPlatformYM2610X::tick(bool sysTick) {
   // FM
   for (int i=0; i<(psgChanOffs-isCSM); i++) {
