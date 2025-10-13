@@ -426,7 +426,7 @@ void DivPlatformYM2610X::acquire(short** buf, size_t len) {
 
     ssge->get_last_out(ssgOut);
     for (int i=psgChanOffs; i<adpcmAChanOffs; i++) {
-      oscBuf[i]->putSample(h,ssgOut.data[i-psgChanOffs]<<1);
+      oscBuf[i]->putSample(h,ssgOut.data[i-psgChanOffs]+ssgOut.data[3+(i-psgChanOffs)]);
     }
 
     for (int i=adpcmAChanOffs; i<adpcmBChanOffs; i++) {
