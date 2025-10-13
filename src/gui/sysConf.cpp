@@ -855,15 +855,8 @@ bool FurnaceGUI::drawSysConf(int chan, int sysPos, DivSystem type, DivConfig& fl
     case DIV_SYSTEM_YM2610X:
     case DIV_SYSTEM_YM2610X_EXT:
     case DIV_SYSTEM_YM2610X_CSM: {
-      bool fbAllOps=flags.getBool("fbAllOps",false);
       int ssgVol=flags.getInt("ssgVol",128);
       int fmVol=flags.getInt("fmVol",256);
-
-      if (type==DIV_SYSTEM_YM2610X_EXT || type==DIV_SYSTEM_YM2610X_CSM) {
-        if (ImGui::Checkbox(_("Ins change in ExtCh operator 2-4 affects FB (compatibility)"),&fbAllOps)) {
-          altered=true;
-        }
-      }
 
       if (CWSliderInt(_("SSG Volume"),&ssgVol,0,256)) {
         if (ssgVol<0) ssgVol=0;
@@ -879,7 +872,6 @@ bool FurnaceGUI::drawSysConf(int chan, int sysPos, DivSystem type, DivConfig& fl
 
       if (altered) {
         e->lockSave([&]() {
-          flags.set("fbAllOps",fbAllOps);
           flags.set("ssgVol",ssgVol);
           flags.set("fmVol",fmVol);
         });

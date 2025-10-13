@@ -296,7 +296,6 @@ class DivPlatformYM2610XBase: public DivPlatformOPN {
     void setFlags(const DivConfig& flags) {
       chipClock=32000000.0;
       CHECK_CUSTOM_CLOCK;
-      fbAllOps=flags.getBool("fbAllOps",false);
       ssgVol=flags.getInt("ssgVol",128);
       fmVol=flags.getInt("fmVol",256);
       rate=fm->sample_rate(chipClock);

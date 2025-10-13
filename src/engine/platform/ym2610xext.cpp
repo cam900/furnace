@@ -25,7 +25,7 @@ void DivPlatformYM2610XExt::commitStateExt(int ch, DivInstrument* ins) {
 
   if (opChan[ch].insChanged) {
     chan[extChanOffs].state.alg=ins->fm.alg;
-    if (ch==0 || fbAllOps) {
+    if (ch==0) {
       chan[extChanOffs].state.fb=ins->fm.fb;
     }
     chan[extChanOffs].state.fms=ins->fm.fms;
@@ -527,7 +527,7 @@ void DivPlatformYM2610XExt::tick(bool sysTick) {
         }
       }
     }
-    if (i==0 || fbAllOps) {
+    if (i==0) {
       if (opChan[i].std.fb.had) {
         chan[extChanOffs].state.fb=opChan[i].std.fb.val;
         rWrite(chanOffs[extChanOffs]+ADDR_FB_ALG,(chan[extChanOffs].state.alg&7)|(chan[extChanOffs].state.fb<<3));
