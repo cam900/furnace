@@ -1,3 +1,7 @@
+# IMPORTANT
+
+This branch in Furnace fork is modified for add AY8930X and YM2610X fantasy sound hardware.
+
 # Furnace (chiptune tracker)
 
 ![screenshot](papers/screenshot3.png)
