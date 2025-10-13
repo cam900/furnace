@@ -199,7 +199,7 @@ public:
 	void save_restore(ymfm_saved_state &state);
 
 	// master clocking function
-	void clock();
+	void clock(uint32_t tick = 1);
 
 	// compute sum of channel outputs
 	void output(output_data &output);

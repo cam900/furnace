@@ -626,9 +626,9 @@ void ssgx_resampler<OutputType, FirstOutput, MixTo1>::add_last(int32_t &sum0, in
 //-------------------------------------------------
 
 template<typename OutputType, int FirstOutput, bool MixTo1>
-void ssgx_resampler<OutputType, FirstOutput, MixTo1>::clock_and_add(int32_t &sum0, int32_t &sum1, int32_t &sum2, int32_t &sum3, int32_t &sum4, int32_t &sum5, int32_t scale)
+void ssgx_resampler<OutputType, FirstOutput, MixTo1>::clock_and_add(int32_t &sum0, int32_t &sum1, int32_t &sum2, int32_t &sum3, int32_t &sum4, int32_t &sum5, int32_t scale, uint32_t tick)
 {
-	m_ssgx.clock();
+	m_ssgx.clock(tick);
 	m_ssgx.output(m_last);
 	add_last(sum0, sum1, sum2, sum3, sum4, sum5, scale);
 }
@@ -700,11 +700,13 @@ void ssgx_resampler<OutputType, FirstOutput, MixTo1>::configure(uint32_t outsamp
 {
 	switch (outsamples * 1000 + srcsamples)
 	{
+		case 144*1000 + 1:  /* 288:1 */	m_resampler = &ssgx_resampler::resample_n_1<144>; break;
 		case 288*1000 + 1:  /* 288:1 */	m_resampler = &ssgx_resampler::resample_n_1<288>; break;
-		case 576*1000 + 1:  /* 288:1 */	m_resampler = &ssgx_resampler::resample_n_1<576>; break;
+		case 576*1000 + 1:  /* 576:1 */	m_resampler = &ssgx_resampler::resample_n_1<576>; break;
 		case 1*1000 + 1:	/* 1:1 */	m_resampler = &ssgx_resampler::resample_n_1<1>; break;
+		case 1*1000 + 144:	/* 1:144 */	m_resampler = &ssgx_resampler::resample_1_n<144>; break;
 		case 1*1000 + 288:	/* 1:288 */	m_resampler = &ssgx_resampler::resample_1_n<288>; break;
-		case 1*1000 + 576:	/* 1:288 */	m_resampler = &ssgx_resampler::resample_1_n<576>; break;
+		case 1*1000 + 576:	/* 1:576 */	m_resampler = &ssgx_resampler::resample_1_n<576>; break;
 		case 0*1000 + 0:	/* 0:0 */	m_resampler = &ssgx_resampler::resample_nop;    break;
 		default: assert(false); break;
 	}
@@ -746,9 +748,8 @@ void ssgx_resampler<OutputType, FirstOutput, MixTo1>::resample_1_n(OutputType *o
 	for (uint32_t samp = 0; samp < numsamples; samp++, output++)
 	{
 		int32_t sum0 = 0, sum1 = 0, sum2 = 0, sum3 = 0, sum4 = 0, sum5 = 0;;
-		for (int rep = 0; rep < Divisor; rep++)
-			clock_and_add(sum0, sum1, sum2, sum3, sum4, sum5);
-		write_to_output(output, sum0, sum1, sum2, sum3, sum4, sum5, Divisor);
+		clock_and_add(sum0, sum1, sum2, sum3, sum4, sum5, 1, Divisor);
+		write_to_output(output, sum0, sum1, sum2, sum3, sum4, sum5, 1);
 	}
 }
 
@@ -1133,7 +1134,7 @@ void ym2610x::generate(output_data *output, uint32_t numsamples)
 void ym2610x::update_prescale()
 {
 	// Fidelity:   ---- minimum ----    ---- medium -----    ---- maximum-----
-	//              rate = clock/144     rate = clock/144     rate = clock/16
+	//              rate = clock/576     rate = clock/576     rate = clock/2
 	// Prescale    FM rate  SSG rate    FM rate  SSG rate    FM rate  SSG rate
 	//    18          1:1     1:576        1:1     1:576      576:1    1:1
 
@@ -1142,11 +1143,11 @@ void ym2610x::update_prescale()
 	if (m_fidelity == OPNX_FIDELITY_MIN || m_fidelity == OPNX_FIDELITY_MED)
 	{
 		m_fm_samples_per_output = 1;
-		m_ssgx_resampler.configure(1, 576);
+		m_ssgx_resampler.configure(1, 144);
 	}
 	else
 	{
-		m_fm_samples_per_output = 576;
+		m_fm_samples_per_output = 144;
 		m_ssgx_resampler.configure(1, 1);
 	}
 

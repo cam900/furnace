@@ -395,10 +395,12 @@ private:
 	// internal state
 	uint32_t m_status;              // currently playing?
 	uint32_t m_curnibble;           // index of the current nibble
+	uint32_t m_loopnibble;          // index of the current nibble to loop point
 	uint32_t m_curbyte;             // current byte of data
-	uint32_t m_loopbyte;            // current byte of data
+	uint32_t m_loopbyte;            // current byte of data to loop point
 	uint32_t m_position;            // current fractional position
 	uint64_t m_curaddress;          // current address
+	uint64_t m_loopaddress;         // current address (for loop)
 	int32_t m_accumulator;          // accumulator
 	int32_t m_prev_accum;           // previous accumulator (for linear interp)
 	int32_t m_adpcm_step;           // next forecast

@@ -116,7 +116,7 @@ void ssgx_engine::save_restore(ymfm_saved_state &state)
 //  clock - master clocking function
 //-------------------------------------------------
 
-void ssgx_engine::clock()
+void ssgx_engine::clock(uint32_t tick)
 {
 	// clock tones; tone period units are clock/16 but since we run at clock/8
 	// that works out for us to toggle the state (50% duty cycle) at twice the
@@ -124,12 +124,13 @@ void ssgx_engine::clock()
 	for (int chan = 0; chan < 3; chan++)
 	{
 		tone_t &tone = m_tone[chan];
-		tone.m_tone_count++;
-		if (tone.m_tone_count >= m_regs.ch_tone_period(chan))
+		uint32_t tone_period = std::max<uint32_t>(1, m_regs.ch_tone_period(chan));
+		tone.m_tone_count += tick;
+		while (tone.m_tone_count >= tone_period)
 		{
 			tone.m_tone_duty = (tone.m_tone_duty + 1) & 0x1f;
 			tone.m_tone_state = m_regs.is_native_mode() ? ((tone.m_tone_duty >= m_regs.ch_pulse_duty(chan)) ? 0 : 1) : bitfield(tone.m_tone_duty, 4);
-			tone.m_tone_count = 0;
+			tone.m_tone_count -= tone_period;
 		}
 
 		// clock noise; noise period units are clock/16 but since we run at clock/8,
@@ -138,8 +139,8 @@ void ssgx_engine::clock()
 		// check against that case
 		noise_t &noise = m_noise[chan];
 		uint32_t noise_period = std::max<uint32_t>(1, m_regs.ch_noise_period(chan)) << (m_regs.is_native_mode() ? 4 : 6);
-		noise.m_noise_count++;
-		if (noise.m_noise_count >= noise_period)
+		noise.m_noise_count += tick;
+		while (noise.m_noise_count >= noise_period)
 		{
 			if (m_regs.is_native_mode())
 			{
@@ -152,7 +153,7 @@ void ssgx_engine::clock()
 			}
 			noise.m_noise_state ^= (bitfield(noise.m_noise_state, 0) ^ bitfield(noise.m_noise_state, 2)) << 17;
 			noise.m_noise_state >>= 1;
-			noise.m_noise_count = 0;
+			noise.m_noise_count -= noise_period;
 			if (!m_regs.is_native_mode())
 			{
 				noise.m_noise_output = noise.m_noise_state & 1;
@@ -163,11 +164,11 @@ void ssgx_engine::clock()
 		// but that's for all 32 steps)
 		envelope_t &envelope = m_envelope[chan];
 		uint32_t envelope_period = std::max<uint32_t>(1, m_regs.ch_envelope_period(chan)) << 6;
-		envelope.m_envelope_count++;
-		if (envelope.m_envelope_count >= envelope_period)
+		envelope.m_envelope_count += tick;
+		while (envelope.m_envelope_count >= envelope_period)
 		{
 			envelope.m_envelope_state++;
-			envelope.m_envelope_count = 0;
+			envelope.m_envelope_count -= envelope_period;
 		}
 	}
 }

@@ -217,7 +217,7 @@ const char* opnxWaveforms[16]={
   _N("Sine (Even Periods)"),
   _N("AbsSine (Even Periods)"),
   _N("Square"),
-  _N("Derived Square")
+  _N("Derived Square"),
   _N("Triangle"),
   _N("Half Triangle"),
   _N("Absolute Triangle"),
@@ -4052,11 +4052,6 @@ void FurnaceGUI::insTabFMModernHeader(DivInstrument* ins) {
     ImGui::TableNextColumn();
     CENTER_TEXT(FM_NAME(FM_SSG));
     ImGui::TextUnformatted(FM_NAME(FM_SSG));
-    if (ins->type==DIV_INS_OPNX) {
-      ImGui::TableNextColumn();
-      CENTER_TEXT(FM_NAME(FM_WS));
-      ImGui::TextUnformatted(FM_NAME(FM_WS));
-    }
   }
   ImGui::TableNextColumn();
   CENTER_TEXT(_("Envelope"));
@@ -4438,9 +4433,6 @@ void FurnaceGUI::insTabFM(DivInstrument* ins) {
           ImGui::TableSetupColumn("c13",ImGuiTableColumnFlags_WidthStretch,0.2f); // ssg/waveform
         }
         ImGui::TableSetupColumn("c14",ImGuiTableColumnFlags_WidthStretch,0.3f); // env
-        if (ins->type==DIV_INS_OPNX) {
-          ImGui::TableSetupColumn("c15",ImGuiTableColumnFlags_WidthStretch,0.2f); // OPNX waveform
-        }
 
         float sliderHeight=((ImGui::GetContentRegionAvail().y-ImGui::GetFrameHeightWithSpacing()*(settings.fmLayout==7?4.0f:1.0f))/opCount)-ImGui::GetStyle().ItemSpacing.y;
 
@@ -4776,6 +4768,11 @@ void FurnaceGUI::insTabFM(DivInstrument* ins) {
               ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
               if (CWSliderScalar("##SSG",ImGuiDataType_U8,&ssgEnv,&_ZERO,&_SEVEN,_(ssgEnvTypes[ssgEnv]))) { PARAMETER
                 op.ssgEnv=(op.ssgEnv&8)|(ssgEnv&7);
+              }
+
+              if (ins->type==DIV_INS_OPNX) {
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                P(CWSliderScalar("##WS",ImGuiDataType_U8,&op.ws,&_ZERO,&_FIFTEEN,_(opnxWaveforms[op.ws&15]))); rightClickable;
               }
             }
           } else if (ins->type==DIV_INS_ESFM) {
@@ -5195,8 +5192,9 @@ void FurnaceGUI::insTabFM(DivInstrument* ins) {
                 if (CWSliderScalar("##SSG",ImGuiDataType_U8,&ssgEnv,&_ZERO,&_SEVEN,_(ssgEnvTypes[ssgEnv]))) { PARAMETER
                   op.ssgEnv=(op.ssgEnv&8)|(ssgEnv&7);
                 }
-                
+
                 if (ins->type==DIV_INS_OPNX) {
+                  ImGui::Separator();
                   ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                   P(CWSliderScalar("##WS",ImGuiDataType_U8,&op.ws,&_ZERO,&_FIFTEEN,_(opnxWaveforms[op.ws&15]))); rightClickable
                 }

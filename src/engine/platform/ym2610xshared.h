@@ -85,7 +85,7 @@ class DivPlatformYM2610XBase: public DivPlatformOPN {
 
     bool* sampleLoaded[2];
   
-    unsigned char writeADPCMAOff, writeADPCMAOn;
+    unsigned char writeADPCMAOff, writeADPCMAOn, writeADPCMALoop;
     int globalADPCMAVolume;
 
     DivMemoryComposition memCompoA;
@@ -161,6 +161,7 @@ class DivPlatformYM2610XBase: public DivPlatformOPN {
     void reset() {
       writeADPCMAOff=0;
       writeADPCMAOn=0;
+      writeADPCMALoop=0;
       globalADPCMAVolume=0x3f;
 
       ay->reset();
@@ -323,7 +324,7 @@ class DivPlatformYM2610XBase: public DivPlatformOPN {
       fm->set_fidelity(ymfm::OPNX_FIDELITY_MED);
       setFlags(flags);
       // AY8930X, 16MHz
-      ay=new DivPlatformAY8930X(true,chipClock,64,576);
+      ay=new DivPlatformAY8930X(true,chipClock/2,32,576);
       ay->init(p,3,sugRate,ayFlags);
       ay->toggleRegisterDump(true);
       return 0;

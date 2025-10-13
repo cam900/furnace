@@ -6,6 +6,12 @@
 
 this is a modified version which contains many fixes.
 
+This is a modified version with YM2610X support.
+
+TODO:
+
+* Sync PSG with ay8930x.cpp core
+
 ## Supported environments
 
 This code should compile cleanly in any environment that has C++14 support.
@@ -16,34 +22,34 @@ It has been tested on gcc, clang, and Microsoft Visual C++ 2019.
 Currently, support is present for the following chips (organized by header file):
 
 * ymfm_misc.h:
-	* YM2149 (SSG) [1983: MSX; Atari ST]
+  * YM2149 (SSG) [1983: MSX; Atari ST]
 * ymfm_opm.h:
-	* YM2151 (OPM) [1983: Sharp X1, X68000; MSX; synths: DX21, DX27, DX100]
-	* YM2164 (OPP) [1985: FB-01 MIDI Expander; IBM Music Feature Card; MSX; synths: Korg DS-8, 707]
+  * YM2151 (OPM) [1983: Sharp X1, X68000; MSX; synths: DX21, DX27, DX100]
+  * YM2164 (OPP) [1985: FB-01 MIDI Expander; IBM Music Feature Card; MSX; synths: Korg DS-8, 707]
 * ymfm_opn.h:
-	* YM2203 (OPN) [1984: NEC PC-88, PC-98, NEC PC-6001mkII SR, PC-6601 SR]
-	* YM2608 (OPNA) [1985: NEC PC-88, PC-98]
-	* YM2610 (OPNB) [1987: Neo Geo]
-	* YM2610B (OPNB2)
-	* YM2612 (OPN2) [1988: Sega Mega Drive/Genesis; FM Towns]
-	* YM3438 (OPN2C)
-	* YMF276 (OPN2L)
-	* YMF288 (OPN3L) [1995: NEC PC-98]
+  * YM2203 (OPN) [1984: NEC PC-88, PC-98, NEC PC-6001mkII SR, PC-6601 SR]
+  * YM2608 (OPNA) [1985: NEC PC-88, PC-98]
+  * YM2610 (OPNB) [1987: Neo Geo]
+  * YM2610B (OPNB2)
+  * YM2612 (OPN2) [1988: Sega Mega Drive/Genesis; FM Towns]
+  * YM3438 (OPN2C)
+  * YMF276 (OPN2L)
+  * YMF288 (OPN3L) [1995: NEC PC-98]
 * ymfm_opl.h:
-	* YM3526 (OPL) [1984: C64 SFX Sound Expander]
-	* Y8950 (MSX-Audio) [1984: MSX]
-	* YM3812 (OPL2) [1985: AdLib, Sound Blaster; synths: some Portasound keyboards]
-	* YMF262 (OPL3) [1988: Sound Blaster Pro 2.0, SB16]
-	* YMF289B (OPL3L)
-	* YMF278B (OPL4) [1993: MSX Moonsound cartridge]
-	* YM2413 (OPLL) [1986: Sega Master System, Mark III; MSX; synths: Portasound PSS-140, PSS-170, PSS-270]
-	* YM2423 (OPLL-X)
-	* YMF281 (OPLLP)
-	* DS1001 (Konami 053982/VRC7) [1991: Famicom cartridge Lagrange Point]
+  * YM3526 (OPL) [1984: C64 SFX Sound Expander]
+  * Y8950 (MSX-Audio) [1984: MSX]
+  * YM3812 (OPL2) [1985: AdLib, Sound Blaster; synths: some Portasound keyboards]
+  * YMF262 (OPL3) [1988: Sound Blaster Pro 2.0, SB16]
+  * YMF289B (OPL3L)
+  * YMF278B (OPL4) [1993: MSX Moonsound cartridge]
+  * YM2413 (OPLL) [1986: Sega Master System, Mark III; MSX; synths: Portasound PSS-140, PSS-170, PSS-270]
+  * YM2423 (OPLL-X)
+  * YMF281 (OPLLP)
+  * DS1001 (Konami 053982/VRC7) [1991: Famicom cartridge Lagrange Point]
 * ymfm_opq.h:
-	* YM3806 (OPQ) [synths: PSR-60/70]
+  * YM3806 (OPQ) [synths: PSR-60/70]
 * ymfm_opz.h:
-	* YM2414 (OPZ) [1987: synths: TX81Z, DX11, YS200; Korg Z3 guitar synth]
+  * YM2414 (OPZ) [1987: synths: TX81Z, DX11, YS200; Korg Z3 guitar synth]
 
 There are some obviously-related chips that also are on my horizon but have no implementation as yet:
 
@@ -62,9 +68,10 @@ The OPL cores were added in MAME 0.231.
 A further rewrite to abstract MAME dependencies is planned for MAME 0.232.
 
 The goal was threefold:
+
 1. provide BSD-licensed emulation cores that are more compatible with MAME's core licensing
-1. modernize and unify the code around a common implementation of shared features
-1. improve accuracy where possible based on discoveries made by others
+2. modernize and unify the code around a common implementation of shared features
+3. improve accuracy where possible based on discoveries made by others
 
 ## Accuracy
 
@@ -74,10 +81,11 @@ It would also make it much harder to share common implementations of features, o
 If you want that level of accuracy, there are [several](https://github.com/nukeykt/Nuked-OPN2) [decap-based](https://github.com/nukeykt/Nuked-OPM) [emulation cores](https://github.com/nukeykt/Nuked-OPLL) out there.
 
 Instead, the main goals are:
+
 1. Extremely high (audibly indistinguishable) accuracy
-1. Reasonable performance
-1. Clean design with readable code
-1. Clear documentation of the various chips
+2. Reasonable performance
+3. Clean design with readable code
+4. Clear documentation of the various chips
 
 ## General approach
 
@@ -122,4 +130,3 @@ And chips with extended addressing may also have `read_status_hi()` and `read_da
 
 For writes, almost all chips have an address register and a data register, and so you can reliably count on there being a `write_address()` and `write_data()` method as well.
 If the chip supports extended addressing, it may also have `write_address_hi()` and `write_data_hi()`.
-

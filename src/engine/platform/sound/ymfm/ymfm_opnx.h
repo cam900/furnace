@@ -486,7 +486,7 @@ private:
 	void add_last(int32_t &sum0, int32_t &sum1, int32_t &sum2, int32_t &sum3, int32_t &sum4, int32_t &sum5, int32_t scale = 1);
 
 	// helper to clock a new value and then add it to the sums, applying the given scale
-	void clock_and_add(int32_t &sum0, int32_t &sum1, int32_t &sum2, int32_t &sum3, int32_t &sum4, int32_t &sum5, int32_t scale = 1);
+	void clock_and_add(int32_t &sum0, int32_t &sum1, int32_t &sum2, int32_t &sum3, int32_t &sum4, int32_t &sum5, int32_t scale = 1, uint32_t tick = 1);
 
 	// helper to write the sums to the appropriate outputs, applying the given
 	// divisor to the final result

@@ -393,7 +393,13 @@ void DivPlatformYM2610X::acquire(short** buf, size_t len) {
         } else {
           fm->write(0x0+(((w.addr>>8)&1)<<1),w.addr);
           fm->write(0x1+(((w.addr>>8)&1)<<1),w.val);
-          regPool[w.addr&0x3ff]=w.val;
+          if (((w.addr!=0x00f) && ((regPool[0x00f]&0x02)==0x02)) ||
+              ((w.addr!=0x01f) && ((regPool[0x01f]&0x02)==0x02)) ||
+              ((w.addr!=0x12f) && ((regPool[0x12f]&0x02)==0x02))) {
+            regPool[(w.addr&0x1ff)|0x200]=w.val;
+          } else {
+            regPool[w.addr&0x1ff]=w.val;
+          }
           delay=1;
         }
         writes.pop_front();
@@ -684,6 +690,11 @@ void DivPlatformYM2610X::tick(bool sysTick) {
     if (chan[i].keyOn) {
       if (chan[i].sample>=0 && chan[i].sample<parent->song.sampleLen) {
         writeADPCMAOn|=(1<<(i-adpcmAChanOffs));
+        if (parent->getSample(chan[i].sample)->isLoopable()) {
+          writeADPCMALoop|=(1<<(i-adpcmAChanOffs));
+        } else {
+          writeADPCMALoop&=~(1<<(i-adpcmAChanOffs));
+        }
       }
       chan[i].keyOn=false;
     }
@@ -772,6 +783,12 @@ void DivPlatformYM2610X::tick(bool sysTick) {
     immWriteBanked(0x100,writeADPCMAOn);
     hardResetElapsed++;
     writeADPCMAOn=0;
+  }
+
+  if (writeADPCMALoop) {
+    immWriteBanked(0x300,writeADPCMALoop);
+    hardResetElapsed++;
+    writeADPCMALoop=0;
   }
 
   // PSG
@@ -876,12 +893,23 @@ int DivPlatformYM2610X::dispatch(DivCommand c) {
           }
           if (chan[c.chan].sample>=0 && chan[c.chan].sample<parent->song.sampleLen) {
             DivSample* s=parent->getSample(chan[c.chan].sample);
-            immWriteBanked(0x12,(sampleOffB[chan[c.chan].sample]>>8)&0xff);
-            immWriteBanked(0x13,sampleOffB[chan[c.chan].sample]>>16);
-            int end=sampleOffB[chan[c.chan].sample]+s->lengthB-1;
-            immWriteBanked(0x14,(end>>8)&0xff);
-            immWriteBanked(0x15,end>>16);
-            immWriteBanked(0x11,isMuted[c.chan]?0:(chan[c.chan].pan<<6));
+            immWriteBanked(0x213,sampleOffB[chan[c.chan].sample]&0xff);
+            immWriteBanked(0x012,(sampleOffB[chan[c.chan].sample]>>8)&0xff);
+            immWriteBanked(0x013,sampleOffB[chan[c.chan].sample]>>16);
+            immWriteBanked(0x212,sampleOffB[chan[c.chan].sample]>>24);
+            int end=sampleOffB[chan[c.chan].sample]+((s->isLoopable()?(s->loopEnd>>1):s->lengthB)-1);
+            immWriteBanked(0x215,end&0xff);
+            immWriteBanked(0x014,(end>>8)&0xff);
+            immWriteBanked(0x015,end>>16);
+            immWriteBanked(0x214,end>>24);
+            if (s->isLoopable()) {
+              int loop=sampleOffB[chan[c.chan].sample]+(s->loopStart>>1);
+              immWriteBanked(0x217,loop&0xff);
+              immWriteBanked(0x016,(loop>>8)&0xff);
+              immWriteBanked(0x017,loop>>16);
+              immWriteBanked(0x216,loop>>24);
+            }
+            immWriteBanked(0x011,isMuted[c.chan]?0:(chan[c.chan].pan<<6));
             if (c.value!=DIV_NOTE_NULL) {
               chan[c.chan].note=c.value;
               chan[c.chan].baseFreq=NOTE_ADPCMB(chan[c.chan].note);
@@ -890,11 +918,19 @@ int DivPlatformYM2610X::dispatch(DivCommand c) {
             chan[c.chan].active=true;
             chan[c.chan].keyOn=true;
           } else {
-            immWriteBanked(0x10,0x01); // reset
-            immWriteBanked(0x12,0);
-            immWriteBanked(0x13,0);
-            immWriteBanked(0x14,0);
-            immWriteBanked(0x15,0);
+            immWriteBanked(0x010,0x01); // reset
+            immWriteBanked(0x012,0);
+            immWriteBanked(0x013,0);
+            immWriteBanked(0x014,0);
+            immWriteBanked(0x015,0);
+            immWriteBanked(0x016,0);
+            immWriteBanked(0x017,0);
+            immWriteBanked(0x212,0);
+            immWriteBanked(0x213,0);
+            immWriteBanked(0x214,0);
+            immWriteBanked(0x215,0);
+            immWriteBanked(0x216,0);
+            immWriteBanked(0x217,0);
             break;
           }
         } else {
@@ -907,24 +943,35 @@ int DivPlatformYM2610X::dispatch(DivCommand c) {
           chan[c.chan].sample=12*sampleBank+c.value%12;
           if (chan[c.chan].sample>=0 && chan[c.chan].sample<parent->song.sampleLen) {
             DivSample* s=parent->getSample(12*sampleBank+c.value%12);
-            immWriteBanked(0x12,(sampleOffB[chan[c.chan].sample]>>8)&0xff);
-            immWriteBanked(0x13,sampleOffB[chan[c.chan].sample]>>16);
-            int end=sampleOffB[chan[c.chan].sample]+s->lengthB-1;
-            immWriteBanked(0x14,(end>>8)&0xff);
-            immWriteBanked(0x15,end>>16);
-            immWriteBanked(0x11,isMuted[c.chan]?0:(chan[c.chan].pan<<6));
+            immWriteBanked(0x213,sampleOffB[chan[c.chan].sample]&0xff);
+            immWriteBanked(0x012,(sampleOffB[chan[c.chan].sample]>>8)&0xff);
+            immWriteBanked(0x013,sampleOffB[chan[c.chan].sample]>>16);
+            immWriteBanked(0x212,sampleOffB[chan[c.chan].sample]>>24);
+            int end=sampleOffB[chan[c.chan].sample]+((s->isLoopable()?(s->loopEnd>>1):s->lengthB)-1);
+            immWriteBanked(0x215,end&0xff);
+            immWriteBanked(0x014,(end>>8)&0xff);
+            immWriteBanked(0x015,end>>16);
+            immWriteBanked(0x214,end>>24);
+            if (s->isLoopable()) {
+              int loop=sampleOffB[chan[c.chan].sample]+(s->loopStart>>1);
+              immWriteBanked(0x217,loop&0xff);
+              immWriteBanked(0x016,(loop>>8)&0xff);
+              immWriteBanked(0x017,loop>>16);
+              immWriteBanked(0x216,loop>>24);
+            }
+            immWriteBanked(0x011,isMuted[c.chan]?0:(chan[c.chan].pan<<6));
             int freq=(65536.0*(double)s->rate)/((double)chipClock/576.0);
-            immWriteBanked(0x19,freq&0xff);
-            immWriteBanked(0x1a,(freq>>8)&0xff);
-            immWriteBanked(0x1b,chan[c.chan].outVol);
+            immWriteBanked(0x019,freq&0xff);
+            immWriteBanked(0x01a,(freq>>8)&0xff);
+            immWriteBanked(0x01b,chan[c.chan].outVol);
             chan[c.chan].active=true;
             chan[c.chan].keyOn=true;
             } else {
-              immWriteBanked(0x10,0x01); // reset
-              immWriteBanked(0x12,0);
-              immWriteBanked(0x13,0);
-              immWriteBanked(0x14,0);
-              immWriteBanked(0x15,0);
+              immWriteBanked(0x010,0x01); // reset
+              immWriteBanked(0x012,0);
+              immWriteBanked(0x013,0);
+              immWriteBanked(0x014,0);
+              immWriteBanked(0x015,0);
               break;
             }
         }
@@ -947,11 +994,15 @@ int DivPlatformYM2610X::dispatch(DivCommand c) {
           if (c.value!=DIV_NOTE_NULL) chan[c.chan].sample=ins->amiga.getSample(c.value);
           if (chan[c.chan].sample>=0 && chan[c.chan].sample<parent->song.sampleLen) {
             DivSample* s=parent->getSample(chan[c.chan].sample);
+            immWriteBanked(0x318+c.chan-adpcmAChanOffs,sampleOffA[chan[c.chan].sample]&0xff);
             immWriteBanked(0x110+c.chan-adpcmAChanOffs,(sampleOffA[chan[c.chan].sample]>>8)&0xff);
             immWriteBanked(0x118+c.chan-adpcmAChanOffs,sampleOffA[chan[c.chan].sample]>>16);
+            immWriteBanked(0x310+c.chan-adpcmAChanOffs,sampleOffA[chan[c.chan].sample]>>24);
             int end=sampleOffA[chan[c.chan].sample]+s->lengthA-1;
+            immWriteBanked(0x328+c.chan-adpcmAChanOffs,end&0xff);
             immWriteBanked(0x120+c.chan-adpcmAChanOffs,(end>>8)&0xff);
             immWriteBanked(0x128+c.chan-adpcmAChanOffs,end>>16);
+            immWriteBanked(0x320+c.chan-adpcmAChanOffs,end>>24);
             immWriteBanked(0x108+c.chan-adpcmAChanOffs,isMuted[c.chan]?0:((chan[c.chan].pan<<6)|chan[c.chan].outVol));
             if (c.value!=DIV_NOTE_NULL) {
               chan[c.chan].note=c.value;
@@ -966,6 +1017,10 @@ int DivPlatformYM2610X::dispatch(DivCommand c) {
             immWriteBanked(0x118+c.chan-adpcmAChanOffs,0);
             immWriteBanked(0x120+c.chan-adpcmAChanOffs,0);
             immWriteBanked(0x128+c.chan-adpcmAChanOffs,0);
+            immWriteBanked(0x310+c.chan-adpcmAChanOffs,0);
+            immWriteBanked(0x318+c.chan-adpcmAChanOffs,0);
+            immWriteBanked(0x320+c.chan-adpcmAChanOffs,0);
+            immWriteBanked(0x328+c.chan-adpcmAChanOffs,0);
             break;
           }
         } else {
@@ -978,11 +1033,15 @@ int DivPlatformYM2610X::dispatch(DivCommand c) {
           chan[c.chan].sample=12*sampleBank+c.value%12;
           if (chan[c.chan].sample>=0 && chan[c.chan].sample<parent->song.sampleLen) {
             DivSample* s=parent->getSample(12*sampleBank+c.value%12);
+            immWriteBanked(0x318+c.chan-adpcmAChanOffs,sampleOffA[chan[c.chan].sample]&0xff);
             immWriteBanked(0x110+c.chan-adpcmAChanOffs,(sampleOffA[chan[c.chan].sample]>>8)&0xff);
             immWriteBanked(0x118+c.chan-adpcmAChanOffs,sampleOffA[chan[c.chan].sample]>>16);
+            immWriteBanked(0x310+c.chan-adpcmAChanOffs,sampleOffA[chan[c.chan].sample]>>24);
             int end=sampleOffA[chan[c.chan].sample]+s->lengthA-1;
+            immWriteBanked(0x328+c.chan-adpcmAChanOffs,end&0xff);
             immWriteBanked(0x120+c.chan-adpcmAChanOffs,(end>>8)&0xff);
             immWriteBanked(0x128+c.chan-adpcmAChanOffs,end>>16);
+            immWriteBanked(0x320+c.chan-adpcmAChanOffs,end>>24);
             immWriteBanked(0x108+c.chan-adpcmAChanOffs,isMuted[c.chan]?0:((chan[c.chan].pan<<6)|chan[c.chan].outVol));
             chan[c.chan].active=true;
             chan[c.chan].keyOn=true;
@@ -992,6 +1051,10 @@ int DivPlatformYM2610X::dispatch(DivCommand c) {
             immWriteBanked(0x118+c.chan-adpcmAChanOffs,0);
             immWriteBanked(0x120+c.chan-adpcmAChanOffs,0);
             immWriteBanked(0x128+c.chan-adpcmAChanOffs,0);
+            immWriteBanked(0x310+c.chan-adpcmAChanOffs,0);
+            immWriteBanked(0x318+c.chan-adpcmAChanOffs,0);
+            immWriteBanked(0x320+c.chan-adpcmAChanOffs,0);
+            immWriteBanked(0x328+c.chan-adpcmAChanOffs,0);
             break;
           }
         }
@@ -1469,7 +1532,7 @@ int DivPlatformYM2610X::dispatch(DivCommand c) {
     case DIV_CMD_GET_VOLMAX:
       if (c.chan>=adpcmBChanOffs) return 255;
       if (c.chan>=adpcmAChanOffs) return 31;
-      if (c.chan>=psgChanOffs) return 15;
+      if (c.chan>=psgChanOffs) return 31;
       return 127;
       break;
     case DIV_CMD_PRE_PORTA:

@@ -408,10 +408,12 @@ void adpcmx_b_registers::save_restore(ymfm_saved_state &state)
 adpcmx_b_channel::adpcmx_b_channel(adpcmx_b_engine &owner) :
 	m_status(STATUS_BRDY),
 	m_curnibble(0),
+	m_loopnibble(0),
 	m_curbyte(0),
 	m_loopbyte(0),
 	m_position(0),
 	m_curaddress(0),
+	m_loopaddress(0),
 	m_accumulator(0),
 	m_prev_accum(0),
 	m_adpcm_step(STEP_MIN),
@@ -430,13 +432,14 @@ adpcmx_b_channel::adpcmx_b_channel(adpcmx_b_engine &owner) :
 void adpcmx_b_channel::reset()
 {
 	m_status = STATUS_BRDY;
-	m_curnibble = 0;
+	m_curnibble = m_loopnibble = 0;
 	m_curbyte = m_loopbyte = 0;
 	m_position = 0;
-	m_curaddress = 0;
+	m_curaddress = m_loopaddress = 0;
 	m_accumulator = m_loop_accumulator = 0;
 	m_prev_accum = 0;
 	m_adpcm_step = m_loop_adpcm_step = STEP_MIN;
+	m_loop_point = false;
 }
 
 
@@ -448,6 +451,7 @@ void adpcmx_b_channel::save_restore(ymfm_saved_state &state)
 {
 	state.save_restore(m_status);
 	state.save_restore(m_curnibble);
+	state.save_restore(m_loopnibble);
 	state.save_restore(m_curbyte);
 	state.save_restore(m_loopbyte);
 	state.save_restore(m_position);
@@ -516,9 +520,12 @@ void adpcmx_b_channel::clock()
 		{
 			m_curaddress++;
 			m_curaddress &= 0xffffffff;
+
 			if (!m_loop_point && (m_curaddress == m_regs.loopaddr()))
 			{
+				m_loopaddress = m_curaddress;
 				m_loopbyte = m_curbyte;
+				m_loopnibble = m_curnibble;
 				m_loop_accumulator = m_accumulator;
 				m_loop_adpcm_step = m_adpcm_step;
 				m_loop_point = true;
@@ -628,8 +635,8 @@ void adpcmx_b_channel::write(uint32_t regnum, uint8_t value)
 void adpcmx_b_channel::load_start()
 {
 	m_status = (m_status & ~STATUS_EOS) | STATUS_PLAYING;
-	m_curaddress = m_regs.start();
-	m_curnibble = 0;
+	m_curaddress = m_loopaddress = m_regs.start();
+	m_curnibble = m_loopnibble = 0;
 	m_curbyte = m_loopbyte = 0;
 	m_position = 0;
 	m_accumulator = m_loop_accumulator = 0;
@@ -647,8 +654,8 @@ void adpcmx_b_channel::load_start()
 void adpcmx_b_channel::loop_start()
 {
 	m_status = (m_status & ~STATUS_EOS) | STATUS_PLAYING;
-	m_curaddress = m_regs.loopaddr();
-	m_curnibble = 0;
+	m_curaddress = m_loopaddress;
+	m_curnibble = m_loopnibble;
 	m_curbyte = m_loopbyte;
 	m_accumulator = m_loop_accumulator;
 	m_adpcm_step = m_loop_adpcm_step;

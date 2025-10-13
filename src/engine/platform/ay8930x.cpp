@@ -71,7 +71,7 @@ void DivPlatformAY8930X::immWrite(unsigned char a, unsigned char v) {
   if (a==0x0f) {
     immWrite2(0x0f,0x01|(bank<<1)|(v&0xfc));
   } else {
-    immWrite2(a&15,v);
+    immWrite2(a&31,v);
   }
 }
 
@@ -156,9 +156,9 @@ void DivPlatformAY8930X::runDAC(int runRate, int advance) {
 void DivPlatformAY8930X::checkWrites() {
   while (!writes.empty()) {
     QueuedWrite w=writes.front();
-    ay->address_w(w.addr);
+    ay->address_w((w.addr&0x0f));
     ay->data_w(w.val);
-    if (w.addr!=0x0f && (regPool[0x0f]&0x02)==0x02) {
+    if ((w.addr&0x0f)!=0x0f && (regPool[0x0f]&0x02)==0x02) {
       regPool[(w.addr&0x0f)|0x10]=w.val;
     } else {
       regPool[w.addr&0x0f]=w.val;
