@@ -102,28 +102,51 @@ enum DivMIDIModes {
 };
 
 enum DivAudioExportFormats {
-  DIV_EXPORT_FORMAT_S16=0,
-  DIV_EXPORT_FORMAT_F32
+  DIV_EXPORT_FORMAT_WAV=0,
+  DIV_EXPORT_FORMAT_OPUS,
+  DIV_EXPORT_FORMAT_FLAC,
+  DIV_EXPORT_FORMAT_VORBIS,
+  DIV_EXPORT_FORMAT_MPEG_L3
+};
+
+enum DivAudioExportBitrateModes {
+  DIV_EXPORT_BITRATE_CONSTANT=0,
+  DIV_EXPORT_BITRATE_VARIABLE,
+  DIV_EXPORT_BITRATE_AVERAGE,
+};
+
+enum DivAudioExportWavFormats {
+  DIV_EXPORT_WAV_U8=0,
+  DIV_EXPORT_WAV_S16,
+  DIV_EXPORT_WAV_F32
 };
 
 struct DivAudioExportOptions {
   DivAudioExportModes mode;
   DivAudioExportFormats format;
+  DivAudioExportBitrateModes bitRateMode;
+  DivAudioExportWavFormats wavFormat;
   int sampleRate;
   int chans;
   int loops;
   double fadeOut;
   int orderBegin, orderEnd;
   bool channelMask[DIV_MAX_CHANS];
+  int bitRate;
+  float vbrQuality;
   DivAudioExportOptions():
     mode(DIV_EXPORT_MODE_ONE),
-    format(DIV_EXPORT_FORMAT_S16),
+    format(DIV_EXPORT_FORMAT_WAV),
+    bitRateMode(DIV_EXPORT_BITRATE_CONSTANT),
+    wavFormat(DIV_EXPORT_WAV_S16),
     sampleRate(44100),
     chans(2),
     loops(0),
     fadeOut(0.0),
     orderBegin(-1),
-    orderEnd(-1) {
+    orderEnd(-1),
+    bitRate(128000),
+    vbrQuality(6.0f) {
     for (int i=0; i<DIV_MAX_CHANS; i++) {
       channelMask[i]=true;
     }
@@ -498,9 +521,13 @@ class DivEngine {
   DivAudioEngines audioEngine;
   DivAudioExportModes exportMode;
   DivAudioExportFormats exportFormat;
+  DivAudioExportWavFormats wavFormat;
+  DivAudioExportBitrateModes exportBitRateMode;
   double exportFadeOut;
   bool isFadingOut;
   int exportOutputs;
+  int exportBitRate;
+  float exportVBRQuality;
   bool exportChannelMask[DIV_MAX_CHANS];
   DivConfig conf;
   FixedQueue<DivNoteEvent,8192> pendingNotes;
@@ -1487,10 +1514,14 @@ class DivEngine {
       haltOn(DIV_HALT_NONE),
       audioEngine(DIV_AUDIO_NULL),
       exportMode(DIV_EXPORT_MODE_ONE),
-      exportFormat(DIV_EXPORT_FORMAT_S16),
+      exportFormat(DIV_EXPORT_FORMAT_WAV),
+      wavFormat(DIV_EXPORT_WAV_S16),
+      exportBitRateMode(DIV_EXPORT_BITRATE_CONSTANT),
       exportFadeOut(0.0),
       isFadingOut(false),
       exportOutputs(2),
+      exportBitRate(128000),
+      exportVBRQuality(6.0f),
       cmdStreamInt(NULL),
       midiBaseChan(0),
       midiPoly(true),

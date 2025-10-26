@@ -237,6 +237,7 @@ enum FurnaceGUIColors {
   GUI_COLOR_FILE_SONG_IMPORT,
   GUI_COLOR_FILE_INSTR,
   GUI_COLOR_FILE_AUDIO,
+  GUI_COLOR_FILE_AUDIO_COMPRESSED,
   GUI_COLOR_FILE_WAVE,
   GUI_COLOR_FILE_VGM,
   GUI_COLOR_FILE_ZSM,
@@ -2494,6 +2495,7 @@ class FurnaceGUI {
   std::vector<FurnaceGUISysCategory> sysCategories;
 
   std::vector<String> audioLoadFormats;
+  bool supportsOgg, supportsMP3;
 
   bool wavePreviewOn;
   SDL_Scancode wavePreviewKey;
@@ -2812,6 +2814,7 @@ class FurnaceGUI {
 
   // export options
   DivAudioExportOptions audioExportOptions;
+  String audioExportFilterName, audioExportFilterExt;
   int dmfExportVersion;
   FurnaceGUIExportTypes curExportType;
   DivCSOptions csExportOptions;

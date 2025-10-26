@@ -2097,7 +2097,7 @@ void FurnaceGUI::openFileDialog(FurnaceGUIFileDialogs type) {
       if (!dirExists(workingDirAudioExport)) workingDirAudioExport=getHomeDir();
       hasOpened=fileDialog->openSave(
         _("Export Audio"),
-        {_("Wave file"), "*.wav"},
+        {audioExportFilterName, "*"+audioExportFilterExt},
         workingDirAudioExport,
         dpiScale,
         (settings.autoFillSave)?shortName:""
@@ -2107,7 +2107,7 @@ void FurnaceGUI::openFileDialog(FurnaceGUIFileDialogs type) {
       if (!dirExists(workingDirAudioExport)) workingDirAudioExport=getHomeDir();
       hasOpened=fileDialog->openSave(
         _("Export Audio"),
-        {_("Wave file"), "*.wav"},
+        {audioExportFilterName, "*"+audioExportFilterExt},
         workingDirAudioExport,
         dpiScale,
         (settings.autoFillSave)?shortName:""
@@ -2117,7 +2117,7 @@ void FurnaceGUI::openFileDialog(FurnaceGUIFileDialogs type) {
       if (!dirExists(workingDirAudioExport)) workingDirAudioExport=getHomeDir();
       hasOpened=fileDialog->openSave(
         _("Export Audio"),
-        {_("Wave file"), "*.wav"},
+        {audioExportFilterName, "*"+audioExportFilterExt},
         workingDirAudioExport,
         dpiScale,
         (settings.autoFillSave)?shortName:""
@@ -5263,11 +5263,15 @@ bool FurnaceGUI::loop() {
           if (curFileDialog==GUI_FILE_SAVE_DMF_LEGACY) {
             checkExtension(".dmf");
           }
-          if (curFileDialog==GUI_FILE_SAMPLE_SAVE ||
-              curFileDialog==GUI_FILE_EXPORT_AUDIO_ONE ||
+          if (curFileDialog==GUI_FILE_SAMPLE_SAVE) {
+            checkExtension(".wav");
+          }
+          if (curFileDialog==GUI_FILE_EXPORT_AUDIO_ONE ||
               curFileDialog==GUI_FILE_EXPORT_AUDIO_PER_SYS ||
               curFileDialog==GUI_FILE_EXPORT_AUDIO_PER_CHANNEL) {
-            checkExtension(".wav");
+            if (audioExportFilterExt!="*") {
+              checkExtension(audioExportFilterExt.c_str());
+            }
           }
           if (curFileDialog==GUI_FILE_INS_SAVE) {
             checkExtension(".fui");
@@ -8079,9 +8083,23 @@ bool FurnaceGUI::init() {
     // just in case
     if (strcmp(f.extension,"dmc")==0) continue;
     if (strcmp(f.extension,"brr")==0) continue;
-    audioLoadFormats.push_back(f.name);
-    audioLoadFormats.push_back(fmt::sprintf("*.%s",f.extension));
-    compatFormats+=fmt::sprintf("*.%s ",f.extension);
+
+    // special treatment for Ogg and MPEG
+    if (strcmp(f.extension,"oga")==0) {
+      supportsOgg=true;
+      audioLoadFormats.push_back(f.name);
+      audioLoadFormats.push_back("*.ogg *.oga *.opus");
+      compatFormats+="*.ogg *.oga *.opus ";
+    } else if (strcmp(f.extension,"m1a")==0) {
+      supportsMP3=true;
+      audioLoadFormats.push_back(f.name);
+      audioLoadFormats.push_back("*.m1a *.mp1 *.mp2 *.mp3");
+      compatFormats+="*.m1a *.mp1 *.mp2 *.mp3 ";
+    } else {
+      audioLoadFormats.push_back(f.name);
+      audioLoadFormats.push_back(fmt::sprintf("*.%s",f.extension));
+      compatFormats+=fmt::sprintf("*.%s ",f.extension);
+    }
   }
 #endif
 
@@ -8830,6 +8848,8 @@ FurnaceGUI::FurnaceGUI():
   queryReplaceInsDo(false),
   queryReplaceVolDo(false),
   queryViewingResults(false),
+  supportsOgg(false),
+  supportsMP3(false),
   wavePreviewOn(false),
   wavePreviewKey((SDL_Scancode)0),
   wavePreviewNote(0),
@@ -9082,6 +9102,8 @@ FurnaceGUI::FurnaceGUI():
   csExportResult(NULL),
   csExportTarget(false),
   csExportDone(false),
+  audioExportFilterName("???"),
+  audioExportFilterExt("*"),
   dmfExportVersion(0),
   curExportType(GUI_EXPORT_NONE),
   romTarget(DIV_ROM_ABSTRACT),
