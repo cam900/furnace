@@ -772,31 +772,31 @@ namespace jkms16wm32o8
 					{
 					}
 
-						void reset()
+					void reset()
+					{
+						for (operator_t &op : m_op)
 						{
-							for (operator_t &op : m_op)
-							{
-								op.reset();
-							}
-							m_lout = 0;
-							m_rout = 0;
-							m_lvol = 0;
-							m_rvol = 0;
+							op.reset();
 						}
+						m_lout = 0;
+						m_rout = 0;
+						m_lvol = 0;
+						m_rvol = 0;
+					}
 
-						void tick();
+					void tick();
 
-						operator_t &op(const u8 op) { return m_op[op]; }
+					operator_t &op(const u8 op) { return m_op[op]; }
 
-						// getters
-						s32 lvol() const { return m_lvol; }
-						s32 rvol() const { return m_rvol; }
-						// setters
-						void set_lvol(const s32 lvol) { m_lvol = lvol; }
-						void set_rvol(const s32 rvol) { m_rvol = rvol; }
+					// getters
+					s32 lvol() const { return m_lvol; }
+					s32 rvol() const { return m_rvol; }
+					// setters
+					void set_lvol(const s32 lvol) { m_lvol = lvol; }
+					void set_rvol(const s32 rvol) { m_rvol = rvol; }
 
-						s32 lout() const { return m_lout; }
-						s32 rout() const { return m_rout; }
+					s32 lout() const { return m_lout; }
+					s32 rout() const { return m_rout; }
 				private:
 					// classes / structs
 					jkms16wm32o8_t &m_host;
