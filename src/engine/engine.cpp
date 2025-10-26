@@ -1030,6 +1030,13 @@ void DivEngine::delUnusedSamples() {
           }
         }
       }
+      for (int op=0; op<8; op++) {
+        if (i->type==DIV_INS_WM && i->wm.op[op].useSample) {
+          if (i->wm.op[op].initSample>=0 && i->wm.op[op].initSample<song.sampleLen) {
+            isUsed[i->wm.op[op].initSample]=true;
+          }
+        }
+      }
     }
   }
 
@@ -3037,6 +3044,13 @@ void DivEngine::delSampleUnsafe(int index, bool render) {
           i->amiga.noteMap[j].map--;
         }
       }
+      for (int op=0; op<8; op++) {
+        if (i->wm.op[op].initSample==index) {
+          i->wm.op[op].initSample=-1;
+        } else if (i->wm.op[op].initSample>index) {
+          i->wm.op[op].initSample--;
+        }
+      }
     }
 
     if (render) renderSamples();
@@ -3252,6 +3266,13 @@ void DivEngine::exchangeSample(int one, int two) {
         i->amiga.noteMap[j].map=two;
       } else if (i->amiga.noteMap[j].map==two) {
         i->amiga.noteMap[j].map=one;
+      }
+    }
+    for (int op=0; op<8; op++) {
+      if (i->wm.op[op].initSample==one) {
+        i->wm.op[op].initSample=two;
+      } else if (i->wm.op[op].initSample==two) {
+        i->wm.op[op].initSample=one;
       }
     }
   }

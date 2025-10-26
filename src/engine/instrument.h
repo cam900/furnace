@@ -99,11 +99,12 @@ enum DivInstrumentType: unsigned short {
   DIV_INS_SUPERVISION=64,
   DIV_INS_UPD1771C=65,
   DIV_INS_SID3=66,
+  DIV_INS_WM=67,
   DIV_INS_MAX,
   DIV_INS_NULL
 };
 
-enum DivMacroType: unsigned char {
+enum DivMacroType: unsigned short {
   DIV_MACRO_VOL=0,
   DIV_MACRO_ARP,
   DIV_MACRO_DUTY,
@@ -128,7 +129,7 @@ enum DivMacroType: unsigned char {
   DIV_MACRO_EX10
 };
 
-enum DivMacroTypeOp: unsigned char {
+enum DivMacroTypeOp: unsigned short {
   DIV_MACRO_OP_AM=32,
   DIV_MACRO_OP_AR,
   DIV_MACRO_OP_DR,
@@ -149,6 +150,90 @@ enum DivMacroTypeOp: unsigned char {
   DIV_MACRO_OP_VIB,
   DIV_MACRO_OP_WS,
   DIV_MACRO_OP_KSR,
+};
+
+enum DivMacroTypeWm: unsigned short {
+  DIV_MACRO_WM_ENVEN=1024, // envelope enable/loop
+  DIV_MACRO_WM_FLFOEN, // frequency lfo enable/waveform
+  DIV_MACRO_WM_ALFOEN, // amplitude lfo enable/waveform
+  DIV_MACRO_WM_DT, // detune (software generated)
+  DIV_MACRO_WM_MULT, // multiple (software generated)
+  DIV_MACRO_WM_OUTEN, // filter/direct/speaker output enable
+  DIV_MACRO_WM_FMEN, // FM input/output enable
+  DIV_MACRO_WM_PMEN, // PM input/output enable
+  DIV_MACRO_WM_AMEN, // AM input/output enable
+  DIV_MACRO_WM_MUTEEN, // mute bit enable
+  DIV_MACRO_WM_MUTEBIT, // mute bit position
+  DIV_MACRO_WM_REVEN, // reverse bit enable
+  DIV_MACRO_WM_REVBIT, // reverse bit position
+  DIV_MACRO_WM_INVEN, // invert bit enable
+  DIV_MACRO_WM_INVBIT, // invert bit position
+  DIV_MACRO_WM_INTWL, // internal waveform size
+  DIV_MACRO_WM_EXTWL, // external waveform size
+  DIV_MACRO_WM_WF, // waveform enable bits
+  DIV_MACRO_WM_EW, // external waveform select
+  DIV_MACRO_WM_ARP, // arpeggio
+  DIV_MACRO_WM_PITCH, // pitch
+  DIV_MACRO_WM_DUTY, // pulse duty
+  DIV_MACRO_WM_FMINMUL, // fm input multipler
+  DIV_MACRO_WM_PMINMUL, // pm input multipler
+  DIV_MACRO_WM_AMINMUL, // am input multipler
+  DIV_MACRO_WM_FMOUTMUL, // fm output multipler
+  DIV_MACRO_WM_PMOUTMUL, // pm output multipler
+  DIV_MACRO_WM_AMOUTMUL, // am output multipler
+  DIV_MACRO_WM_FMFB, // fm feedback
+  DIV_MACRO_WM_PMFB, // pm feedback
+  DIV_MACRO_WM_AMFB, // am feedback
+  DIV_MACRO_WM_FMMATRIX, // fm matrix
+  DIV_MACRO_WM_PMMATRIX, // pm matrix
+  DIV_MACRO_WM_AMMATRIX, // am matrix
+  DIV_MACRO_WM_SPKRVOL, // speaker output master volume
+  DIV_MACRO_WM_SPKRLVOL, // spekaer output left volume
+  DIV_MACRO_WM_SPKRRVOL, // speaker output right volume
+  DIV_MACRO_WM_TL, // total level
+  DIV_MACRO_WM_NOIPITCH, // noise pitch
+  DIV_MACRO_WM_NOIILFSR, // noise initial LFSR
+  DIV_MACRO_WM_NOIMASK, // noise LFSR mask
+  DIV_MACRO_WM_FILTEN, // filter enable bit
+  DIV_MACRO_WM_FILTLP, // filter lowpass bit
+  DIV_MACRO_WM_FILTHP, // filter highpass bit
+  DIV_MACRO_WM_FILTBP, // filter bandpass bit
+  DIV_MACRO_WM_FILT0F, // filter #0 F parameter
+  DIV_MACRO_WM_FILT0Q, // filter #0 Q parameter
+  DIV_MACRO_WM_FILT1F, // filter #1 F parameter
+  DIV_MACRO_WM_FILT1Q, // filter #1 Q parameter
+  DIV_MACRO_WM_FILT2F, // filter #2 F parameter
+  DIV_MACRO_WM_FILT2Q, // filter #2 Q parameter
+  DIV_MACRO_WM_FILT3F, // filter #3 F parameter
+  DIV_MACRO_WM_FILT3Q, // filter #3 Q parameter
+  DIV_MACRO_WM_FILT4F, // filter #4 F parameter
+  DIV_MACRO_WM_FILT4Q, // filter #4 Q parameter
+  DIV_MACRO_WM_FILT5F, // filter #5 F parameter
+  DIV_MACRO_WM_FILT5Q, // filter #5 Q parameter
+  DIV_MACRO_WM_FILT6F, // filter #6 F parameter
+  DIV_MACRO_WM_FILT6Q, // filter #6 Q parameter
+  DIV_MACRO_WM_FILT7F, // filter #7 F parameter
+  DIV_MACRO_WM_FILT7Q, // filter #7 Q parameter
+  DIV_MACRO_WM_ENVATKT, // envelope attack target
+  DIV_MACRO_WM_ENVATKR, // envelope attack rate
+  DIV_MACRO_WM_ENVDECT, // envelope decay target
+  DIV_MACRO_WM_ENVDECR, // envelope decay rate
+  DIV_MACRO_WM_ENVSUST, // envelope sustain target
+  DIV_MACRO_WM_ENVSUSR, // envelope sustain rate
+  DIV_MACRO_WM_ENVRELR, // envelope release rate
+  DIV_MACRO_WM_ENVMUL, // envelope multipler
+  DIV_MACRO_WM_FLFOT, // FLFO target
+  DIV_MACRO_WM_FLFOL, // FLFO level
+  DIV_MACRO_WM_FLFOM, // FLFO multipler
+  DIV_MACRO_WM_FLFONPITCH, // FLFO noise pitch
+  DIV_MACRO_WM_FLFONILFSR, // FLFO noise initial LFSR
+  DIV_MACRO_WM_FLFONMASK, // FLFO noise LFSR mask
+  DIV_MACRO_WM_ALFOT, // ALFO target
+  DIV_MACRO_WM_ALFOL, // ALFO level
+  DIV_MACRO_WM_ALFOM, // ALFO multipler
+  DIV_MACRO_WM_ALFONPITCH, // ALFO noise pitch
+  DIV_MACRO_WM_ALFONILFSR, // ALFO noise initial LFSR
+  DIV_MACRO_WM_ALFONMASK, // ALFO noise LFSR mask
 };
 
 // FM operator structure:
@@ -267,9 +352,10 @@ struct DivInstrumentMacro {
   unsigned char len, delay, speed, loop, rel;
   // 0-31: normal
   // 32+: operator (top 3 bits select operator, starting from 1)
-  unsigned char macroType;
+  // 1024+: WM operator (top 3 bits select operator, starting from 0)
+  unsigned short macroType;
 
-  explicit DivInstrumentMacro(unsigned char initType, bool initOpen=false):
+  explicit DivInstrumentMacro(unsigned short initType, bool initOpen=false):
     mode(0),
     open(initOpen),
     len(0),
@@ -336,6 +422,172 @@ struct DivInstrumentSTD {
       susMacro(DIV_MACRO_OP_SUS), vibMacro(DIV_MACRO_OP_VIB), wsMacro(DIV_MACRO_OP_WS), ksrMacro(DIV_MACRO_OP_KSR) {}
   } opMacros[4];
 
+  struct WmMacro {
+    DivInstrumentMacro envEnMacro;
+    DivInstrumentMacro flfoEnMacro;
+    DivInstrumentMacro alfoEnMacro;
+    DivInstrumentMacro dtMacro;
+    DivInstrumentMacro multMacro;
+    DivInstrumentMacro outEnMacro;
+    DivInstrumentMacro fmEnMacro;
+    DivInstrumentMacro pmEnMacro;
+    DivInstrumentMacro amEnMacro;
+    DivInstrumentMacro muteEnMacro;
+    DivInstrumentMacro muteBitMacro;
+    DivInstrumentMacro revEnMacro;
+    DivInstrumentMacro revBitMacro;
+    DivInstrumentMacro invEnMacro;
+    DivInstrumentMacro invBitMacro;
+    DivInstrumentMacro intWlMacro;
+    DivInstrumentMacro extWlMacro;
+    DivInstrumentMacro wfMacro;
+    DivInstrumentMacro ewMacro;
+    DivInstrumentMacro arpMacro;
+    DivInstrumentMacro pitchMacro;
+    DivInstrumentMacro dutyMacro;
+    DivInstrumentMacro fmInMulMacro;
+    DivInstrumentMacro pmInMulMacro;
+    DivInstrumentMacro amInMulMacro;
+    DivInstrumentMacro fmOutMulMacro;
+    DivInstrumentMacro pmOutMulMacro;
+    DivInstrumentMacro amOutMulMacro;
+    DivInstrumentMacro fmFbMacro;
+    DivInstrumentMacro pmFbMacro;
+    DivInstrumentMacro amFbMacro;
+    DivInstrumentMacro fmMatrixMacro;
+    DivInstrumentMacro pmMatrixMacro;
+    DivInstrumentMacro amMatrixMacro;
+    DivInstrumentMacro spkrVolMacro;
+    DivInstrumentMacro spkrLVolMacro;
+    DivInstrumentMacro spkrRVolMacro;
+    DivInstrumentMacro tlMacro;
+    DivInstrumentMacro noiPitchMacro;
+    DivInstrumentMacro noiILfsrMacro;
+    DivInstrumentMacro noiMaskMacro;
+    DivInstrumentMacro filtEnMacro;
+    DivInstrumentMacro filtLpMacro;
+    DivInstrumentMacro filtHpMacro;
+    DivInstrumentMacro filtBpMacro;
+    DivInstrumentMacro filt0FMacro;
+    DivInstrumentMacro filt0QMacro;
+    DivInstrumentMacro filt1FMacro;
+    DivInstrumentMacro filt1QMacro;
+    DivInstrumentMacro filt2FMacro;
+    DivInstrumentMacro filt2QMacro;
+    DivInstrumentMacro filt3FMacro;
+    DivInstrumentMacro filt3QMacro;
+    DivInstrumentMacro filt4FMacro;
+    DivInstrumentMacro filt4QMacro;
+    DivInstrumentMacro filt5FMacro;
+    DivInstrumentMacro filt5QMacro;
+    DivInstrumentMacro filt6FMacro;
+    DivInstrumentMacro filt6QMacro;
+    DivInstrumentMacro filt7FMacro;
+    DivInstrumentMacro filt7QMacro;
+    DivInstrumentMacro envAtkTMacro;
+    DivInstrumentMacro envAtkRMacro;
+    DivInstrumentMacro envDecTMacro;
+    DivInstrumentMacro envDecRMacro;
+    DivInstrumentMacro envSusTMacro;
+    DivInstrumentMacro envSusRMacro;
+    DivInstrumentMacro envRelRMacro;
+    DivInstrumentMacro envMulMacro;
+    DivInstrumentMacro flfoTMacro;
+    DivInstrumentMacro flfoLMacro;
+    DivInstrumentMacro flfoMMacro;
+    DivInstrumentMacro flfoNPitchMacro;
+    DivInstrumentMacro flfoNILfsrMacro;
+    DivInstrumentMacro flfoNMaskMacro;
+    DivInstrumentMacro alfoTMacro;
+    DivInstrumentMacro alfoLMacro;
+    DivInstrumentMacro alfoMMacro;
+    DivInstrumentMacro alfoNPitchMacro;
+    DivInstrumentMacro alfoNILfsrMacro;
+    DivInstrumentMacro alfoNMaskMacro;
+    WmMacro():
+      envEnMacro(DIV_MACRO_WM_ENVEN),
+      flfoEnMacro(DIV_MACRO_WM_FLFOEN),
+      alfoEnMacro(DIV_MACRO_WM_ALFOEN),
+      dtMacro(DIV_MACRO_WM_DT),
+      multMacro(DIV_MACRO_WM_MULT),
+      outEnMacro(DIV_MACRO_WM_OUTEN),
+      fmEnMacro(DIV_MACRO_WM_FMEN),
+      pmEnMacro(DIV_MACRO_WM_PMEN),
+      amEnMacro(DIV_MACRO_WM_AMEN),
+      muteEnMacro(DIV_MACRO_WM_MUTEEN),
+      muteBitMacro(DIV_MACRO_WM_MUTEBIT),
+      revEnMacro(DIV_MACRO_WM_REVEN),
+      revBitMacro(DIV_MACRO_WM_REVBIT),
+      invEnMacro(DIV_MACRO_WM_INVEN),
+      invBitMacro(DIV_MACRO_WM_INVBIT),
+      intWlMacro(DIV_MACRO_WM_INTWL),
+      extWlMacro(DIV_MACRO_WM_EXTWL),
+      wfMacro(DIV_MACRO_WM_WF),
+      ewMacro(DIV_MACRO_WM_EW),
+      arpMacro(DIV_MACRO_WM_ARP),
+      pitchMacro(DIV_MACRO_WM_PITCH),
+      dutyMacro(DIV_MACRO_WM_DUTY),
+      fmInMulMacro(DIV_MACRO_WM_FMINMUL),
+      pmInMulMacro(DIV_MACRO_WM_PMINMUL),
+      amInMulMacro(DIV_MACRO_WM_AMINMUL),
+      fmOutMulMacro(DIV_MACRO_WM_FMOUTMUL),
+      pmOutMulMacro(DIV_MACRO_WM_PMOUTMUL),
+      amOutMulMacro(DIV_MACRO_WM_AMOUTMUL),
+      fmFbMacro(DIV_MACRO_WM_FMFB),
+      pmFbMacro(DIV_MACRO_WM_PMFB),
+      amFbMacro(DIV_MACRO_WM_AMFB),
+      fmMatrixMacro(DIV_MACRO_WM_FMMATRIX),
+      pmMatrixMacro(DIV_MACRO_WM_PMMATRIX),
+      amMatrixMacro(DIV_MACRO_WM_AMMATRIX),
+      spkrVolMacro(DIV_MACRO_WM_SPKRVOL),
+      spkrLVolMacro(DIV_MACRO_WM_SPKRLVOL),
+      spkrRVolMacro(DIV_MACRO_WM_SPKRRVOL),
+      tlMacro(DIV_MACRO_WM_TL),
+      noiPitchMacro(DIV_MACRO_WM_NOIPITCH),
+      noiILfsrMacro(DIV_MACRO_WM_NOIILFSR),
+      noiMaskMacro(DIV_MACRO_WM_NOIMASK),
+      filtEnMacro(DIV_MACRO_WM_FILTEN),
+      filtLpMacro(DIV_MACRO_WM_FILTLP),
+      filtHpMacro(DIV_MACRO_WM_FILTHP),
+      filtBpMacro(DIV_MACRO_WM_FILTBP),
+      filt0FMacro(DIV_MACRO_WM_FILT0F),
+      filt0QMacro(DIV_MACRO_WM_FILT0Q),
+      filt1FMacro(DIV_MACRO_WM_FILT1F),
+      filt1QMacro(DIV_MACRO_WM_FILT1Q),
+      filt2FMacro(DIV_MACRO_WM_FILT2F),
+      filt2QMacro(DIV_MACRO_WM_FILT2Q),
+      filt3FMacro(DIV_MACRO_WM_FILT3F),
+      filt3QMacro(DIV_MACRO_WM_FILT3Q),
+      filt4FMacro(DIV_MACRO_WM_FILT4F),
+      filt4QMacro(DIV_MACRO_WM_FILT4Q),
+      filt5FMacro(DIV_MACRO_WM_FILT5F),
+      filt5QMacro(DIV_MACRO_WM_FILT5Q),
+      filt6FMacro(DIV_MACRO_WM_FILT6F),
+      filt6QMacro(DIV_MACRO_WM_FILT6Q),
+      filt7FMacro(DIV_MACRO_WM_FILT7F),
+      filt7QMacro(DIV_MACRO_WM_FILT7Q),
+      envAtkTMacro(DIV_MACRO_WM_ENVATKT),
+      envAtkRMacro(DIV_MACRO_WM_ENVATKR),
+      envDecTMacro(DIV_MACRO_WM_ENVDECT),
+      envDecRMacro(DIV_MACRO_WM_ENVDECR),
+      envSusTMacro(DIV_MACRO_WM_ENVSUST),
+      envSusRMacro(DIV_MACRO_WM_ENVSUSR),
+      envRelRMacro(DIV_MACRO_WM_ENVRELR),
+      envMulMacro(DIV_MACRO_WM_ENVMUL),
+      flfoTMacro(DIV_MACRO_WM_FLFOT),
+      flfoLMacro(DIV_MACRO_WM_FLFOL),
+      flfoMMacro(DIV_MACRO_WM_FLFOM),
+      flfoNPitchMacro(DIV_MACRO_WM_FLFONPITCH),
+      flfoNILfsrMacro(DIV_MACRO_WM_FLFONILFSR),
+      flfoNMaskMacro(DIV_MACRO_WM_FLFONMASK),
+      alfoTMacro(DIV_MACRO_WM_ALFOT),
+      alfoLMacro(DIV_MACRO_WM_ALFOL),
+      alfoMMacro(DIV_MACRO_WM_ALFOM),
+      alfoNPitchMacro(DIV_MACRO_WM_ALFONPITCH),
+      alfoNILfsrMacro(DIV_MACRO_WM_ALFONILFSR),
+      alfoNMaskMacro(DIV_MACRO_WM_ALFONMASK) {}
+  } wmMacros[8];
+
   DivInstrumentMacro* macroByType(DivMacroType type);
 
   DivInstrumentSTD():
@@ -360,7 +612,10 @@ struct DivInstrumentSTD {
     ex7Macro(DIV_MACRO_EX7),
     ex8Macro(DIV_MACRO_EX8),
     ex9Macro(DIV_MACRO_EX9),
-    ex10Macro(DIV_MACRO_EX10) {
+    ex10Macro(DIV_MACRO_EX10),
+    opMacros{OpMacro(),OpMacro(),OpMacro(),OpMacro()},
+    wmMacros{WmMacro(),WmMacro(),WmMacro(),WmMacro(),
+      WmMacro(),WmMacro(),WmMacro(),WmMacro()} {
     for (int i=0; i<4; i++) {
       opMacros[i].amMacro.macroType=DIV_MACRO_OP_AM+(i<<5);
       opMacros[i].arMacro.macroType=DIV_MACRO_OP_AR+(i<<5);
@@ -384,7 +639,272 @@ struct DivInstrumentSTD {
       opMacros[i].wsMacro.macroType=DIV_MACRO_OP_WS+(i<<5);
       opMacros[i].ksrMacro.macroType=DIV_MACRO_OP_KSR+(i<<5);
     }
+    for (int i=0; i<8; i++) {
+      wmMacros[i].envEnMacro.macroType=DIV_MACRO_WM_ENVEN+(i<<7);
+      wmMacros[i].flfoEnMacro.macroType=DIV_MACRO_WM_FLFOEN+(i<<7);
+      wmMacros[i].alfoEnMacro.macroType=DIV_MACRO_WM_ALFOEN+(i<<7);
+      wmMacros[i].dtMacro.macroType=DIV_MACRO_WM_DT+(i<<7);
+      wmMacros[i].multMacro.macroType=DIV_MACRO_WM_MULT+(i<<7);
+      wmMacros[i].outEnMacro.macroType=DIV_MACRO_WM_OUTEN+(i<<7);
+      wmMacros[i].fmEnMacro.macroType=DIV_MACRO_WM_FMEN+(i<<7);
+      wmMacros[i].pmEnMacro.macroType=DIV_MACRO_WM_PMEN+(i<<7);
+      wmMacros[i].amEnMacro.macroType=DIV_MACRO_WM_AMEN+(i<<7);
+      wmMacros[i].muteEnMacro.macroType=DIV_MACRO_WM_MUTEEN+(i<<7);
+      wmMacros[i].muteBitMacro.macroType=DIV_MACRO_WM_MUTEBIT+(i<<7);
+      wmMacros[i].revEnMacro.macroType=DIV_MACRO_WM_REVEN+(i<<7);
+      wmMacros[i].revBitMacro.macroType=DIV_MACRO_WM_REVBIT+(i<<7);
+      wmMacros[i].invEnMacro.macroType=DIV_MACRO_WM_INVEN+(i<<7);
+      wmMacros[i].invBitMacro.macroType=DIV_MACRO_WM_INVBIT+(i<<7);
+      wmMacros[i].intWlMacro.macroType=DIV_MACRO_WM_INTWL+(i<<7);
+      wmMacros[i].extWlMacro.macroType=DIV_MACRO_WM_EXTWL+(i<<7);
+      wmMacros[i].wfMacro.macroType=DIV_MACRO_WM_WF+(i<<7);
+      wmMacros[i].ewMacro.macroType=DIV_MACRO_WM_EW+(i<<7);
+      wmMacros[i].arpMacro.macroType=DIV_MACRO_WM_ARP+(i<<7);
+      wmMacros[i].pitchMacro.macroType=DIV_MACRO_WM_PITCH+(i<<7);
+      wmMacros[i].dutyMacro.macroType=DIV_MACRO_WM_DUTY+(i<<7);
+      wmMacros[i].fmInMulMacro.macroType=DIV_MACRO_WM_FMINMUL+(i<<7);
+      wmMacros[i].pmInMulMacro.macroType=DIV_MACRO_WM_PMINMUL+(i<<7);
+      wmMacros[i].amInMulMacro.macroType=DIV_MACRO_WM_AMINMUL+(i<<7);
+      wmMacros[i].fmOutMulMacro.macroType=DIV_MACRO_WM_FMOUTMUL+(i<<7);
+      wmMacros[i].pmOutMulMacro.macroType=DIV_MACRO_WM_PMOUTMUL+(i<<7);
+      wmMacros[i].amOutMulMacro.macroType=DIV_MACRO_WM_AMOUTMUL+(i<<7);
+      wmMacros[i].fmFbMacro.macroType=DIV_MACRO_WM_FMFB+(i<<7);
+      wmMacros[i].pmFbMacro.macroType=DIV_MACRO_WM_PMFB+(i<<7);
+      wmMacros[i].amFbMacro.macroType=DIV_MACRO_WM_AMFB+(i<<7);
+      wmMacros[i].fmMatrixMacro.macroType=DIV_MACRO_WM_FMMATRIX+(i<<7);
+      wmMacros[i].pmMatrixMacro.macroType=DIV_MACRO_WM_PMMATRIX+(i<<7);
+      wmMacros[i].amMatrixMacro.macroType=DIV_MACRO_WM_AMMATRIX+(i<<7);
+      wmMacros[i].spkrVolMacro.macroType=DIV_MACRO_WM_SPKRVOL+(i<<7);
+      wmMacros[i].spkrLVolMacro.macroType=DIV_MACRO_WM_SPKRLVOL+(i<<7);
+      wmMacros[i].spkrRVolMacro.macroType=DIV_MACRO_WM_SPKRRVOL+(i<<7);
+      wmMacros[i].tlMacro.macroType=DIV_MACRO_WM_TL+(i<<7);
+      wmMacros[i].noiPitchMacro.macroType=DIV_MACRO_WM_NOIPITCH+(i<<7);
+      wmMacros[i].noiILfsrMacro.macroType=DIV_MACRO_WM_NOIILFSR+(i<<7);
+      wmMacros[i].noiMaskMacro.macroType=DIV_MACRO_WM_NOIMASK+(i<<7);
+      wmMacros[i].filtEnMacro.macroType=DIV_MACRO_WM_FILTEN+(i<<7);
+      wmMacros[i].filtLpMacro.macroType=DIV_MACRO_WM_FILTLP+(i<<7);
+      wmMacros[i].filtHpMacro.macroType=DIV_MACRO_WM_FILTHP+(i<<7);
+      wmMacros[i].filtBpMacro.macroType=DIV_MACRO_WM_FILTBP+(i<<7);
+      wmMacros[i].filt0FMacro.macroType=DIV_MACRO_WM_FILT0F+(i<<7);
+      wmMacros[i].filt0QMacro.macroType=DIV_MACRO_WM_FILT0Q+(i<<7);
+      wmMacros[i].filt1FMacro.macroType=DIV_MACRO_WM_FILT1F+(i<<7);
+      wmMacros[i].filt1QMacro.macroType=DIV_MACRO_WM_FILT1Q+(i<<7);
+      wmMacros[i].filt2FMacro.macroType=DIV_MACRO_WM_FILT2F+(i<<7);
+      wmMacros[i].filt2QMacro.macroType=DIV_MACRO_WM_FILT2Q+(i<<7);
+      wmMacros[i].filt3FMacro.macroType=DIV_MACRO_WM_FILT3F+(i<<7);
+      wmMacros[i].filt3QMacro.macroType=DIV_MACRO_WM_FILT3Q+(i<<7);
+      wmMacros[i].filt4FMacro.macroType=DIV_MACRO_WM_FILT4F+(i<<7);
+      wmMacros[i].filt4QMacro.macroType=DIV_MACRO_WM_FILT4Q+(i<<7);
+      wmMacros[i].filt5FMacro.macroType=DIV_MACRO_WM_FILT5F+(i<<7);
+      wmMacros[i].filt5QMacro.macroType=DIV_MACRO_WM_FILT5Q+(i<<7);
+      wmMacros[i].filt6FMacro.macroType=DIV_MACRO_WM_FILT6F+(i<<7);
+      wmMacros[i].filt6QMacro.macroType=DIV_MACRO_WM_FILT6Q+(i<<7);
+      wmMacros[i].filt7FMacro.macroType=DIV_MACRO_WM_FILT7F+(i<<7);
+      wmMacros[i].filt7QMacro.macroType=DIV_MACRO_WM_FILT7Q+(i<<7);
+      wmMacros[i].envAtkTMacro.macroType=DIV_MACRO_WM_ENVATKT+(i<<7);
+      wmMacros[i].envAtkRMacro.macroType=DIV_MACRO_WM_ENVATKR+(i<<7);
+      wmMacros[i].envDecTMacro.macroType=DIV_MACRO_WM_ENVDECT+(i<<7);
+      wmMacros[i].envDecRMacro.macroType=DIV_MACRO_WM_ENVDECR+(i<<7);
+      wmMacros[i].envSusTMacro.macroType=DIV_MACRO_WM_ENVSUST+(i<<7);
+      wmMacros[i].envSusRMacro.macroType=DIV_MACRO_WM_ENVSUSR+(i<<7);
+      wmMacros[i].envRelRMacro.macroType=DIV_MACRO_WM_ENVRELR+(i<<7);
+      wmMacros[i].envMulMacro.macroType=DIV_MACRO_WM_ENVMUL+(i<<7);
+      wmMacros[i].flfoTMacro.macroType=DIV_MACRO_WM_FLFOT+(i<<7);
+      wmMacros[i].flfoLMacro.macroType=DIV_MACRO_WM_FLFOL+(i<<7);
+      wmMacros[i].flfoMMacro.macroType=DIV_MACRO_WM_FLFOM+(i<<7);
+      wmMacros[i].flfoNPitchMacro.macroType=DIV_MACRO_WM_FLFONPITCH+(i<<7);
+      wmMacros[i].flfoNILfsrMacro.macroType=DIV_MACRO_WM_FLFONILFSR+(i<<7);
+      wmMacros[i].flfoNMaskMacro.macroType=DIV_MACRO_WM_FLFONMASK+(i<<7);
+      wmMacros[i].alfoTMacro.macroType=DIV_MACRO_WM_ALFOT+(i<<7);
+      wmMacros[i].alfoLMacro.macroType=DIV_MACRO_WM_ALFOL+(i<<7);
+      wmMacros[i].alfoMMacro.macroType=DIV_MACRO_WM_ALFOM+(i<<7);
+      wmMacros[i].alfoNPitchMacro.macroType=DIV_MACRO_WM_ALFONPITCH+(i<<7);
+      wmMacros[i].alfoNILfsrMacro.macroType=DIV_MACRO_WM_ALFONILFSR+(i<<7);
+      wmMacros[i].alfoNMaskMacro.macroType=DIV_MACRO_WM_ALFONMASK+(i<<7);
+    }
   }
+};
+
+struct DivInstrumentWM {
+  bool operator==(const DivInstrumentWM& other);
+  bool operator!=(const DivInstrumentWM& other) {
+    return !(*this==other);
+  }
+  struct WMOperator {
+    bool enable, fixed, useSample, spkrEnable, dirOut, filtOut, pitchCtrl;
+    unsigned char wavBit, intWSize, extWSize, pitchMul;
+    unsigned short wavBase, duty, noisePitch, initLfsr, lfsrMask, fixedFreq;
+    signed short dt, tl;
+    signed int initWave, initSample;
+
+    bool operator==(const WMOperator& other);
+    bool operator!=(const WMOperator& other) {
+      return !(*this==other);
+    }
+    struct WMEnvelope {
+      bool enable, loop;
+      unsigned short delR, atkR, decR, susR, relR;
+      signed short initLv, atkT, decT, susT, mul;
+
+      bool operator==(const WMEnvelope& other);
+      bool operator!=(const WMEnvelope& other) {
+        return !(*this==other);
+      }
+      WMEnvelope():
+        enable(false),
+        loop(false),
+        delR(0),
+        atkR(0),
+        decR(0),
+        susR(0),
+        relR(0),
+        initLv(0),
+        atkT(0),
+        decT(0),
+        susT(0),
+        mul(0) {}
+    } env;
+
+    struct WMLfo {
+      enum WMLfoWaveform: unsigned char {
+        DIV_WM_LFO_WAVE_SAW=0,
+        DIV_WM_LFO_WAVE_TRI,
+        DIV_WM_LFO_WAVE_SQU,
+        DIV_WM_LFO_WAVE_NOI,
+
+        DIV_WM_LFO_WAVE_MAX
+      };
+      bool enable;
+      WMLfoWaveform wave;
+      unsigned short delR, rate, noisePitch, initLfsr, lfsrMask;
+      signed short tgt, mul;
+
+      bool operator==(const WMLfo& other);
+      bool operator!=(const WMLfo& other) {
+        return !(*this==other);
+      }
+      WMLfo():
+        enable(false),
+        wave(DIV_WM_LFO_WAVE_SAW),
+        delR(0),
+        rate(0),
+        noisePitch(0),
+        initLfsr(0),
+        lfsrMask(0),
+        tgt(0),
+        mul(0) {}
+    };
+    WMLfo flfo, alfo;
+
+    struct WMFilter {
+      bool enable, lpEnable, hpEnable, bpEnable;
+      unsigned short f, q;
+
+      bool operator==(const WMFilter& other);
+      bool operator!=(const WMFilter& other) {
+        return !(*this==other);
+      }
+
+      WMFilter():
+        enable(false),
+        lpEnable(false),
+        hpEnable(false),
+        bpEnable(false),
+        f(0),
+        q(0) {}
+    } filter[8];
+
+    struct WMModIn {
+      bool enable;
+      signed short mul;
+
+      bool operator==(const WMModIn& other);
+      bool operator!=(const WMModIn& other) {
+        return !(*this==other);
+      }
+
+      WMModIn():
+        enable(false),
+        mul(0) {}
+    };
+
+    WMModIn fmIn,pmIn,amIn;
+
+    struct WMModOut {
+      bool enable;
+      unsigned char matrix;
+      signed short mul, fb;
+
+      bool operator==(const WMModOut& other);
+      bool operator!=(const WMModOut& other) {
+        return !(*this==other);
+      }
+
+      WMModOut():
+        enable(false),
+        matrix(0),
+        mul(0),
+        fb(0) {}
+    };
+
+    WMModOut fmOut,pmOut,amOut;
+
+    struct WMExtWaveMod {
+      bool enable;
+      unsigned char bitPos;
+
+      bool operator==(const WMExtWaveMod& other);
+      bool operator!=(const WMExtWaveMod& other) {
+        return !(*this==other);
+      }
+
+      WMExtWaveMod():
+        enable(false),
+        bitPos(0) {}
+    };
+
+    WMExtWaveMod mute,reverse,invert;
+
+    WMOperator():
+      enable(true),
+      fixed(false),
+      useSample(false),
+      spkrEnable(false),
+      dirOut(true),
+      filtOut(false),
+      pitchCtrl(false),
+      wavBit(1),
+      intWSize(0),
+      extWSize(0),
+      pitchMul(0),
+      wavBase(0),
+      duty(0),
+      noisePitch(0),
+      initLfsr(1),
+      lfsrMask(0x8000),
+      fixedFreq(0),
+      dt(0),
+      tl(0),
+      initWave(0),
+      initSample(-1),
+      env(WMEnvelope()),
+      flfo(WMLfo()),
+      alfo(WMLfo()),
+      filter{WMFilter(),WMFilter(),WMFilter(),WMFilter(),
+        WMFilter(),WMFilter(),WMFilter(),WMFilter()},
+      fmIn(WMModIn()),
+      pmIn(WMModIn()),
+      amIn(WMModIn()),
+      fmOut(WMModOut()),
+      pmOut(WMModOut()),
+      amOut(WMModOut()),
+      mute(WMExtWaveMod()),
+      reverse(WMExtWaveMod()),
+      invert(WMExtWaveMod()) {}
+  } op[8];
+  DivInstrumentWM():
+    op{WMOperator(),WMOperator(),WMOperator(),WMOperator(),
+      WMOperator(),WMOperator(),WMOperator(),WMOperator()} {}
 };
 
 struct DivInstrumentGB {
@@ -993,6 +1513,7 @@ struct DivInstrumentPOD {
   DivInstrumentPowerNoise powernoise;
   DivInstrumentSID2 sid2;
   DivInstrumentSID3 sid3;
+  DivInstrumentWM wm;
 
   DivInstrumentPOD() :
     type(DIV_INS_FM) {
@@ -1085,6 +1606,7 @@ struct DivInstrument : DivInstrumentPOD {
    * these are internal functions.
    */
   void writeMacro(SafeWriter* w, const DivInstrumentMacro& m);
+  void writeMacroS(SafeWriter* w, const DivInstrumentMacro& m);
   void writeFeatureNA(SafeWriter* w);
   void writeFeatureFM(SafeWriter* w, bool fui);
   void writeFeatureMA(SafeWriter* w);
@@ -1108,6 +1630,8 @@ struct DivInstrument : DivInstrumentPOD {
   void writeFeaturePN(SafeWriter* w);
   void writeFeatureS2(SafeWriter* w);
   void writeFeatureS3(SafeWriter* w);
+  void writeFeatureWM(SafeWriter* w);
+  void writeFeatureWx(SafeWriter* w, int op);
 
   void readFeatureNA(SafeReader& reader, short version);
   void readFeatureFM(SafeReader& reader, short version);
@@ -1134,6 +1658,8 @@ struct DivInstrument : DivInstrumentPOD {
   void readFeaturePN(SafeReader& reader, short version);
   void readFeatureS2(SafeReader& reader, short version);
   void readFeatureS3(SafeReader& reader, short version);
+  void readFeatureWM(SafeReader& reader, short version);
+  void readFeatureWx(SafeReader& reader, int op, short version);
 
   DivDataErrors readInsDataOld(SafeReader& reader, short version);
   DivDataErrors readInsDataNew(SafeReader& reader, short version, bool fui, DivSong* song);

@@ -4214,6 +4214,7 @@ void FurnaceGUI::drawSettings() {
           UI_COLOR_CONFIG(GUI_COLOR_INSTR_SUPERVISION,_("Supervision"));
           UI_COLOR_CONFIG(GUI_COLOR_INSTR_UPD1771C,_("μPD1771C"));
           UI_COLOR_CONFIG(GUI_COLOR_INSTR_SID3,_("SID3"));
+          UI_COLOR_CONFIG(GUI_COLOR_INSTR_WM,_("JKMS16WM32O8"));
           UI_COLOR_CONFIG(GUI_COLOR_INSTR_UNKNOWN,_("Other/Unknown"));
           ImGui::TreePop();
         }
@@ -4664,14 +4665,14 @@ void FurnaceGUI::drawSettings() {
         CONFIG_SECTION(_("Cheat Codes")) {
           // SUBSECTION ENTER CODE:
           CONFIG_SUBSECTION(_("Enter code:"));
-          ImGui::InputText("##CheatCode",&mmlString[31]);
+          ImGui::InputText("##CheatCode",&mmlString[255]);
           if (ImGui::Button(_("Submit"))) {
             unsigned int checker=0x11111111;
             unsigned int checker1=0;
             int index=0;
-            mmlString[30]=_("invalid code");
+            mmlString[254]=_("invalid code");
 
-            for (char& i: mmlString[31]) {
+            for (char& i: mmlString[255]) {
               checker^=((unsigned int)i)<<index;
               checker1+=i;
               checker=(checker>>1|(((checker)^(checker>>2)^(checker>>3)^(checker>>5))&1)<<31);
@@ -4679,27 +4680,27 @@ void FurnaceGUI::drawSettings() {
               index=(index+1)&31;
             }
             if (checker==0x90888b65 && checker1==0x1482) {
-              mmlString[30]=_("toggled alternate UI");
+              mmlString[254]=_("toggled alternate UI");
               toggleMobileUI(!mobileUI);
             }
             if (checker==0x5a42a113 && checker1==0xe4ef451e) {
-              mmlString[30]=_(":smile: :star_struck: :sunglasses: :ok_hand:");
+              mmlString[254]=_(":smile: :star_struck: :sunglasses: :ok_hand:");
               settings.hiddenSystems=!settings.hiddenSystems;
             }
             if (checker==0x3affa803 && checker1==0x37db2520) {
-              mmlString[30]=_("now cutting FM chip costs");
+              mmlString[254]=_("now cutting FM chip costs");
               settings.mswEnabled=!settings.mswEnabled;
             }
             if (checker==0xe888896b && checker1==0xbde) {
-              mmlString[30]=_("enabled all instrument types");
+              mmlString[254]=_("enabled all instrument types");
               settings.displayAllInsTypes=!settings.displayAllInsTypes;
             }
             if (checker==0x3f88abcc && checker1==0xf4a6) {
-              mmlString[30]=_("OK, if I bring your Partial pitch linearity will you stop bothering me?");
+              mmlString[254]=_("OK, if I bring your Partial pitch linearity will you stop bothering me?");
               settings.displayPartial=1;
             }
             if (checker==0x94222d83 && checker1==0x6600) {
-              mmlString[30]=_("enabled \"comfortable\" mode");
+              mmlString[254]=_("enabled \"comfortable\" mode");
               ImGuiStyle& sty=ImGui::GetStyle();
               sty.FramePadding=ImVec2(20.0f*dpiScale,20.0f*dpiScale);
               sty.ItemSpacing=ImVec2(10.0f*dpiScale,10.0f*dpiScale);
@@ -4707,9 +4708,9 @@ void FurnaceGUI::drawSettings() {
               settingsOpen=false;
             }
 
-            mmlString[31]="";
+            mmlString[255]="";
           }
-          ImGui::Text("%s",mmlString[30].c_str());
+          ImGui::Text("%s",mmlString[254].c_str());
 
           END_SECTION;
         }

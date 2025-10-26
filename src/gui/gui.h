@@ -375,6 +375,7 @@ enum FurnaceGUIColors {
   GUI_COLOR_INSTR_SUPERVISION,
   GUI_COLOR_INSTR_UPD1771C,
   GUI_COLOR_INSTR_SID3,
+  GUI_COLOR_INSTR_WM,
   GUI_COLOR_INSTR_UNKNOWN,
 
   GUI_COLOR_CHANNEL_BG,
@@ -1689,7 +1690,7 @@ class FurnaceGUI {
   String workingDirFont, workingDirColors, workingDirKeybinds;
   String workingDirLayout, workingDirROM, workingDirTest;
   String workingDirConfig;
-  String mmlString[32];
+  String mmlString[256];
   String mmlStringW, grooveString, grooveListString, mmlStringModTable;
   String mmlStringSNES[DIV_MAX_CHIPS];
   String folderString;
@@ -2550,7 +2551,7 @@ class FurnaceGUI {
   int macroLoopDragLen;
   bool macroLoopDragActive;
 
-  FurnaceGUIMacroEditState macroEditStateFM, macroEditStateOP[4], macroEditStateMacros;
+  FurnaceGUIMacroEditState macroEditStateFM, macroEditStateOP[8], macroEditStateMacros;
 
   ImVec2 waveDragStart;
   ImVec2 waveDragAreaSize;
@@ -2917,6 +2918,7 @@ class FurnaceGUI {
 
   void insTabFMModernHeader(DivInstrument* ins);
   void insTabFM(DivInstrument* ins);
+  void insTabWM(DivInstrument* ins);
   void insTabWavetable(DivInstrument* ins);
   void insTabSample(DivInstrument* ins);
 

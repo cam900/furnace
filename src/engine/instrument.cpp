@@ -76,6 +76,128 @@ bool DivInstrumentFM::Operator::operator==(const DivInstrumentFM::Operator& othe
   );
 }
 
+bool DivInstrumentWM::operator==(const DivInstrumentWM& other) {
+  return (
+    _C(op[0]) &&
+    _C(op[1]) &&
+    _C(op[2]) &&
+    _C(op[3]) &&
+    _C(op[4]) &&
+    _C(op[5]) &&
+    _C(op[6]) &&
+    _C(op[7])
+  );
+}
+
+bool DivInstrumentWM::WMOperator::operator==(const DivInstrumentWM::WMOperator& other) {
+  return (
+    _C(enable) &&
+    _C(fixed) &&
+    _C(useSample) &&
+    _C(spkrEnable) &&
+    _C(dirOut) &&
+    _C(filtOut) &&
+    _C(pitchCtrl) &&
+    _C(wavBit) &&
+    _C(intWSize) &&
+    _C(extWSize) &&
+    _C(pitchMul) &&
+    _C(wavBase) &&
+    _C(duty) &&
+    _C(noisePitch) &&
+    _C(initLfsr) &&
+    _C(lfsrMask) &&
+    _C(fixedFreq) &&
+    _C(dt) &&
+    _C(initWave) &&
+    _C(initSample) &&
+    _C(env) &&
+    _C(flfo) &&
+    _C(alfo) &&
+    _C(filter[0]) &&
+    _C(filter[1]) &&
+    _C(filter[2]) &&
+    _C(filter[3]) &&
+    _C(filter[4]) &&
+    _C(filter[5]) &&
+    _C(filter[6]) &&
+    _C(filter[7]) &&
+    _C(fmIn) &&
+    _C(pmIn) &&
+    _C(amIn) &&
+    _C(fmOut) &&
+    _C(pmOut) &&
+    _C(amOut) &&
+    _C(mute) &&
+    _C(reverse) &&
+    _C(invert)
+  );
+}
+
+bool DivInstrumentWM::WMOperator::WMEnvelope::operator==(const DivInstrumentWM::WMOperator::WMEnvelope& other) {
+  return (
+    _C(enable) &&
+    _C(loop) &&
+    _C(delR) &&
+    _C(atkR) &&
+    _C(decR) &&
+    _C(susR) &&
+    _C(initLv) &&
+    _C(atkT) &&
+    _C(decT) &&
+    _C(susT) &&
+    _C(mul)
+  );
+}
+
+bool DivInstrumentWM::WMOperator::WMLfo::operator==(const DivInstrumentWM::WMOperator::WMLfo& other) {
+  return (
+    _C(enable) &&
+    _C(wave) &&
+    _C(delR) &&
+    _C(rate) &&
+    _C(noisePitch) &&
+    _C(initLfsr) &&
+    _C(lfsrMask) &&
+    _C(tgt) &&
+    _C(mul)
+  );
+}
+
+bool DivInstrumentWM::WMOperator::WMFilter::operator==(const DivInstrumentWM::WMOperator::WMFilter& other) {
+  return (
+    _C(enable) &&
+    _C(lpEnable) &&
+    _C(hpEnable) &&
+    _C(bpEnable) &&
+    _C(f) &&
+    _C(q)
+  );
+}
+
+bool DivInstrumentWM::WMOperator::WMModIn::operator==(const DivInstrumentWM::WMOperator::WMModIn& other) {
+  return (
+    _C(enable) &&
+    _C(mul)
+  );
+}
+
+bool DivInstrumentWM::WMOperator::WMModOut::operator==(const DivInstrumentWM::WMOperator::WMModOut& other) {
+  return (
+    _C(enable) &&
+    _C(matrix) &&
+    _C(mul) &&
+    _C(fb)
+  );
+}
+
+bool DivInstrumentWM::WMOperator::WMExtWaveMod::operator==(const DivInstrumentWM::WMOperator::WMExtWaveMod& other) {
+  return (
+    _C(enable) &&
+    _C(bitPos)
+  );
+}
+
 bool DivInstrumentGB::operator==(const DivInstrumentGB& other) {
   return (
     _C(envVol) &&
@@ -622,6 +744,62 @@ void DivInstrument::writeMacro(SafeWriter* w, const DivInstrumentMacro& m) {
   }
 }
 
+void DivInstrument::writeMacroS(SafeWriter* w, const DivInstrumentMacro& m) {
+  if (!m.len) return;
+
+  // determine word size
+  int macroMin=0x7fffffff;
+  int macroMax=0x80000000;
+  for (int i=0; i<m.len; i++) {
+    if (m.val[i]<macroMin) macroMin=m.val[i];
+    if (m.val[i]>macroMax) macroMax=m.val[i];
+  }
+
+  unsigned char wordSize=192; // 32-bit
+
+  if (macroMin>=0 && macroMax<=255) {
+    wordSize=0; // 8-bit unsigned
+  } else if (macroMin>=-128 && macroMax<=127) {
+    wordSize=64; // 8-bit signed
+  } else if (macroMin>=-32768 && macroMax<=32767) {
+    wordSize=128; // 16-bit signed
+  } else {
+    wordSize=192; // 32-bit signed
+  }
+
+  w->writeS(m.macroType&127);
+  w->writeC(m.len);
+  w->writeC(m.loop);
+  w->writeC(m.rel);
+  w->writeC(m.mode);
+  w->writeC((m.open&0x3f)|wordSize);
+  w->writeC(m.delay);
+  w->writeC(m.speed);
+
+  switch (wordSize) {
+    case 0:
+      for (int i=0; i<m.len; i++) {
+        w->writeC((unsigned char)m.val[i]);
+      }
+      break;
+    case 64:
+      for (int i=0; i<m.len; i++) {
+        w->writeC((signed char)m.val[i]);
+      }
+      break;
+    case 128:
+      for (int i=0; i<m.len; i++) {
+        w->writeS((short)m.val[i]);
+      }
+      break;
+    default: // 192
+      for (int i=0; i<m.len; i++) {
+        w->writeI(m.val[i]);
+      }
+      break;
+  }
+}
+
 void DivInstrument::writeFeatureMA(SafeWriter* w) {
   FEATURE_BEGIN("MA");
 
@@ -868,6 +1046,12 @@ size_t DivInstrument::writeFeatureLS(SafeWriter* w, std::vector<int>& list, cons
     sampleUsed[amiga.initSample]=true;
   }
 
+  for (int op=0; op<8; op++) {
+    if (wm.op[op].initSample>=0 && wm.op[op].initSample<(int)song->sample.size()) {
+      sampleUsed[wm.op[op].initSample]=true;
+    }
+  }
+
   if (amiga.useNoteMap) {
     for (int i=0; i<120; i++) {
       if (amiga.noteMap[i].map>=0 && amiga.noteMap[i].map<(int)song->sample.size()) {
@@ -924,6 +1108,12 @@ size_t DivInstrument::writeFeatureLW(SafeWriter* w, std::vector<int>& list, cons
     }
     if ((ws.effect&0x80) && ws.wave2>=0 && ws.wave2<(int)song->wave.size()) {
       waveUsed[ws.wave2]=true;
+    }
+  }
+
+  for (int op=0; op<8; op++) {
+    if (wm.op[op].initWave>=0 && wm.op[op].initWave<(int)song->wave.size()) {
+      waveUsed[wm.op[op].initWave]=true;
     }
   }
 
@@ -1141,6 +1331,222 @@ void DivInstrument::writeFeatureS3(SafeWriter* w) {
   FEATURE_END;
 }
 
+void DivInstrument::writeFeatureWM(SafeWriter* w) {
+  FEATURE_BEGIN("WM");
+
+  w->writeC(8); // number of operators
+  for (int o=0; o<8; o++) {
+    DivInstrumentWM::WMOperator &op=wm.op[o];
+    w->writeC(
+      (op.enable?0x80:0)|
+      (op.spkrEnable?0x40:0)|
+      (op.dirOut?0x20:0)|
+      (op.filtOut?0x10:0)|
+      (op.pitchMul&0xf)
+    );
+    w->writeC(op.wavBit);
+    w->writeC(
+      ((op.intWSize&15)<<4)|
+      ((op.extWSize&15))
+    );
+    w->writeI(op.initWave);
+    w->writeI(op.initSample);
+    w->writeS(op.wavBase);
+    w->writeS(op.duty);
+    w->writeS(op.noisePitch);
+    w->writeS(op.initLfsr);
+    w->writeS(op.lfsrMask);
+    w->writeS(op.fixedFreq);
+    w->writeS(op.dt);
+    w->writeS(op.tl);
+
+    w->writeC(
+      (op.env.enable?0x80:0)|
+      (op.env.loop?0x40:0)|
+      (op.flfo.enable?0x20:0)|
+      (op.alfo.enable?0x10:0)|
+      ((op.flfo.wave&3)<<2)|
+      ((op.alfo.wave&3)<<0)
+    );
+    w->writeS(op.env.delR);
+    w->writeS(op.env.atkR);
+    w->writeS(op.env.decR);
+    w->writeS(op.env.susR);
+    w->writeS(op.env.relR);
+    w->writeS(op.env.initLv);
+    w->writeS(op.env.atkT);
+    w->writeS(op.env.decT);
+    w->writeS(op.env.susT);
+    w->writeS(op.env.mul);
+
+    w->writeS(op.flfo.delR);
+    w->writeS(op.flfo.rate);
+    w->writeS(op.flfo.tgt);
+    w->writeS(op.flfo.mul);
+    w->writeS(op.flfo.noisePitch);
+    w->writeS(op.flfo.initLfsr);
+    w->writeS(op.flfo.lfsrMask);
+
+    w->writeS(op.alfo.delR);
+    w->writeS(op.alfo.rate);
+    w->writeS(op.alfo.tgt);
+    w->writeS(op.alfo.mul);
+    w->writeS(op.alfo.noisePitch);
+    w->writeS(op.alfo.initLfsr);
+    w->writeS(op.alfo.lfsrMask);
+
+    w->writeC(8); // number of filters
+    for (int f=0; f<8; f++) {
+      DivInstrumentWM::WMOperator::WMFilter &filt=op.filter[f];
+      w->writeC(
+        (filt.enable?0x80:0)|
+        (filt.lpEnable?0x40:0)|
+        (filt.hpEnable?0x20:0)|
+        (filt.bpEnable?0x10:0)
+      );
+      w->writeS(filt.f);
+      w->writeS(filt.q);
+    }
+    w->writeC(
+      (op.fmIn.enable?0x80:0)|
+      (op.pmIn.enable?0x40:0)|
+      (op.amIn.enable?0x20:0)|
+      (op.fmOut.enable?0x10:0)|
+      (op.pmOut.enable?0x08:0)|
+      (op.amOut.enable?0x04:0)|
+      (op.fixed?0x02:0)|
+      (op.useSample?0x01:0)
+    );
+    w->writeS(op.fmIn.mul);
+    w->writeS(op.pmIn.mul);
+    w->writeS(op.amIn.mul);
+
+    w->writeS(op.fmOut.mul);
+    w->writeS(op.pmOut.mul);
+    w->writeS(op.amOut.mul);
+    w->writeS(op.fmOut.fb);
+    w->writeS(op.pmOut.fb);
+    w->writeS(op.amOut.fb);
+    w->writeC(op.fmOut.matrix);
+    w->writeC(op.pmOut.matrix);
+    w->writeC(op.amOut.matrix);
+
+    w->writeC(
+      (op.mute.enable?0x80:0)|
+      (op.reverse.enable?0x40:0)|
+      (op.invert.enable?0x20:0)|
+      (op.pitchCtrl?0x10:0)
+    );
+    w->writeS(op.mute.bitPos);
+    w->writeS(op.reverse.bitPos);
+    w->writeS(op.invert.bitPos);
+  }
+  FEATURE_END;
+}
+
+void DivInstrument::writeFeatureWx(SafeWriter* w, int ope) {
+  char opCode[3];
+  opCode[0]='W';
+  opCode[1]='1'+ope;
+  opCode[2]=0;
+
+  FEATURE_BEGIN(opCode);
+
+  // if you update the macro header, please update this value as well.
+  // it's the length.
+  w->writeS(9);
+  
+  // write macros
+  const DivInstrumentSTD::WmMacro& o=std.wmMacros[ope];
+
+  writeMacroS(w,o.envEnMacro);
+  writeMacroS(w,o.flfoEnMacro);
+  writeMacroS(w,o.alfoEnMacro);
+  writeMacroS(w,o.dtMacro);
+  writeMacroS(w,o.multMacro);
+  writeMacroS(w,o.outEnMacro);
+  writeMacroS(w,o.fmEnMacro);
+  writeMacroS(w,o.pmEnMacro);
+  writeMacroS(w,o.amEnMacro);
+  writeMacroS(w,o.muteEnMacro);
+  writeMacroS(w,o.muteBitMacro);
+  writeMacroS(w,o.revEnMacro);
+  writeMacroS(w,o.revBitMacro);
+  writeMacroS(w,o.invEnMacro);
+  writeMacroS(w,o.invBitMacro);
+  writeMacroS(w,o.intWlMacro);
+  writeMacroS(w,o.extWlMacro);
+  writeMacroS(w,o.wfMacro);
+  writeMacroS(w,o.ewMacro);
+  writeMacroS(w,o.arpMacro);
+  writeMacroS(w,o.pitchMacro);
+  writeMacroS(w,o.dutyMacro);
+  writeMacroS(w,o.fmInMulMacro);
+  writeMacroS(w,o.pmInMulMacro);
+  writeMacroS(w,o.amInMulMacro);
+  writeMacroS(w,o.fmOutMulMacro);
+  writeMacroS(w,o.pmOutMulMacro);
+  writeMacroS(w,o.amOutMulMacro);
+  writeMacroS(w,o.fmFbMacro);
+  writeMacroS(w,o.pmFbMacro);
+  writeMacroS(w,o.amFbMacro);
+  writeMacroS(w,o.fmMatrixMacro);
+  writeMacroS(w,o.pmMatrixMacro);
+  writeMacroS(w,o.amMatrixMacro);
+  writeMacroS(w,o.spkrVolMacro);
+  writeMacroS(w,o.spkrLVolMacro);
+  writeMacroS(w,o.spkrRVolMacro);
+  writeMacroS(w,o.tlMacro);
+  writeMacroS(w,o.noiPitchMacro);
+  writeMacroS(w,o.noiILfsrMacro);
+  writeMacroS(w,o.noiMaskMacro);
+  writeMacroS(w,o.filtEnMacro);
+  writeMacroS(w,o.filtLpMacro);
+  writeMacroS(w,o.filtHpMacro);
+  writeMacroS(w,o.filtBpMacro);
+  writeMacroS(w,o.filt0FMacro);
+  writeMacroS(w,o.filt0QMacro);
+  writeMacroS(w,o.filt1FMacro);
+  writeMacroS(w,o.filt1QMacro);
+  writeMacroS(w,o.filt2FMacro);
+  writeMacroS(w,o.filt2QMacro);
+  writeMacroS(w,o.filt3FMacro);
+  writeMacroS(w,o.filt3QMacro);
+  writeMacroS(w,o.filt4FMacro);
+  writeMacroS(w,o.filt4QMacro);
+  writeMacroS(w,o.filt5FMacro);
+  writeMacroS(w,o.filt5QMacro);
+  writeMacroS(w,o.filt6FMacro);
+  writeMacroS(w,o.filt6QMacro);
+  writeMacroS(w,o.filt7FMacro);
+  writeMacroS(w,o.filt7QMacro);
+  writeMacroS(w,o.envAtkTMacro);
+  writeMacroS(w,o.envAtkRMacro);
+  writeMacroS(w,o.envDecTMacro);
+  writeMacroS(w,o.envDecRMacro);
+  writeMacroS(w,o.envSusTMacro);
+  writeMacroS(w,o.envSusRMacro);
+  writeMacroS(w,o.envRelRMacro);
+  writeMacroS(w,o.envMulMacro);
+  writeMacroS(w,o.flfoTMacro);
+  writeMacroS(w,o.flfoLMacro);
+  writeMacroS(w,o.flfoMMacro);
+  writeMacroS(w,o.flfoNPitchMacro);
+  writeMacroS(w,o.flfoNILfsrMacro);
+  writeMacroS(w,o.flfoNMaskMacro);
+  writeMacroS(w,o.alfoTMacro);
+  writeMacroS(w,o.alfoLMacro);
+  writeMacroS(w,o.alfoMMacro);
+  writeMacroS(w,o.alfoNPitchMacro);
+  writeMacroS(w,o.alfoNILfsrMacro);
+  writeMacroS(w,o.alfoNMaskMacro);
+
+  // "stop reading" code
+  w->writeS(-1);
+
+  FEATURE_END;
+}
+
 void DivInstrument::putInsData2(SafeWriter* w, bool fui, const DivSong* song, bool insName) {
   size_t blockStartSeek=0;
   size_t blockEndSeek=0;
@@ -1188,6 +1594,8 @@ void DivInstrument::putInsData2(SafeWriter* w, bool fui, const DivSong* song, bo
   bool featurePN=false;
   bool featureS2=false;
   bool featureS3=false;
+  bool featureWM=false;
+  bool featureWx[8];
 
   bool checkForWL=false;
 
@@ -1195,6 +1603,15 @@ void DivInstrument::putInsData2(SafeWriter* w, bool fui, const DivSong* song, bo
   featureOx[1]=false;
   featureOx[2]=false;
   featureOx[3]=false;
+
+  featureWx[0]=false;
+  featureWx[1]=false;
+  featureWx[2]=false;
+  featureWx[3]=false;
+  featureWx[4]=false;
+  featureWx[5]=false;
+  featureWx[6]=false;
+  featureWx[7]=false;
 
   // turn on base features if .fui
   if (fui) {
@@ -1444,6 +1861,14 @@ void DivInstrument::putInsData2(SafeWriter* w, bool fui, const DivSong* song, bo
         break;
       case DIV_INS_UPD1771C:
         break;
+      case DIV_INS_WM: {
+        featureWM=true;
+        checkForWL=true;
+        for (int op=0; op<8; op++) {
+          if (wm.op[op].useSample) featureSL=true;
+        }
+        break;
+      }
       case DIV_INS_MAX:
         break;
       case DIV_INS_NULL:
@@ -1502,6 +1927,9 @@ void DivInstrument::putInsData2(SafeWriter* w, bool fui, const DivSong* song, bo
     }
     if (sid3!=defaultIns.sid3) {
       featureS3=true;
+    }
+    if (wm!=defaultIns.wm) {
+      featureWM=true;
     }
   }
 
@@ -1587,6 +2015,97 @@ void DivInstrument::putInsData2(SafeWriter* w, bool fui, const DivSong* song, bo
     }
   }
 
+  if (featureWM || !fui) {
+    // check FM macros
+    int opCount=8;
+    for (int i=0; i<opCount; i++) {
+      const DivInstrumentSTD::WmMacro& m=std.wmMacros[i];
+      if (m.envEnMacro.len ||
+          m.flfoEnMacro.len ||
+          m.alfoEnMacro.len ||
+          m.dtMacro.len ||
+          m.multMacro.len ||
+          m.outEnMacro.len ||
+          m.fmEnMacro.len ||
+          m.pmEnMacro.len ||
+          m.amEnMacro.len ||
+          m.muteEnMacro.len ||
+          m.muteBitMacro.len ||
+          m.revEnMacro.len ||
+          m.revBitMacro.len ||
+          m.invEnMacro.len ||
+          m.invBitMacro.len ||
+          m.intWlMacro.len ||
+          m.extWlMacro.len ||
+          m.wfMacro.len ||
+          m.ewMacro.len ||
+          m.arpMacro.len ||
+          m.pitchMacro.len ||
+          m.dutyMacro.len ||
+          m.fmInMulMacro.len ||
+          m.pmInMulMacro.len ||
+          m.amInMulMacro.len ||
+          m.fmOutMulMacro.len ||
+          m.pmOutMulMacro.len ||
+          m.amOutMulMacro.len ||
+          m.fmFbMacro.len ||
+          m.pmFbMacro.len ||
+          m.amFbMacro.len ||
+          m.fmMatrixMacro.len ||
+          m.pmMatrixMacro.len ||
+          m.amMatrixMacro.len ||
+          m.spkrVolMacro.len ||
+          m.spkrLVolMacro.len ||
+          m.spkrRVolMacro.len ||
+          m.tlMacro.len ||
+          m.noiPitchMacro.len ||
+          m.noiILfsrMacro.len ||
+          m.noiMaskMacro.len ||
+          m.filtEnMacro.len ||
+          m.filtLpMacro.len ||
+          m.filtHpMacro.len ||
+          m.filtBpMacro.len ||
+          m.filt0FMacro.len ||
+          m.filt0QMacro.len ||
+          m.filt1FMacro.len ||
+          m.filt1QMacro.len ||
+          m.filt2FMacro.len ||
+          m.filt2QMacro.len ||
+          m.filt3FMacro.len ||
+          m.filt3QMacro.len ||
+          m.filt4FMacro.len ||
+          m.filt4QMacro.len ||
+          m.filt5FMacro.len ||
+          m.filt5QMacro.len ||
+          m.filt6FMacro.len ||
+          m.filt6QMacro.len ||
+          m.filt7FMacro.len ||
+          m.filt7QMacro.len ||
+          m.envAtkTMacro.len ||
+          m.envAtkRMacro.len ||
+          m.envDecTMacro.len ||
+          m.envDecRMacro.len ||
+          m.envSusTMacro.len ||
+          m.envSusRMacro.len ||
+          m.envRelRMacro.len ||
+          m.envMulMacro.len ||
+          m.flfoTMacro.len ||
+          m.flfoLMacro.len ||
+          m.flfoMMacro.len ||
+          m.flfoNPitchMacro.len ||
+          m.flfoNILfsrMacro.len ||
+          m.flfoNMaskMacro.len ||
+          m.alfoTMacro.len ||
+          m.alfoLMacro.len ||
+          m.alfoMMacro.len ||
+          m.alfoNPitchMacro.len ||
+          m.alfoNILfsrMacro.len ||
+          m.alfoNMaskMacro.len) {
+        featureWx[i]=true;
+      }
+    }
+  }
+
   // write features
   if (featureNA) {
     writeFeatureNA(w);
@@ -1658,6 +2177,14 @@ void DivInstrument::putInsData2(SafeWriter* w, bool fui, const DivSong* song, bo
   }
   if (featureS3) {
     writeFeatureS3(w);
+  }
+  if (featureWM) {
+    writeFeatureWM(w);
+  }
+  for (int i=0; i<8; i++) {
+    if (featureWx[i]) {
+      writeFeatureWx(w,i);
+    }
   }
 
   if (fui && (featureSL || featureWL)) {
@@ -2334,6 +2861,12 @@ void DivInstrument::readFeatureSL(SafeReader& reader, DivSong* song, short versi
     }
   }
 
+  for (int op=0; op<8; op++) {
+    if (wm.op[op].initSample>=0) {
+      wm.op[op].initSample=sampleRemap[wm.op[op].initSample];
+    }
+  }
+
   delete[] samplePtr;
   delete[] sampleIndex;
   delete[] sampleRemap;
@@ -2394,6 +2927,10 @@ void DivInstrument::readFeatureWL(SafeReader& reader, DivSong* song, short versi
   if (n163.wave>=0 && n163.wave<32768) n163.wave=waveRemap[n163.wave];
   for (int i=0; i<std.waveMacro.len; i++) {
     if (std.waveMacro.val[i]>=0 && std.waveMacro.val[i]<32768) std.waveMacro.val[i]=waveRemap[std.waveMacro.val[i]];
+  }
+
+  for (int op=0; op<8; op++) {
+    if (wm.op[op].initWave>=0 && wm.op[op].initWave<32768) wm.op[op].initWave=waveRemap[wm.op[op].initWave];
   }
 
   delete[] wavePtr;
@@ -2469,6 +3006,12 @@ void DivInstrument::readFeatureLS(SafeReader& reader, DivSong* song, short versi
     }
   }
 
+  for (int op=0; op<8; op++) {
+    if (wm.op[op].initSample>=0) {
+      wm.op[op].initSample=sampleRemap[wm.op[op].initSample];
+    }
+  }
+
   delete[] samplePtr;
   delete[] sampleIndex;
   delete[] sampleRemap;
@@ -2538,6 +3081,10 @@ void DivInstrument::readFeatureLW(SafeReader& reader, DivSong* song, short versi
   if (n163.wave>=0 && n163.wave<32768) n163.wave=waveRemap[n163.wave];
   for (int i=0; i<std.waveMacro.len; i++) {
     if (std.waveMacro.val[i]>=0 && std.waveMacro.val[i]<32768) std.waveMacro.val[i]=waveRemap[std.waveMacro.val[i]];
+  }
+
+  for (int op=0; op<8; op++) {
+    if (wm.op[op].initWave>=0 && wm.op[op].initWave<32768) wm.op[op].initWave=waveRemap[wm.op[op].initWave];
   }
 
   delete[] wavePtr;
@@ -2751,6 +3298,269 @@ void DivInstrument::readFeatureS3(SafeReader& reader, short version) {
   READ_FEAT_END;
 }
 
+
+void DivInstrument::readFeatureWM(SafeReader& reader, short version) {
+  READ_FEAT_BEGIN;
+
+  unsigned short next;
+  unsigned char numOps=reader.readC();
+  for (int o=0; o<numOps; o++) {
+    DivInstrumentWM::WMOperator &op=wm.op[o];
+    next=reader.readC();
+    op.enable=(next>>7)&1;
+    op.spkrEnable=(next>>6)&1;
+    op.dirOut=(next>>5)&1;
+    op.filtOut=(next>>4)&1;
+    op.pitchMul=(next>>0)&0xf;
+
+    op.wavBit=reader.readC();
+
+    next=reader.readC();
+    op.intWSize=(next>>4)&15;
+    op.extWSize=(next&15);
+
+    op.initWave=reader.readI();
+    op.initSample=reader.readI();
+    op.wavBase=reader.readS();
+    op.duty=reader.readS();
+    op.noisePitch=reader.readS();
+    op.initLfsr=reader.readS();
+    op.lfsrMask=reader.readS();
+    op.fixedFreq=reader.readS();
+    op.dt=reader.readS();
+    op.tl=reader.readS();
+
+    next=reader.readC();
+    op.env.enable=(next>>7)&1;
+    op.env.loop=(next>>6)&1;
+    op.flfo.enable=(next>>5)&1;
+    op.alfo.enable=(next>>4)&1;
+    op.flfo.wave=(DivInstrumentWM::WMOperator::WMLfo::WMLfoWaveform)((next>>2)&3);
+    op.alfo.wave=(DivInstrumentWM::WMOperator::WMLfo::WMLfoWaveform)((next>>0)&3);
+
+    op.env.delR=reader.readS();
+    op.env.atkR=reader.readS();
+    op.env.decR=reader.readS();
+    op.env.susR=reader.readS();
+    op.env.relR=reader.readS();
+    op.env.initLv=reader.readS();
+    op.env.atkT=reader.readS();
+    op.env.decT=reader.readS();
+    op.env.susT=reader.readS();
+    op.env.mul=reader.readS();
+
+    op.flfo.delR=reader.readS();
+    op.flfo.rate=reader.readS();
+    op.flfo.tgt=reader.readS();
+    op.flfo.mul=reader.readS();
+    op.flfo.noisePitch=reader.readS();
+    op.flfo.initLfsr=reader.readS();
+    op.flfo.lfsrMask=reader.readS();
+
+    op.alfo.delR=reader.readS();
+    op.alfo.rate=reader.readS();
+    op.alfo.tgt=reader.readS();
+    op.alfo.mul=reader.readS();
+    op.alfo.noisePitch=reader.readS();
+    op.alfo.initLfsr=reader.readS();
+    op.alfo.lfsrMask=reader.readS();
+
+    unsigned char numFilters=reader.readC();
+    for (int f=0; f<numFilters; f++) {
+      DivInstrumentWM::WMOperator::WMFilter &filt=op.filter[f];
+      next=reader.readC();
+      filt.enable=(next>>7)&1;
+      filt.lpEnable=(next>>6)&1;
+      filt.hpEnable=(next>>5)&1;
+      filt.bpEnable=(next>>4)&1;
+
+      filt.f=reader.readS();
+      filt.q=reader.readS();
+    }
+    next=reader.readC();
+    op.fmIn.enable=(next>>7)&1;
+    op.pmIn.enable=(next>>6)&1;
+    op.amIn.enable=(next>>5)&1;
+    op.fmOut.enable=(next>>4)&1;
+    op.pmOut.enable=(next>>3)&1;
+    op.amOut.enable=(next>>2)&1;
+    op.fixed=(next>>1)&1;
+    op.useSample=(next>>0)&1;
+
+    op.fmIn.mul=reader.readS();
+    op.pmIn.mul=reader.readS();
+    op.amIn.mul=reader.readS();
+
+    op.fmOut.mul=reader.readS();
+    op.pmOut.mul=reader.readS();
+    op.amOut.mul=reader.readS();
+    op.fmOut.fb=reader.readS();
+    op.pmOut.fb=reader.readS();
+    op.amOut.fb=reader.readS();
+    op.fmOut.matrix=reader.readC();
+    op.pmOut.matrix=reader.readC();
+    op.amOut.matrix=reader.readC();
+
+    next=reader.readC();
+    op.mute.enable=(next>>7)&1;
+    op.reverse.enable=(next>>6)&1;
+    op.invert.enable=(next>>5)&1;
+    op.pitchCtrl=(next>>4)&1;
+
+    op.mute.bitPos=reader.readS();
+    op.reverse.bitPos=reader.readS();
+    op.invert.bitPos=reader.readS();
+  }
+
+  READ_FEAT_END;
+}
+
+void DivInstrument::readFeatureWx(SafeReader& reader, int op, short version) {
+  READ_FEAT_BEGIN;
+
+  unsigned short macroHeaderLen=reader.readS();
+
+  if (macroHeaderLen==0) {
+    logW("invalid macro header length!");
+    READ_FEAT_END;
+    return;
+  }
+
+  DivInstrumentMacro* target=&std.wmMacros[op].envEnMacro;
+
+  while (reader.tell()<endOfFeat) {
+    size_t endOfMacroHeader=reader.tell()+macroHeaderLen;
+    unsigned short macroCode=reader.readS();
+
+    // end of macro list
+    if (macroCode==65535) break;
+
+    switch (macroCode) {
+        case 0: target=&std.wmMacros[op].envEnMacro; break;
+        case 1: target=&std.wmMacros[op].flfoEnMacro; break;
+        case 2: target=&std.wmMacros[op].alfoEnMacro; break;
+        case 3: target=&std.wmMacros[op].dtMacro; break;
+        case 4: target=&std.wmMacros[op].multMacro; break;
+        case 5: target=&std.wmMacros[op].outEnMacro; break;
+        case 6: target=&std.wmMacros[op].fmEnMacro; break;
+        case 7: target=&std.wmMacros[op].pmEnMacro; break;
+        case 8: target=&std.wmMacros[op].amEnMacro; break;
+        case 9: target=&std.wmMacros[op].muteEnMacro; break;
+        case 10: target=&std.wmMacros[op].muteBitMacro; break;
+        case 11: target=&std.wmMacros[op].revEnMacro; break;
+        case 12: target=&std.wmMacros[op].revBitMacro; break;
+        case 13: target=&std.wmMacros[op].invEnMacro; break;
+        case 14: target=&std.wmMacros[op].invBitMacro; break;
+        case 15: target=&std.wmMacros[op].intWlMacro; break;
+        case 16: target=&std.wmMacros[op].extWlMacro; break;
+        case 17: target=&std.wmMacros[op].wfMacro; break;
+        case 18: target=&std.wmMacros[op].ewMacro; break;
+        case 19: target=&std.wmMacros[op].arpMacro; break;
+        case 20: target=&std.wmMacros[op].pitchMacro; break;
+        case 21: target=&std.wmMacros[op].dutyMacro; break;
+        case 22: target=&std.wmMacros[op].fmInMulMacro; break;
+        case 23: target=&std.wmMacros[op].pmInMulMacro; break;
+        case 24: target=&std.wmMacros[op].amInMulMacro; break;
+        case 25: target=&std.wmMacros[op].fmOutMulMacro; break;
+        case 26: target=&std.wmMacros[op].pmOutMulMacro; break;
+        case 27: target=&std.wmMacros[op].amOutMulMacro; break;
+        case 28: target=&std.wmMacros[op].fmFbMacro; break;
+        case 29: target=&std.wmMacros[op].pmFbMacro; break;
+        case 30: target=&std.wmMacros[op].amFbMacro; break;
+        case 31: target=&std.wmMacros[op].fmMatrixMacro; break;
+        case 32: target=&std.wmMacros[op].pmMatrixMacro; break;
+        case 33: target=&std.wmMacros[op].amMatrixMacro; break;
+        case 34: target=&std.wmMacros[op].spkrVolMacro; break;
+        case 35: target=&std.wmMacros[op].spkrLVolMacro; break;
+        case 36: target=&std.wmMacros[op].spkrRVolMacro; break;
+        case 37: target=&std.wmMacros[op].tlMacro; break;
+        case 38: target=&std.wmMacros[op].noiPitchMacro; break;
+        case 39: target=&std.wmMacros[op].noiILfsrMacro; break;
+        case 40: target=&std.wmMacros[op].noiMaskMacro; break;
+        case 41: target=&std.wmMacros[op].filtEnMacro; break;
+        case 42: target=&std.wmMacros[op].filtLpMacro; break;
+        case 43: target=&std.wmMacros[op].filtHpMacro; break;
+        case 44: target=&std.wmMacros[op].filtBpMacro; break;
+        case 45: target=&std.wmMacros[op].filt0FMacro; break;
+        case 46: target=&std.wmMacros[op].filt0QMacro; break;
+        case 47: target=&std.wmMacros[op].filt1FMacro; break;
+        case 48: target=&std.wmMacros[op].filt1QMacro; break;
+        case 49: target=&std.wmMacros[op].filt2FMacro; break;
+        case 50: target=&std.wmMacros[op].filt2QMacro; break;
+        case 51: target=&std.wmMacros[op].filt3FMacro; break;
+        case 52: target=&std.wmMacros[op].filt3QMacro; break;
+        case 53: target=&std.wmMacros[op].filt4FMacro; break;
+        case 54: target=&std.wmMacros[op].filt4QMacro; break;
+        case 55: target=&std.wmMacros[op].filt5FMacro; break;
+        case 56: target=&std.wmMacros[op].filt5QMacro; break;
+        case 57: target=&std.wmMacros[op].filt6FMacro; break;
+        case 58: target=&std.wmMacros[op].filt6QMacro; break;
+        case 59: target=&std.wmMacros[op].filt7FMacro; break;
+        case 60: target=&std.wmMacros[op].filt7QMacro; break;
+        case 61: target=&std.wmMacros[op].envAtkTMacro; break;
+        case 62: target=&std.wmMacros[op].envAtkRMacro; break;
+        case 63: target=&std.wmMacros[op].envDecTMacro; break;
+        case 64: target=&std.wmMacros[op].envDecRMacro; break;
+        case 65: target=&std.wmMacros[op].envSusTMacro; break;
+        case 66: target=&std.wmMacros[op].envSusRMacro; break;
+        case 67: target=&std.wmMacros[op].envRelRMacro; break;
+        case 68: target=&std.wmMacros[op].envMulMacro; break;
+        case 69: target=&std.wmMacros[op].flfoTMacro; break;
+        case 70: target=&std.wmMacros[op].flfoLMacro; break;
+        case 71: target=&std.wmMacros[op].flfoMMacro; break;
+        case 72: target=&std.wmMacros[op].flfoNPitchMacro; break;
+        case 73: target=&std.wmMacros[op].flfoNILfsrMacro; break;
+        case 74: target=&std.wmMacros[op].flfoNMaskMacro; break;
+        case 75: target=&std.wmMacros[op].alfoTMacro; break;
+        case 76: target=&std.wmMacros[op].alfoLMacro; break;
+        case 77: target=&std.wmMacros[op].alfoMMacro; break;
+        case 78: target=&std.wmMacros[op].alfoNPitchMacro; break;
+        case 79: target=&std.wmMacros[op].alfoNILfsrMacro; break;
+        case 80: target=&std.wmMacros[op].alfoNMaskMacro; break;
+    }
+
+    target->len=reader.readC();
+    target->loop=reader.readC();
+    target->rel=reader.readC();
+    target->mode=reader.readC();
+
+    unsigned char wordSize=reader.readC();
+    target->open=wordSize&7;
+    wordSize>>=6;
+
+    target->delay=reader.readC();
+    target->speed=reader.readC();
+
+    reader.seek(endOfMacroHeader,SEEK_SET);
+
+    // read macro
+    switch (wordSize) {
+      case 0:
+        for (int i=0; i<target->len; i++) {
+          target->val[i]=(unsigned char)reader.readC();
+        }
+        break;
+      case 1:
+        for (int i=0; i<target->len; i++) {
+          target->val[i]=(signed char)reader.readC();
+        }
+        break;
+      case 2:
+        for (int i=0; i<target->len; i++) {
+          target->val[i]=reader.readS();
+        }
+        break;
+      default:
+        for (int i=0; i<target->len; i++) {
+          target->val[i]=reader.readI();
+        }
+        break;
+    }
+  }
+
+  READ_FEAT_END;
+}
+
 DivDataErrors DivInstrument::readInsDataNew(SafeReader& reader, short version, bool fui, DivSong* song) {
   unsigned char featCode[2];
   bool volIsCutoff=false;
@@ -2831,6 +3641,24 @@ DivDataErrors DivInstrument::readInsDataNew(SafeReader& reader, short version, b
       readFeatureS2(reader,version);
     } else if (memcmp(featCode,"S3",2)==0) { // SID3
       readFeatureS3(reader,version);
+    } else if (memcmp(featCode,"WM",2)==0) { // JKMS16WM32O8
+      readFeatureWM(reader,version);
+    } else if (memcmp(featCode,"W1",2)==0) { // WM1 macros
+      readFeatureWx(reader,0,version);
+    } else if (memcmp(featCode,"W2",2)==0) { // WM2 macros
+      readFeatureWx(reader,1,version);
+    } else if (memcmp(featCode,"W3",2)==0) { // WM3 macros
+      readFeatureWx(reader,2,version);
+    } else if (memcmp(featCode,"W4",2)==0) { // WM4 macros
+      readFeatureWx(reader,3,version);
+    } else if (memcmp(featCode,"W5",2)==0) { // WM5 macros
+      readFeatureWx(reader,4,version);
+    } else if (memcmp(featCode,"W6",2)==0) { // WM6 macros
+      readFeatureWx(reader,5,version);
+    } else if (memcmp(featCode,"W7",2)==0) { // WM7 macros
+      readFeatureWx(reader,6,version);
+    } else if (memcmp(featCode,"W8",2)==0) { // WM8 macros
+      readFeatureWx(reader,7,version);
     } else {
       if (song==NULL && (memcmp(featCode,"SL",2)==0 || (memcmp(featCode,"WL",2)==0))) {
         // nothing
