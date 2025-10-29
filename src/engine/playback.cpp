@@ -3359,6 +3359,7 @@ void DivEngine::nextBuf(float** in, float** out, int inChans, int outChans, unsi
     DivDispatch* disp=disCont[i].dispatch;
     if (disp==NULL) continue;
     for (int j=0; j<disp->getOutputCount(); j++) {
+      if (disCont[i].bbOut[j]==NULL) continue;
       chipPeak[i][j]*=1.0-decay;
       float peak=chipPeak[i][j];
       for (unsigned int k=0; k<size; k++) {
@@ -3402,8 +3403,8 @@ void DivEngine::nextBuf(float** in, float** out, int inChans, int outChans, unsi
   if (clampSamples) {
     for (size_t i=0; i<size; i++) {
       for (int j=0; j<outChans; j++) {
-        if (out[j][i]<-1.0) out[j][i]=-1.0;
-        if (out[j][i]>1.0) out[j][i]=1.0;
+        if (out[j][i]<-0.9999) out[j][i]=-0.9999;
+        if (out[j][i]>0.9999) out[j][i]=0.9999;
       }
     }
   }
