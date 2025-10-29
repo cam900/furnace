@@ -144,8 +144,8 @@ class DivMacroInt {
       DivMacroStruct pmMatrix;
       DivMacroStruct amMatrix;
       DivMacroStruct spkrVol;
-      DivMacroStruct spkrLVol;
-      DivMacroStruct spkrRVol;
+      DivMacroStruct spkrLvol;
+      DivMacroStruct spkrRvol;
       DivMacroStruct tl;
       DivMacroStruct noiPitch;
       DivMacroStruct noiILfsr;
@@ -226,8 +226,8 @@ class DivMacroInt {
         pmMatrix(DIV_MACRO_WM_PMMATRIX),
         amMatrix(DIV_MACRO_WM_AMMATRIX),
         spkrVol(DIV_MACRO_WM_SPKRVOL),
-        spkrLVol(DIV_MACRO_WM_SPKRLVOL),
-        spkrRVol(DIV_MACRO_WM_SPKRRVOL),
+        spkrLvol(DIV_MACRO_WM_SPKRLVOL),
+        spkrRvol(DIV_MACRO_WM_SPKRRVOL),
         tl(DIV_MACRO_WM_TL),
         noiPitch(DIV_MACRO_WM_NOIPITCH),
         noiILfsr(DIV_MACRO_WM_NOIILFSR),

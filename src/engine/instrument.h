@@ -734,7 +734,7 @@ struct DivInstrumentWM {
     bool enable, fixed, useSample, spkrEnable, dirOut, filtOut, pitchCtrl;
     unsigned char wavBit, intWSize, extWSize, pitchMul;
     unsigned short wavBase, duty, noisePitch, initLfsr, lfsrMask, fixedFreq;
-    signed short dt, tl;
+    signed short dt, tl, spkrVol, spkrLvol, spkrRvol;
     signed int initWave, initSample;
 
     bool operator==(const WMOperator& other);
@@ -869,14 +869,14 @@ struct DivInstrumentWM {
       enable(true),
       fixed(false),
       useSample(false),
-      spkrEnable(false),
+      spkrEnable(true),
       dirOut(true),
       filtOut(false),
       pitchCtrl(false),
       wavBit(1),
       intWSize(0),
       extWSize(0),
-      pitchMul(0),
+      pitchMul(1),
       wavBase(0),
       duty(0),
       noisePitch(0),
@@ -884,7 +884,10 @@ struct DivInstrumentWM {
       lfsrMask(0x8000),
       fixedFreq(0),
       dt(0),
-      tl(0),
+      tl(32767),
+      spkrVol(32767),
+      spkrLvol(32767),
+      spkrRvol(32767),
       initWave(0),
       initSample(-1),
       env(WMEnvelope()),

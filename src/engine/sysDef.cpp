@@ -390,12 +390,20 @@ int negEffectVal(unsigned char, unsigned char val) {
   return -(int)val;
 };
 
+int panVal(unsigned char, unsigned char val) {
+  return (0x100)|val;
+};
+
 template<const int mask> int effectValAnd(unsigned char, unsigned char val) {
   return val&mask;
 };
 
 template<const int shift> int effectValShift(unsigned char, unsigned char val) {
   return val<<shift;
+};
+
+template<const int shift> int panValShift(unsigned char, unsigned char val) {
+  return (0x100)|(val<<shift);
 };
 
 template<const int maxOp> int effectOpVal(unsigned char, unsigned char val) {
@@ -2343,6 +2351,55 @@ void DivEngine::registerSystems() {
     c64PostEffectHandlerMap
   );
 
+  sysDefs[DIV_SYSTEM_JKMS16WM32O8]=new DivSysDef(
+    _("JKMS16WM32O8"), NULL, 0xff/*placeholder*/, 0, 32, true, false, 0, false, 1<<DIV_SAMPLE_DEPTH_16BIT, 256, 256, 
+    _("fantasy sound chip created by cam900. it has FM, PM, AM, external/internal waveform generator."),
+    {_("Channel 1"), _("Channel 2"), _("Channel 3"), _("Channel 4"), _("Channel 5"), _("Channel 6"), _("Channel 7"), _("Channel 8"), _("Channel 9"), _("Channel 10"), _("Channel 11"), _("Channel 12"), _("Channel 13"), _("Channel 14"), _("Channel 15"), _("Channel 16"), _("Channel 17"), _("Channel 18"), _("Channel 19"), _("Channel 20"), _("Channel 21"), _("Channel 22"), _("Channel 23"), _("Channel 24"), _("Channel 25"), _("Channel 26"), _("Channel 27"), _("Channel 28"), _("Channel 29"), _("Channel 30"), _("Channel 31"), _("Channel 32")},
+    {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32"},
+    {DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM},
+    {DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM, DIV_INS_WM},
+    {},
+    {
+      {0x10, {DIV_CMD_WM_OP_WRITEMASK, _("10xx: Operator write mask for next commands (bits 0-7: Operator 1-8)")}},
+      {0x11, {DIV_CMD_WM_FILTER_MASK, _("11xx: Filter write mask for next commands (bits 0-7: Filter 1-8)")}},
+      {0x12, {DIV_CMD_WM_LOWTEMP, _("12xx: Set lowermost value of next commands")}},
+      {0x13, {DIV_CMD_FM_HARD_RESET, _("13xx: Toggle hard envelope reset on new notes")}},
+    },
+    {
+      {0x14, {DIV_CMD_FM_AM_DEPTH, _("14xx: Set ALFO rate")}},
+      {0x15, {DIV_CMD_FM_PM_DEPTH, _("15xy: Set FLFO rate")}},
+      {0x16, {DIV_CMD_FM_AMS, _("16xx: Set ALFO multipler (signed)")}},
+      {0x17, {DIV_CMD_FM_FMS, _("17xy: Set FLFO multipler (signed)")}},
+      {0x18, {DIV_CMD_FM_LFO2_WAVE, _("18xy: Set ALFO waveform (0: saw, 1: tri, 2: square, 3: noise)"), effectValAnd<3>}},
+      {0x19, {DIV_CMD_FM_LFO_WAVE, _("19xx: Set FLFO waveform (0: saw, 1: tri, 2: square, 3: noise)"), effectValAnd<3>}},
+      {0x1a, {DIV_CMD_FM_AM, _("1Axx: Enable ALFO (x: enable)"), effectValAnd<1>}},
+      {0x1b, {DIV_CMD_FM_VIB, _("1Bxx: Enable FLFO (x: enable)"), effectValAnd<1>}},
+      {0x1c, {DIV_CMD_FM_TL, _("1Cxx: Set level (signed)")}},
+      {0x1d, {DIV_CMD_FM_MULT, _("1Dxx: Set operator multiplier (0 to F)"), effectValAnd<15>}},
+      {0x1e, {DIV_CMD_FM_SSG, _("1Exx: Set envelope loop (x: enable)"), effectValAnd<1>}},
+      {0x1f, {DIV_CMD_ESFM_ENV_DELAY, _("1Fxx: Set envelope delay")}},
+      {0x20, {DIV_CMD_FM_AR, _("20xx: Set envelope attack rate")}},
+      {0x21, {DIV_CMD_FM_DR, _("21xx: Set envelope decay rate")}},
+      {0x22, {DIV_CMD_FM_SL, _("22xx: Set envelope sustain level (signed)")}},
+      {0x23, {DIV_CMD_FM_D2R, _("23xx: Set envelope sustain rate")}},
+      {0x24, {DIV_CMD_FM_RR, _("24xx: Set envelope release rate")}},
+      {0x25, {DIV_CMD_ESFM_OP_PANNING, _("25xy: Set panning of operator (x: left; y: right; signed)"), panValShift<4>, panValShift<4>}},
+      {0x26, {DIV_CMD_ESFM_OP_PANNING, _("26xx: Set left volume of operator (signed)"), panVal, constVal<0>}},
+      {0x27, {DIV_CMD_ESFM_OP_PANNING, _("27xx: Set right volume of operator (signed)"), constVal<0>, panVal}},
+      {0x28, {DIV_CMD_ESFM_OUTLVL, _("28xx: Set speaker output volume of operator (signed)")}},
+      {0x29, {DIV_CMD_FM_WS, _("29xx: Set waveform (bit 0: pulse, bit 1: saw, bit 2: tri, bit 3: noise, bit 4: inverted pulse, bit 5: inverted saw, bit 6: inverted tri, bit 7: external)")}},
+      {0x2a, {DIV_CMD_FM_EXTCH, _("2Axx: Enable fixed frequency (x: enable)"), effectValAnd<1>}},
+      {0x2b, {DIV_CMD_FM_FIXFREQ, _("2Bxx: Set fixed frequency")}},
+      {0x2c, {DIV_CMD_ESFM_MODIN, _("2Cxx: Set PM input level (signed)")}},
+      {0x2d, {DIV_CMD_FM_FB, _("2Dxx: Set PM feedback (signed)")}},
+      {0x2e, {DIV_CMD_FM_DT, _("2Exx: Set detune (signed)")}},
+      {0x2f, {DIV_CMD_FM_OPMASK, _("2Fxx: Set operator mask (bits 0-7)")}},
+      {0x30, {DIV_CMD_WM_FILTER_EN, _("30xx: Enable filter (bit 0: enable, bit 1: lowpass, bit 2: highpass, bit 3: bandpass)"), effectValAnd<15>}},
+      {0x31, {DIV_CMD_WM_FILTER_F, _("31xx: Set filter F parameter")}},
+      {0x32, {DIV_CMD_WM_FILTER_Q, _("32xx: Set filter Q parameter")}},
+    }
+  );
+  
   sysDefs[DIV_SYSTEM_DUMMY]=new DivSysDef(
     _("Dummy System"), NULL, 0xfd, 0, 8, false, true, 0, false, 0, 0, 0,
     _("this is a system designed for testing purposes."),

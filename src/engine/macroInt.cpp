@@ -256,8 +256,8 @@ void DivMacroInt::next() {
   CONSIDER(wm[oi].pmMatrix,32+o) \
   CONSIDER(wm[oi].amMatrix,33+o) \
   CONSIDER(wm[oi].spkrVol,34+o) \
-  CONSIDER(wm[oi].spkrLVol,35+o) \
-  CONSIDER(wm[oi].spkrRVol,36+o) \
+  CONSIDER(wm[oi].spkrLvol,35+o) \
+  CONSIDER(wm[oi].spkrRvol,36+o) \
   CONSIDER(wm[oi].tl,37+o) \
   CONSIDER(wm[oi].noiPitch,38+o) \
   CONSIDER(wm[oi].noiILfsr,39+o) \
@@ -412,8 +412,8 @@ void DivMacroInt::mask(unsigned short id, bool enabled) {
   CONSIDER(wm[oi].pmMatrix,wmMacros[oi].pmMatrixMacro,32+o) \
   CONSIDER(wm[oi].amMatrix,wmMacros[oi].amMatrixMacro,33+o) \
   CONSIDER(wm[oi].spkrVol,wmMacros[oi].spkrVolMacro,34+o) \
-  CONSIDER(wm[oi].spkrLVol,wmMacros[oi].spkrLVolMacro,35+o) \
-  CONSIDER(wm[oi].spkrRVol,wmMacros[oi].spkrRVolMacro,36+o) \
+  CONSIDER(wm[oi].spkrLvol,wmMacros[oi].spkrLVolMacro,35+o) \
+  CONSIDER(wm[oi].spkrRvol,wmMacros[oi].spkrRVolMacro,36+o) \
   CONSIDER(wm[oi].tl,wmMacros[oi].tlMacro,37+o) \
   CONSIDER(wm[oi].noiPitch,wmMacros[oi].noiPitchMacro,38+o) \
   CONSIDER(wm[oi].noiILfsr,wmMacros[oi].noiILfsrMacro,39+o) \
@@ -792,10 +792,10 @@ void DivMacroInt::init(DivInstrument* which) {
       ADD_MACRO(o.spkrVol,m.spkrVolMacro);
     }
     if (m.spkrLVolMacro.len>0) {
-      ADD_MACRO(o.spkrLVol,m.spkrLVolMacro);
+      ADD_MACRO(o.spkrLvol,m.spkrLVolMacro);
     }
     if (m.spkrRVolMacro.len>0) {
-      ADD_MACRO(o.spkrRVol,m.spkrRVolMacro);
+      ADD_MACRO(o.spkrRvol,m.spkrRVolMacro);
     }
     if (m.tlMacro.len>0) {
       ADD_MACRO(o.tl,m.tlMacro);
@@ -994,8 +994,8 @@ DivMacroStruct* DivMacroInt::structByType(unsigned short type) {
       CONSIDERS(wm[o].pmMatrix,DIV_MACRO_WM_PMMATRIX)
       CONSIDERS(wm[o].amMatrix,DIV_MACRO_WM_AMMATRIX)
       CONSIDERS(wm[o].spkrVol,DIV_MACRO_WM_SPKRVOL)
-      CONSIDERS(wm[o].spkrLVol,DIV_MACRO_WM_SPKRLVOL)
-      CONSIDERS(wm[o].spkrRVol,DIV_MACRO_WM_SPKRRVOL)
+      CONSIDERS(wm[o].spkrLvol,DIV_MACRO_WM_SPKRLVOL)
+      CONSIDERS(wm[o].spkrRvol,DIV_MACRO_WM_SPKRRVOL)
       CONSIDERS(wm[o].tl,DIV_MACRO_WM_TL)
       CONSIDERS(wm[o].noiPitch,DIV_MACRO_WM_NOIPITCH)
       CONSIDERS(wm[o].noiILfsr,DIV_MACRO_WM_NOIILFSR)

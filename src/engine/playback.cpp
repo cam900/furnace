@@ -325,7 +325,15 @@ const char* cmdName[]={
   "FM_FMS",
   "FM_AMS",
   "FM_FMS2",
-  "FM_AMS2"
+  "FM_AMS2",
+
+  "WM_OP_MASK",
+  "WM_FILTER_MASK",
+  "WM_LOWTEMP",
+
+  "WM_FILTER_EN",
+  "WM_FILTER_F",
+  "WM_FILTER_Q"
 };
 
 // fail build if you forgot to update the array

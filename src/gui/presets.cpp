@@ -3920,6 +3920,11 @@ void FurnaceGUI::initSystemPresets() {
       CH(DIV_SYSTEM_SUPERVISION, 1.0f, 0, "")
     }
   );
+  ENTRY(
+    _("JKMS16WM32O8"), {
+      CH(DIV_SYSTEM_JKMS16WM32O8, 1.0f, 0, "")
+    }
+  );
   CATEGORY_END;
 
   CATEGORY_BEGIN(_("DefleMask-compatible"),_("these configurations are compatible with DefleMask.\nselect this if you need to save as .dmf or work with that program."));

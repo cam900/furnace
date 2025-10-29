@@ -290,6 +290,9 @@ const char* FurnaceGUI::getSystemPartNumber(DivSystem sys, DivConfig& flags) {
     case DIV_SYSTEM_UPD1771C:
       return "μPD1771C-017";
       break;
+    case DIV_SYSTEM_JKMS16WM32O8:
+      return "JKMS16WM32O8";
+      break;
     default:
       return FurnaceGUI::getSystemName(sys);
       break;

@@ -109,6 +109,10 @@ bool DivInstrumentWM::WMOperator::operator==(const DivInstrumentWM::WMOperator& 
     _C(lfsrMask) &&
     _C(fixedFreq) &&
     _C(dt) &&
+    _C(tl) &&
+    _C(spkrVol) &&
+    _C(spkrLvol) &&
+    _C(spkrRvol) &&
     _C(initWave) &&
     _C(initSample) &&
     _C(env) &&

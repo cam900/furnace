@@ -160,7 +160,7 @@ namespace jkms16wm32o8
 										, m_sustain_target(0)
 										, m_sustain_rate(0)
 										, m_release_rate(0)
-										, m_multipler(0)
+										, m_multiplier(0)
 									{
 									}
 
@@ -180,7 +180,7 @@ namespace jkms16wm32o8
 										m_sustain_target = 0;
 										m_sustain_rate = 0;
 										m_release_rate = 0;
-										m_multipler = 0;
+										m_multiplier = 0;
 									}
 									void tick();
 
@@ -210,7 +210,7 @@ namespace jkms16wm32o8
 										}
 									}
 
-									s64 result() const { return (s64(m_env_level) * s64(m_multipler)) >> 15; }
+									s64 result() const { return (s64(m_env_level) * s64(m_multiplier)) >> 15; }
 
 									// getters
 									bool enable() const { return m_enable; }
@@ -224,7 +224,7 @@ namespace jkms16wm32o8
 									u16 sustain_target() const { return m_sustain_target; }
 									u16 sustain_rate() const { return m_sustain_rate; }
 									u16 release_rate() const { return m_release_rate; }
-									s16 multipler() const { return m_multipler; }
+									s16 multiplier() const { return m_multiplier; }
 									// setters
 									void set_enable(const bool enable) { m_enable = enable; }
 									void set_loop(const bool loop) { m_loop = loop; }
@@ -237,7 +237,7 @@ namespace jkms16wm32o8
 									void set_sustain_target(const u16 target) { m_sustain_target = target; }
 									void set_sustain_rate(const u16 rate) { m_sustain_rate = rate; }
 									void set_release_rate(const u16 rate) { m_release_rate = rate; }
-									void set_multipler(const s16 multipler) { m_multipler = multipler; }
+									void set_multiplier(const s16 multiplier) { m_multiplier = multiplier; }
 
 								private:
 									// states
@@ -256,7 +256,7 @@ namespace jkms16wm32o8
 									u16 m_sustain_target = 0;
 									u16 m_sustain_rate = 0;
 									u16 m_release_rate = 0;
-									s16 m_multipler = 0;
+									s16 m_multiplier = 0;
 							};
 
 							class lfo_t
@@ -282,7 +282,7 @@ namespace jkms16wm32o8
 										, m_delay_rate(0)
 										, m_target(0)
 										, m_rate(0)
-										, m_multipler(0)
+										, m_multiplier(0)
 										, m_noise_pitch(0)
 										, m_initial_lfsr(0)
 										, m_lfsr_mask(0)
@@ -303,7 +303,7 @@ namespace jkms16wm32o8
 										m_delay_rate = 0;
 										m_target = 0;
 										m_rate = 0;
-										m_multipler = 0;
+										m_multiplier = 0;
 										m_noise_pitch = 0;
 										m_initial_lfsr = 0;
 										m_lfsr_mask = 0;
@@ -323,7 +323,7 @@ namespace jkms16wm32o8
 										}
 									}
 
-									s64 result() const { return (s64(m_lfo_out) * s64(m_multipler)) >> 15; }
+									s64 result() const { return (s64(m_lfo_out) * s64(m_multiplier)) >> 15; }
 
 									// getters
 									bool enable() const { return m_enable; }
@@ -331,7 +331,7 @@ namespace jkms16wm32o8
 									u16 delay_rate() const { return m_delay_rate; }
 									u16 target() const { return m_target; }
 									u16 rate() const { return m_rate; }
-									s16 multipler() const { return m_multipler; }
+									s16 multiplier() const { return m_multiplier; }
 									u16 noise_pitch() const { return m_noise_pitch; }
 									u16 initial_lfsr() const { return m_initial_lfsr; }
 									u16 lfsr_mask() const { return m_lfsr_mask; }
@@ -341,7 +341,7 @@ namespace jkms16wm32o8
 									void set_delay_rate(const u16 rate) { m_delay_rate = rate; }
 									void set_target(const u16 target) { m_target = target; }
 									void set_rate(const u16 rate) { m_rate = rate; }
-									void set_multipler(const s16 multipler) { m_multipler = multipler; }
+									void set_multiplier(const s16 multiplier) { m_multiplier = multiplier; }
 									void set_noise_pitch(const u16 pitch) { m_noise_pitch = pitch; }
 									void set_initial_lfsr(const u16 lfsr) { m_initial_lfsr = lfsr; }
 									void set_lfsr_mask(const u16 mask) { m_lfsr_mask = mask; }
@@ -361,7 +361,7 @@ namespace jkms16wm32o8
 									u16 m_delay_rate = 0;
 									u16 m_target = 0;
 									u16 m_rate = 0;
-									s16 m_multipler = 0;
+									s16 m_multiplier = 0;
 									u16 m_noise_pitch = 0;
 									u16 m_initial_lfsr = 0;
 									u16 m_lfsr_mask = 0;
@@ -450,7 +450,7 @@ namespace jkms16wm32o8
 									mod_in_t()
 										: m_input(0)
 										, m_enable(false)
-										, m_multipler(0)
+										, m_multiplier(0)
 									{
 									}
 
@@ -458,29 +458,29 @@ namespace jkms16wm32o8
 									{
 										m_input = 0;
 										m_enable = false;
-										m_multipler = 0;
+										m_multiplier = 0;
 									}
 
 									void add_input(const s32 out) { m_input += out; }
 
 									void reset_input() { m_input = 0; }
 
-									s32 get_input() const { return (s32(m_input) * s32(m_multipler)) >> 15; }
+									s32 get_input() const { return (s32(m_input) * s32(m_multiplier)) >> 15; }
 
 									// getters
 									bool enable() const { return m_enable; }
-									s16 multipler() const { return m_multipler; }
+									s16 multiplier() const { return m_multiplier; }
 
 									// setters
 									void set_enable(const bool enable) { m_enable = enable; }
-									void set_multipler(const s16 multipler) { m_multipler = multipler; }
+									void set_multiplier(const s16 multiplier) { m_multiplier = multiplier; }
 
 								private:
 									// internal state
 									s16 m_input = 0;
 									// register
 									bool m_enable = false;
-									s16 m_multipler = 0;
+									s16 m_multiplier = 0;
 							};
 
 							class mod_out_t
@@ -489,7 +489,7 @@ namespace jkms16wm32o8
 									mod_out_t()
 										: m_enable(false)
 										, m_matrix(0)
-										, m_multipler(0)
+										, m_multiplier(0)
 										, m_feedback(0)
 									{
 									}
@@ -498,30 +498,30 @@ namespace jkms16wm32o8
 									{
 										m_enable = false;
 										m_matrix = 0;
-										m_multipler = 0;
+										m_multiplier = 0;
 										m_feedback = 0;
 									}
 
 									s32 get_feedback(s32 op_out) const { return (op_out * m_feedback) >> 15; }
-									s32 get_output(s32 op_out) const { return (op_out * m_multipler) >> 15; }
+									s32 get_output(s32 op_out) const { return (op_out * m_multiplier) >> 15; }
 
 									// getters
 									bool enable() const { return m_enable; }
 									u8 matrix() const { return m_matrix; }
-									s16 multipler() const { return m_multipler; }
+									s16 multiplier() const { return m_multiplier; }
 									s16 feedback() const { return m_feedback; }
 
 									// setters
 									void set_enable(const bool enable) { m_enable = enable; }
 									void set_matrix(const u8 matrix) { m_matrix = matrix; }
-									void set_multipler(const s16 multipler) { m_multipler = multipler; }
+									void set_multiplier(const s16 multiplier) { m_multiplier = multiplier; }
 									void set_feedback(const s16 feedback) { m_feedback = feedback; }
 
 								private:
 									// register
 									bool m_enable = false;
 									u8 m_matrix = 0;
-									s16 m_multipler = 0;
+									s16 m_multiplier = 0;
 									s16 m_feedback = 0;
 							};
 

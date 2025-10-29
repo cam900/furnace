@@ -581,6 +581,15 @@ void FurnaceGUI::drawSampleEdit() {
               SAMPLE_WARN(warnLength,_("MultiPCM: maximum sample length is 65535"));
             }
             break;
+          case DIV_SYSTEM_JKMS16WM32O8:
+            if (!sample->loop) {
+              SAMPLE_WARN(warnLoop,_("JKMS16WM32O8: samples are always loop"));
+            } else {
+              if (sample->loopStart!=0 || sample->loopEnd!=(int)(sample->samples)) {
+                SAMPLE_WARN(warnLoopPos,_("JKMS16WM32O8: loop point ignored (may only loop entire sample)"));
+              }
+            }
+            break;
           default:
             break;
         }

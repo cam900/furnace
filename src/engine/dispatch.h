@@ -321,6 +321,14 @@ enum DivDispatchCmds {
   DIV_CMD_FM_FMS2,
   DIV_CMD_FM_AMS2,
 
+  DIV_CMD_WM_OP_WRITEMASK, // (operator mask)
+  DIV_CMD_WM_FILTER_MASK, // (filter mask)
+  DIV_CMD_WM_LOWTEMP, // (low value latch)
+
+  DIV_CMD_WM_FILTER_EN, // (enable)
+  DIV_CMD_WM_FILTER_F,
+  DIV_CMD_WM_FILTER_Q,
+
   DIV_CMD_MAX
 };
 

@@ -31,7 +31,7 @@ freely, subject to the following restrictions:
 ============================================================================
 
 Input clock: ~300MHz
-Output rate: Input clock / 32 (sound channels) / 8 (operators) / 16 (tick per operators);
+Output rate: Input clock / 4096 (32 (sound channels) * 8 (operators) * 16 (tick per operators));
 - 65536Hz at 268.435456MHz
 32 total sound channels:
 - 8 opetators per channel
@@ -61,7 +61,7 @@ Register Bit                 Description
          fedc ba98 7654 3210 
 00       x--- ---- ---- ---- Sound enable
          ---- ---- xxxx x--- Channel select
-         ---- ---- ---- --xx Opearator select
+         ---- ---- ---- -xxx Opearator select
 01-03: Per-channel registers
 01       ---- ---- 7654 3210 Operator on/off
 02       xxxx xxxx xxxx xxxx Left volume (16 bit signed)
@@ -101,12 +101,12 @@ Register Bit                 Description
 07       xxxx xxxx xxxx xxxx External waveform base address
 08       eeee mmmm mmmm mmmm Pitch ((0x1000|m) * 2^e)
 09       xxxx xxxx xxxx xxxx Pulse duty
-0a       xxxx xxxx xxxx xxxx FM input multipler (16 bit signed)
-0b       xxxx xxxx xxxx xxxx PM input multipler (16 bit signed)
-0c       xxxx xxxx xxxx xxxx AM input multipler (16 bit signed)
-0d       xxxx xxxx xxxx xxxx FM output multipler (16 bit signed)
-0e       xxxx xxxx xxxx xxxx PM output multipler (16 bit signed)
-0f       xxxx xxxx xxxx xxxx AM output multipler (16 bit signed)
+0a       xxxx xxxx xxxx xxxx FM input multiplier (16 bit signed)
+0b       xxxx xxxx xxxx xxxx PM input multiplier (16 bit signed)
+0c       xxxx xxxx xxxx xxxx AM input multiplier (16 bit signed)
+0d       xxxx xxxx xxxx xxxx FM output multiplier (16 bit signed)
+0e       xxxx xxxx xxxx xxxx PM output multiplier (16 bit signed)
+0f       xxxx xxxx xxxx xxxx AM output multiplier (16 bit signed)
 10       xxxx xxxx xxxx xxxx FM feedback (16 bit signed)
 11       xxxx xxxx xxxx xxxx PM feedback (16 bit signed)
 12       xxxx xxxx xxxx xxxx AM feedback (16 bit signed)
@@ -119,7 +119,7 @@ Register Bit                 Description
 18       xxxx xxxx xxxx xxxx Total level (16 bit signed)
 19       xxxx xxxx xxxx xxxx Noise pitch
 1a       xxxx xxxx xxxx xxxx Noise initial LFSR
-1b       xxxx xxxx xxxx xxxx Noise LFSR modifier
+1b       xxxx xxxx xxxx xxxx Noise LFSR mask
 1e       3--- 2--- 1--- 0--- Filter enable bit
          -3-- -2-- -1-- -0-- Filter lowpass output enable
          --3- --2- --1- --0- Filter highpass output enable
@@ -144,7 +144,7 @@ Register Bit                 Description
 2d       xxxx xxxx xxxx xxxx Filter #6 Q parameter
 2e       xxxx xxxx xxxx xxxx Filter #7 F parameter
 2f       xxxx xxxx xxxx xxxx Filter #7 Q parameter
-30       seee emmm mmmm mmmm Envelope initial level* (((e == 0) ? m : (0x800|m) ^ (2*(e-1))) * (s ? -1 : 1))
+30       seee emmm mmmm mmmm Envelope initial level*
 31       eeee mmmm mmmm mmmm Envelope delay length**
 32       seee emmm mmmm mmmm Envelope attack target*
 33       eeee mmmm mmmm mmmm Envelope attack rate**
@@ -153,21 +153,21 @@ Register Bit                 Description
 36       seee emmm mmmm mmmm Envelope sustain target*
 37       eeee mmmm mmmm mmmm Envelope sustain rate**
 38       eeee mmmm mmmm mmmm Envelope release rate**
-39       xxxx xxxx xxxx xxxx Envelope multipler (16 bit signed)
+39       xxxx xxxx xxxx xxxx Envelope multiplier (16 bit signed)
 40       eeee mmmm mmmm mmmm Frequency LFO delay length**
 41       seee emmm mmmm mmmm Frequency LFO target**
 42       eeee mmmm mmmm mmmm Frequency LFO level*
-43       xxxx xxxx xxxx xxxx Frequency LFO multipler
+43       xxxx xxxx xxxx xxxx Frequency LFO multiplier
 44       xxxx xxxx xxxx xxxx Frequency LFO noise pitch
 45       xxxx xxxx xxxx xxxx Frequency LFO noise initial LFSR
-46       xxxx xxxx xxxx xxxx Frequency LFO noise LFSR modifier
+46       xxxx xxxx xxxx xxxx Frequency LFO noise LFSR mask
 48       eeee mmmm mmmm mmmm Amplitude LFO delay length**
 49       seee emmm mmmm mmmm Amplitude LFO target**
 4a       eeee mmmm mmmm mmmm Amplitude LFO level*
-4b       xxxx xxxx xxxx xxxx Amplitude LFO multipler
+4b       xxxx xxxx xxxx xxxx Amplitude LFO multiplier
 4c       xxxx xxxx xxxx xxxx Amplitude LFO noise pitch
 4d       xxxx xxxx xxxx xxxx Amplitude LFO noise initial LFSR
-4e       xxxx xxxx xxxx xxxx Amplitude LFO noise LFSR modifier
+4e       xxxx xxxx xxxx xxxx Amplitude LFO noise LFSR mask
 
 * level and target formula: (((e == 0) ? m : ((0x800|m) ^ (2*(e-1)))) * (s ? -1 : 1))
 ** delay and rate formula: ((e == 0) ? m : ((0x1000|m) ^ (2*(e-1))))
@@ -504,6 +504,12 @@ namespace jkms16wm32o8
 				m_noise_counter++;
 			}
 		}
+		else
+		{
+			m_fm_in.reset();
+			m_pm_in.reset();
+			m_am_in.reset();
+		}
 	}
 
 	void jkms16wm32o8_t::channel_t::tick()
@@ -666,22 +672,22 @@ namespace jkms16wm32o8
 				ret = op.duty();
 				break;
 			case 0x0a:
-				ret = u16(op.fm_in().multipler());
+				ret = u16(op.fm_in().multiplier());
 				break;
 			case 0x0b:
-				ret = u16(op.pm_in().multipler());
+				ret = u16(op.pm_in().multiplier());
 				break;
 			case 0x0c:
-				ret = u16(op.am_in().multipler());
+				ret = u16(op.am_in().multiplier());
 				break;
 			case 0x0d:
-				ret = u16(op.fm_out().multipler());
+				ret = u16(op.fm_out().multiplier());
 				break;
 			case 0x0e:
-				ret = u16(op.pm_out().multipler());
+				ret = u16(op.pm_out().multiplier());
 				break;
 			case 0x0f:
-				ret = u16(op.am_out().multipler());
+				ret = u16(op.am_out().multiplier());
 				break;
 			case 0x10:
 				ret = u16(op.fm_out().feedback());
@@ -779,7 +785,7 @@ namespace jkms16wm32o8
 				ret = op.env().release_rate();
 				break;
 			case 0x39:
-				ret = u16(op.env().multipler());
+				ret = u16(op.env().multiplier());
 				break;
 			case 0x40:
 				ret = op.flfo().delay_rate();
@@ -791,7 +797,7 @@ namespace jkms16wm32o8
 				ret = op.flfo().rate();
 				break;
 			case 0x43:
-				ret = u16(op.flfo().multipler());
+				ret = u16(op.flfo().multiplier());
 				break;
 			case 0x44:
 				ret = op.flfo().noise_pitch();
@@ -812,7 +818,7 @@ namespace jkms16wm32o8
 				ret = op.alfo().rate();
 				break;
 			case 0x4b:
-				ret = u16(op.alfo().multipler());
+				ret = u16(op.alfo().multiplier());
 				break;
 			case 0x4c:
 				ret = op.alfo().noise_pitch();
@@ -907,22 +913,22 @@ namespace jkms16wm32o8
 				op.set_duty(data);
 				break;
 			case 0x0a:
-				op.fm_in().set_multipler(s16(data));
+				op.fm_in().set_multiplier(s16(data));
 				break;
 			case 0x0b:
-				op.pm_in().set_multipler(s16(data));
+				op.pm_in().set_multiplier(s16(data));
 				break;
 			case 0x0c:
-				op.am_in().set_multipler(s16(data));
+				op.am_in().set_multiplier(s16(data));
 				break;
 			case 0x0d:
-				op.fm_out().set_multipler(s16(data));
+				op.fm_out().set_multiplier(s16(data));
 				break;
 			case 0x0e:
-				op.pm_out().set_multipler(s16(data));
+				op.pm_out().set_multiplier(s16(data));
 				break;
 			case 0x0f:
-				op.am_out().set_multipler(s16(data));
+				op.am_out().set_multiplier(s16(data));
 				break;
 			case 0x10:
 				op.fm_out().set_feedback(s16(data));
@@ -1015,7 +1021,7 @@ namespace jkms16wm32o8
 				op.env().set_release_rate(data);
 				break;
 			case 0x39:
-				op.env().set_multipler(s16(data));
+				op.env().set_multiplier(s16(data));
 				break;
 			case 0x40:
 				op.flfo().set_delay_rate(data);
@@ -1027,7 +1033,7 @@ namespace jkms16wm32o8
 				op.flfo().set_rate(data);
 				break;
 			case 0x43:
-				op.flfo().set_multipler(s16(data));
+				op.flfo().set_multiplier(s16(data));
 				break;
 			case 0x44:
 				op.flfo().set_noise_pitch(data);
@@ -1048,7 +1054,7 @@ namespace jkms16wm32o8
 				op.alfo().set_rate(data);
 				break;
 			case 0x4b:
-				op.alfo().set_multipler(s16(data));
+				op.alfo().set_multiplier(s16(data));
 				break;
 			case 0x4c:
 				op.flfo().set_noise_pitch(data);
