@@ -100,25 +100,38 @@ enum {
 
 #define rWrite(a,v) { \
     if (!skipRegisterWrites) { \
-      regPool[(a&0x7fff)]=(v)&0xffff; \
-      chip.host_w(0,(a&0x7f)); \
+      regPool[((a)&0x7fff)]=(v)&0xffff; \
+      chip.host_w(0,((a)&0x7f)); \
       chip.host_w(1,(v)); \
     } \
   }
 
-#define chWrite(c,o,a,v) { \
+#define chWrite(c,a,v) { \
     if (!skipRegisterWrites) { \
-      if (curChan!=(c) || curOp!=(o)) { \
+      if (curChan!=(c)) { \
         chip.host_w(0,WM_ADDR_CHSEL); \
-        chip.host_w(1,0x8000|(((c)&0x1f)<<10)|(((o)&7)<<7)); \
+        chip.host_w(1,0x8000|(((c)&0x1f)<<3)|(curOp&7)); \
         curChan=(c); \
-        curOp=(o); \
+        regPool[0]=0x8000|(((c)&0x1f)<<3)|(curOp&7); \
       } \
-      rWrite((a),(v)); \
+      rWrite((((c)&0x1f)<<10)|((a)&0x7f),(v)); \
     } \
   }
 
-#define CHIP_FREQBASE (65536.0*4096.0)
+#define opWrite(c,o,a,v) { \
+    if (!skipRegisterWrites) { \
+      if (curChan!=(c) || curOp!=(o)) { \
+        chip.host_w(0,WM_ADDR_CHSEL); \
+        chip.host_w(1,0x8000|(((c)&0x1f)<<3)|((o)&7)); \
+        curChan=(c); \
+        curOp=(o); \
+        regPool[0]=0x8000|(((c)&0x1f)<<3)|((o)&7); \
+      } \
+      rWrite((((c)&0x1f)<<10)|(((o)&7)<<7)|((a)&0x7f),(v)); \
+    } \
+  }
+
+#define CHIP_FREQBASE (1048576.0*4096.0)
 
 void DivPlatformJKMS16WM32O8::acquire(short** buf, size_t len) {
   for (int i=0; i<32; i++) {
@@ -163,11 +176,11 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
     }
 
     if (chan[i].std.panL.had) {
-      chan[i].globalLvolOut=VOL_SCALE_LINEAR(chan[i].globalLvol,chan[i].std.panL.val,0x7fff);
+      chan[i].globalLvolOut=VOL_SCALE_LINEAR((0x7fff*chan[i].globalLvol)/0xff,chan[i].std.panL.val,0x7fff);
     }
 
     if (chan[i].std.panR.had) {
-      chan[i].globalRvolOut=VOL_SCALE_LINEAR(chan[i].globalRvol,chan[i].std.panR.val,0x7fff);
+      chan[i].globalRvolOut=VOL_SCALE_LINEAR((0x7fff*chan[i].globalRvol)/0xff,chan[i].std.panR.val,0x7fff);
     }
 
     if (chan[i].std.pitch.had) {
@@ -381,46 +394,46 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
 
       if (m.duty.had) {
         op.duty=m.duty.val;
-        chWrite(i,o,WM_ADDR_DUTY,op.duty);
+        opWrite(i,o,WM_ADDR_DUTY,op.duty);
       }
 
       if (m.fmInMul.had) {
         op.fmIn.mul=m.fmInMul.val;
-        chWrite(i,o,WM_ADDR_FMINMUL,op.fmIn.mul);
+        opWrite(i,o,WM_ADDR_FMINMUL,op.fmIn.mul);
       }
       if (m.pmInMul.had) {
         op.pmIn.mul=m.pmInMul.val;
-        chWrite(i,o,WM_ADDR_PMINMUL,op.pmIn.mul);
+        opWrite(i,o,WM_ADDR_PMINMUL,op.pmIn.mul);
       }
       if (m.amInMul.had) {
         op.amIn.mul=m.amInMul.val;
-        chWrite(i,o,WM_ADDR_AMINMUL,op.amIn.mul);
+        opWrite(i,o,WM_ADDR_AMINMUL,op.amIn.mul);
       }
 
       if (m.fmOutMul.had) {
         op.fmOut.mul=m.fmOutMul.val;
-        chWrite(i,o,WM_ADDR_FMINMUL,op.fmOut.mul);
+        opWrite(i,o,WM_ADDR_FMINMUL,op.fmOut.mul);
       }
       if (m.pmOutMul.had) {
         op.pmOut.mul=m.pmOutMul.val;
-        chWrite(i,o,WM_ADDR_PMINMUL,op.pmOut.mul);
+        opWrite(i,o,WM_ADDR_PMINMUL,op.pmOut.mul);
       }
       if (m.amOutMul.had) {
         op.amOut.mul=m.amOutMul.val;
-        chWrite(i,o,WM_ADDR_AMINMUL,op.amOut.mul);
+        opWrite(i,o,WM_ADDR_AMINMUL,op.amOut.mul);
       }
 
       if (m.fmFb.had) {
         op.fmOut.fb=m.fmFb.val;
-        chWrite(i,o,WM_ADDR_FMFB,op.fmOut.fb);
+        opWrite(i,o,WM_ADDR_FMFB,op.fmOut.fb);
       }
       if (m.pmFb.had) {
         op.pmOut.fb=m.pmFb.val;
-        chWrite(i,o,WM_ADDR_PMFB,op.pmOut.fb);
+        opWrite(i,o,WM_ADDR_PMFB,op.pmOut.fb);
       }
       if (m.amFb.had) {
         op.amOut.fb=m.amFb.val;
-        chWrite(i,o,WM_ADDR_AMFB,op.amOut.fb);
+        opWrite(i,o,WM_ADDR_AMFB,op.amOut.fb);
       }
 
       if (m.fmMatrix.had) {
@@ -433,38 +446,38 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
       }
       if (m.amMatrix.had) {
         op.amOut.matrix=m.amMatrix.val;
-        chWrite(i,o,WM_ADDR_AMMAT,op.amOut.matrix<<8);
+        opWrite(i,o,WM_ADDR_AMMAT,op.amOut.matrix<<8);
       }
 
       if (m.spkrVol.had) {
         op.spkrVol=m.spkrVol.val;
-        chWrite(i,o,WM_ADDR_SOUTMVOL,op.spkrVol);
+        opWrite(i,o,WM_ADDR_SOUTMVOL,op.spkrVol);
       }
       if (m.spkrLvol.had) {
         op.spkrLvol=m.spkrLvol.val;
-        chWrite(i,o,WM_ADDR_SOUTLVOL,op.spkrLvol);
+        opWrite(i,o,WM_ADDR_SOUTLVOL,op.spkrLvol);
       }
       if (m.spkrRvol.had) {
         op.spkrRvol=m.spkrRvol.val;
-        chWrite(i,o,WM_ADDR_SOUTRVOL,op.spkrRvol);
+        opWrite(i,o,WM_ADDR_SOUTRVOL,op.spkrRvol);
       }
 
       if (m.tl.had) {
         op.tl=m.tl.val;
-        chWrite(i,o,WM_ADDR_TL,op.tl);
+        opWrite(i,o,WM_ADDR_TL,op.tl);
       }
 
       if (m.noiPitch.had) {
         op.noisePitch=m.noiPitch.val;
-        chWrite(i,o,WM_ADDR_NPITCH,op.noisePitch);
+        opWrite(i,o,WM_ADDR_NPITCH,op.noisePitch);
       }
       if (m.noiILfsr.had) {
         op.initLfsr=m.noiILfsr.val;
-        chWrite(i,o,WM_ADDR_NILFSR,op.initLfsr);
+        opWrite(i,o,WM_ADDR_NILFSR,op.initLfsr);
       }
       if (m.noiMask.had) {
         op.lfsrMask=m.noiMask.val;
-        chWrite(i,o,WM_ADDR_NMASK,op.lfsrMask);
+        opWrite(i,o,WM_ADDR_NMASK,op.lfsrMask);
       }
 
       if (m.filtEn.had) {
@@ -525,149 +538,149 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
       }
       if (m.filt0F.had) {
         op.filter[0].f=m.filt0F.val;
-        chWrite(i,o,WM_ADDR_FILT0F,op.filter[0].f);
+        opWrite(i,o,WM_ADDR_FILT0F,op.filter[0].f);
       }
       if (m.filt0Q.had) {
         op.filter[0].q=m.filt0Q.val;
-        chWrite(i,o,WM_ADDR_FILT0Q,op.filter[0].q);
+        opWrite(i,o,WM_ADDR_FILT0Q,op.filter[0].q);
       }
       if (m.filt1F.had) {
         op.filter[1].f=m.filt1F.val;
-        chWrite(i,o,WM_ADDR_FILT1F,op.filter[1].f);
+        opWrite(i,o,WM_ADDR_FILT1F,op.filter[1].f);
       }
       if (m.filt1Q.had) {
         op.filter[1].q=m.filt1Q.val;
-        chWrite(i,o,WM_ADDR_FILT1Q,op.filter[1].q);
+        opWrite(i,o,WM_ADDR_FILT1Q,op.filter[1].q);
       }
       if (m.filt2F.had) {
         op.filter[2].f=m.filt2F.val;
-        chWrite(i,o,WM_ADDR_FILT2F,op.filter[2].f);
+        opWrite(i,o,WM_ADDR_FILT2F,op.filter[2].f);
       }
       if (m.filt2Q.had) {
         op.filter[2].q=m.filt2Q.val;
-        chWrite(i,o,WM_ADDR_FILT2Q,op.filter[2].q);
+        opWrite(i,o,WM_ADDR_FILT2Q,op.filter[2].q);
       }
       if (m.filt3F.had) {
         op.filter[3].f=m.filt3F.val;
-        chWrite(i,o,WM_ADDR_FILT3F,op.filter[3].f);
+        opWrite(i,o,WM_ADDR_FILT3F,op.filter[3].f);
       }
       if (m.filt3Q.had) {
         op.filter[3].q=m.filt3Q.val;
-        chWrite(i,o,WM_ADDR_FILT3Q,op.filter[3].q);
+        opWrite(i,o,WM_ADDR_FILT3Q,op.filter[3].q);
       }
       if (m.filt4F.had) {
         op.filter[4].f=m.filt4F.val;
-        chWrite(i,o,WM_ADDR_FILT4F,op.filter[4].f);
+        opWrite(i,o,WM_ADDR_FILT4F,op.filter[4].f);
       }
       if (m.filt4Q.had) {
         op.filter[4].q=m.filt4Q.val;
-        chWrite(i,o,WM_ADDR_FILT4Q,op.filter[4].q);
+        opWrite(i,o,WM_ADDR_FILT4Q,op.filter[4].q);
       }
       if (m.filt5F.had) {
         op.filter[5].f=m.filt5F.val;
-        chWrite(i,o,WM_ADDR_FILT5F,op.filter[5].f);
+        opWrite(i,o,WM_ADDR_FILT5F,op.filter[5].f);
       }
       if (m.filt5Q.had) {
         op.filter[5].q=m.filt5Q.val;
-        chWrite(i,o,WM_ADDR_FILT5Q,op.filter[5].q);
+        opWrite(i,o,WM_ADDR_FILT5Q,op.filter[5].q);
       }
       if (m.filt6F.had) {
         op.filter[6].f=m.filt6F.val;
-        chWrite(i,o,WM_ADDR_FILT6F,op.filter[6].f);
+        opWrite(i,o,WM_ADDR_FILT6F,op.filter[6].f);
       }
       if (m.filt6Q.had) {
         op.filter[6].q=m.filt6Q.val;
-        chWrite(i,o,WM_ADDR_FILT6Q,op.filter[6].q);
+        opWrite(i,o,WM_ADDR_FILT6Q,op.filter[6].q);
       }
       if (m.filt7F.had) {
         op.filter[7].f=m.filt7F.val;
-        chWrite(i,o,WM_ADDR_FILT7F,op.filter[7].f);
+        opWrite(i,o,WM_ADDR_FILT7F,op.filter[7].f);
       }
       if (m.filt7Q.had) {
         op.filter[7].q=m.filt7Q.val;
-        chWrite(i,o,WM_ADDR_FILT7Q,op.filter[7].q);
+        opWrite(i,o,WM_ADDR_FILT7Q,op.filter[7].q);
       }
       if (m.envAtkT.had) {
         op.env.atkT=m.envAtkT.val;
-        chWrite(i,o,WM_ADDR_ENVAT,op.env.atkT);
+        opWrite(i,o,WM_ADDR_ENVAT,op.env.atkT);
       }
       if (m.envAtkR.had) {
         op.env.atkR=m.envAtkR.val;
-        chWrite(i,o,WM_ADDR_ENVAR,op.env.atkR);
+        opWrite(i,o,WM_ADDR_ENVAR,op.env.atkR);
       }
       if (m.envDecT.had) {
         op.env.decT=m.envDecT.val;
-        chWrite(i,o,WM_ADDR_ENVDT,op.env.decT);
+        opWrite(i,o,WM_ADDR_ENVDT,op.env.decT);
       }
       if (m.envDecR.had) {
         op.env.decR=m.envDecR.val;
-        chWrite(i,o,WM_ADDR_ENVDR,op.env.decR);
+        opWrite(i,o,WM_ADDR_ENVDR,op.env.decR);
       }
       if (m.envSusT.had) {
         op.env.susT=m.envSusT.val;
-        chWrite(i,o,WM_ADDR_ENVST,op.env.susT);
+        opWrite(i,o,WM_ADDR_ENVST,op.env.susT);
       }
       if (m.envSusR.had) {
         op.env.susR=m.envSusR.val;
-        chWrite(i,o,WM_ADDR_ENVSR,op.env.susR);
+        opWrite(i,o,WM_ADDR_ENVSR,op.env.susR);
       }
       if (m.envRelR.had) {
         op.env.relR=m.envRelR.val;
-        chWrite(i,o,WM_ADDR_ENVRR,op.env.relR);
+        opWrite(i,o,WM_ADDR_ENVRR,op.env.relR);
       }
       if (m.envMul.had) {
         op.env.mul=m.envMul.val;
-        chWrite(i,o,WM_ADDR_ENVMUL,op.env.mul);
+        opWrite(i,o,WM_ADDR_ENVMUL,op.env.mul);
       }
 
       if (m.flfoT.had) {
         op.flfo.tgt=m.flfoT.val;
-        chWrite(i,o,WM_ADDR_FLFOT,op.flfo.tgt);
+        opWrite(i,o,WM_ADDR_FLFOT,op.flfo.tgt);
       }
       if (m.flfoL.had) {
         op.flfo.rate=m.flfoL.val;
-        chWrite(i,o,WM_ADDR_FLFOL,op.flfo.rate);
+        opWrite(i,o,WM_ADDR_FLFOL,op.flfo.rate);
       }
       if (m.flfoM.had) {
         op.flfo.mul=m.flfoM.val;
-        chWrite(i,o,WM_ADDR_FLFOMUL,op.flfo.mul);
+        opWrite(i,o,WM_ADDR_FLFOMUL,op.flfo.mul);
       }
       if (m.flfoNPitch.had) {
         op.flfo.noisePitch=m.flfoNPitch.val;
-        chWrite(i,o,WM_ADDR_FLFONP,op.flfo.noisePitch);
+        opWrite(i,o,WM_ADDR_FLFONP,op.flfo.noisePitch);
       }
       if (m.flfoNILfsr.had) {
         op.flfo.initLfsr=m.flfoNILfsr.val;
-        chWrite(i,o,WM_ADDR_FLFONIL,op.flfo.initLfsr);
+        opWrite(i,o,WM_ADDR_FLFONIL,op.flfo.initLfsr);
       }
       if (m.flfoNMask.had) {
         op.flfo.lfsrMask=m.flfoNMask.val;
-        chWrite(i,o,WM_ADDR_FLFONM,op.flfo.lfsrMask);
+        opWrite(i,o,WM_ADDR_FLFONM,op.flfo.lfsrMask);
       }
 
       if (m.alfoT.had) {
         op.alfo.tgt=m.alfoT.val;
-        chWrite(i,o,WM_ADDR_ALFOT,op.alfo.tgt);
+        opWrite(i,o,WM_ADDR_ALFOT,op.alfo.tgt);
       }
       if (m.alfoL.had) {
         op.alfo.rate=m.alfoL.val;
-        chWrite(i,o,WM_ADDR_ALFOL,op.alfo.rate);
+        opWrite(i,o,WM_ADDR_ALFOL,op.alfo.rate);
       }
       if (m.alfoM.had) {
         op.alfo.mul=m.alfoM.val;
-        chWrite(i,o,WM_ADDR_ALFOMUL,op.alfo.mul);
+        opWrite(i,o,WM_ADDR_ALFOMUL,op.alfo.mul);
       }
       if (m.alfoNPitch.had) {
         op.alfo.noisePitch=m.alfoNPitch.val;
-        chWrite(i,o,WM_ADDR_ALFONP,op.alfo.noisePitch);
+        opWrite(i,o,WM_ADDR_ALFONP,op.alfo.noisePitch);
       }
       if (m.alfoNILfsr.had) {
         op.alfo.initLfsr=m.alfoNILfsr.val;
-        chWrite(i,o,WM_ADDR_ALFONIL,op.alfo.initLfsr);
+        opWrite(i,o,WM_ADDR_ALFONIL,op.alfo.initLfsr);
       }
       if (m.alfoNMask.had) {
         op.alfo.lfsrMask=m.alfoNMask.val;
-        chWrite(i,o,WM_ADDR_ALFONM,op.alfo.lfsrMask);
+        opWrite(i,o,WM_ADDR_ALFONM,op.alfo.lfsrMask);
       }
 
       if (writeCtrl) {
@@ -678,17 +691,17 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
         unsigned short bPosval=((op.mute.bitPos&0xf)<<12)|((op.reverse.bitPos&0xf)<<8)|
           ((op.invert.bitPos&0xf)<<4)|(op.mute.enable?0x8:0)|(op.reverse.enable?0x4:0)|
           (op.invert.enable?0x2:0)|(op.spkrEnable?0x1:0);
-        chWrite(i,o,WM_ADDR_WBIT,bPosval);
+        opWrite(i,o,WM_ADDR_WBIT,bPosval);
         writeBPos=false;
       }
       if (writeWGen) {
         unsigned short wGenVal=((op.intWSize&0xf)<<12)|((op.extWSize&0xf)<<8)|(op.wavBit&0xff);
-        chWrite(i,o,WM_ADDR_WGEN,wGenVal);
+        opWrite(i,o,WM_ADDR_WGEN,wGenVal);
         writeWGen=false;
         chan[i].opsState[o].waveUpdated=true;
       }
       if (writeFMPMMat) {
-        chWrite(i,o,WM_ADDR_FMPMMAT,((op.fmOut.matrix&0xff)<<8)|((op.pmOut.matrix&0xff)));
+        opWrite(i,o,WM_ADDR_FMPMMAT,((op.fmOut.matrix&0xff)<<8)|((op.pmOut.matrix&0xff)));
         writeFMPMMat=false;
       }
       if (writeFilt0123) {
@@ -699,7 +712,7 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
           if (op.filter[f].hpEnable) enVal|=(2<<(f<<2));
           if (op.filter[f].bpEnable) enVal|=(1<<(f<<2));
         }
-        chWrite(i,o,WM_ADDR_FILTEN0,enVal);
+        opWrite(i,o,WM_ADDR_FILTEN0,enVal);
         writeFilt0123=false;
       }
       if (writeFilt4567) {
@@ -710,7 +723,7 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
           if (op.filter[f].hpEnable) enVal|=(2<<(sv<<2));
           if (op.filter[f].bpEnable) enVal|=(1<<(sv<<2));
         }
-        chWrite(i,o,WM_ADDR_FILTEN1,enVal);
+        opWrite(i,o,WM_ADDR_FILTEN1,enVal);
         writeFilt4567=false;
       }
 
@@ -729,11 +742,11 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
 
   for (int i=0; i<32; i++) {
     if (chan[i].keyOn || chan[i].keyOff) {
-      chWrite(i,curOp,WM_ADDR_KEYON,0);
+      chWrite(i,WM_ADDR_KEYON,0);
       if (chan[i].hardReset && chan[i].keyOn) {
         mustHardReset=true;
         for (int j=0; j<8; j++) {
-          chWrite(i,j,WM_ADDR_CTRL,0);
+          opWrite(i,j,WM_ADDR_CTRL,0);
           hardResetElapsed++;
         }
       }
@@ -750,7 +763,7 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
       for (int o=0; o<8; o++) {
         DivInstrumentWM::WMOperator& op=chan[i].state.op[o];
         int dt=(int)op.dt;
-        if (!op.pitchCtrl) {
+        if (op.fixed && !op.pitchCtrl) {
           chan[i].freqL[o]=op.fixedFreq&0xfff;
           chan[i].freqH[o]=(op.fixedFreq>>12)&0xf;
         } else {
@@ -776,13 +789,13 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
           }
           chan[i].freqL[o]=(opFreq>>chan[i].freqH[o])&0xfff;
         }
-        chWrite(i,o,WM_ADDR_PITCH,chan[i].freqL[o]|(chan[i].freqH[o]<<12));
+        opWrite(i,o,WM_ADDR_PITCH,chan[i].freqL[o]|(chan[i].freqH[o]<<12));
         hardResetElapsed+=2;
       }
       chan[i].freqChanged=false;
     }
     if ((chan[i].keyOn || chan[i].opMaskChanged) && !chan[i].hardReset) {
-      chWrite(i,curOp,WM_ADDR_KEYON,chan[i].opMask&0xff);
+      chWrite(i,WM_ADDR_KEYON,chan[i].opMask&0xff);
       hardResetElapsed++;
       chan[i].opMaskChanged=false;
       chan[i].keyOn=false;
@@ -801,10 +814,10 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
             ((op.flfo.wave&3)<<10)|((op.alfo.wave&3)<<8)|(op.filtOut?0x80:0)|(op.dirOut?0x40:0)|
             (op.fmIn.enable?0x20:0)|(op.pmIn.enable?0x10:0)|(op.amIn.enable?0x8:0)|
             (op.fmOut.enable?0x4:0)|(op.pmOut.enable?0x2:0)|(op.amOut.enable?0x1:0);
-          chWrite(i,j,WM_ADDR_ENVRR,ctrlVal);
+          opWrite(i,j,WM_ADDR_ENVRR,ctrlVal);
         }
 
-        chWrite(i,curOp,WM_ADDR_KEYON,chan[i].opMask&0xff);
+        chWrite(i,WM_ADDR_KEYON,chan[i].opMask&0xff);
         chan[i].opMaskChanged=false;
         chan[i].keyOn=false;
       }
@@ -883,23 +896,23 @@ void DivPlatformJKMS16WM32O8::commitState(int ch, DivInstrument* ins) {
   for (int i=0; i<8; i++) {
     DivInstrumentWM::WMOperator op=chan[ch].state.op[i];
     if (!op.enable) {
-      chWrite(ch,i,WM_ADDR_CTRL,0);
-      chWrite(ch,i,WM_ADDR_WBIT,0);
-      chWrite(ch,i,WM_ADDR_WGEN,0);
+      opWrite(ch,i,WM_ADDR_CTRL,0);
+      opWrite(ch,i,WM_ADDR_WBIT,0);
+      opWrite(ch,i,WM_ADDR_WGEN,0);
     } else {
       if (chan[ch].insChanged) {
         writeCtrlVal(ch,i);
         unsigned short bPosval=((op.mute.bitPos&0xf)<<12)|((op.reverse.bitPos&0xf)<<8)|
           ((op.invert.bitPos&0xf)<<4)|(op.mute.enable?0x8:0)|(op.reverse.enable?0x4:0)|
           (op.invert.enable?0x2:0)|(op.spkrEnable?0x1:0);
-        chWrite(ch,i,WM_ADDR_WBIT,bPosval);
+        opWrite(ch,i,WM_ADDR_WBIT,bPosval);
         unsigned short wGenVal=((op.intWSize&0xf)<<12)|((op.extWSize&0xf)<<8)|(op.wavBit&0xff);
-        chWrite(ch,i,WM_ADDR_WGEN,wGenVal);
+        opWrite(ch,i,WM_ADDR_WGEN,wGenVal);
         chan[ch].opsState[i].waveUpdated=true;
       }
     }
     if (chan[ch].insChanged) {
-      chWrite(ch,i,WM_ADDR_FMPMMAT,((op.fmOut.matrix&0xff)<<8)|((op.pmOut.matrix&0xff)));
+      opWrite(ch,i,WM_ADDR_FMPMMAT,((op.fmOut.matrix&0xff)<<8)|((op.pmOut.matrix&0xff)));
       unsigned short enVal=0;
       for (int f=0; f<4; f++) {
         if (op.filter[f].enable) enVal|=(8<<(f<<2));
@@ -907,68 +920,68 @@ void DivPlatformJKMS16WM32O8::commitState(int ch, DivInstrument* ins) {
         if (op.filter[f].hpEnable) enVal|=(2<<(f<<2));
         if (op.filter[f].bpEnable) enVal|=(1<<(f<<2));
       }
-      chWrite(ch,i,WM_ADDR_FILTEN0,enVal);
+      opWrite(ch,i,WM_ADDR_FILTEN0,enVal);
       for (int f=4, sv=0; f<8; f++, sv++) {
         if (op.filter[f].enable) enVal|=(8<<(sv<<2));
         if (op.filter[f].lpEnable) enVal|=(4<<(sv<<2));
         if (op.filter[f].hpEnable) enVal|=(2<<(sv<<2));
         if (op.filter[f].bpEnable) enVal|=(1<<(sv<<2));
       }
-      chWrite(ch,i,WM_ADDR_FILTEN1,enVal);
-      chWrite(ch,i,WM_ADDR_DUTY,op.duty);
-      chWrite(ch,i,WM_ADDR_FMINMUL,op.fmIn.mul);
-      chWrite(ch,i,WM_ADDR_PMINMUL,op.pmIn.mul);
-      chWrite(ch,i,WM_ADDR_AMINMUL,op.amIn.mul);
-      chWrite(ch,i,WM_ADDR_FMINMUL,op.fmOut.mul);
-      chWrite(ch,i,WM_ADDR_PMINMUL,op.pmOut.mul);
-      chWrite(ch,i,WM_ADDR_AMINMUL,op.amOut.mul);
-      chWrite(ch,i,WM_ADDR_FMFB,op.fmOut.fb);
-      chWrite(ch,i,WM_ADDR_PMFB,op.pmOut.fb);
-      chWrite(ch,i,WM_ADDR_AMFB,op.amOut.fb);
-      chWrite(ch,i,WM_ADDR_AMMAT,op.amOut.matrix<<8);
-      chWrite(ch,i,WM_ADDR_SOUTMVOL,op.spkrVol);
-      chWrite(ch,i,WM_ADDR_SOUTLVOL,op.spkrLvol);
-      chWrite(ch,i,WM_ADDR_SOUTRVOL,op.spkrRvol);
-      chWrite(ch,i,WM_ADDR_TL,op.tl);
-      chWrite(ch,i,WM_ADDR_NPITCH,op.noisePitch);
-      chWrite(ch,i,WM_ADDR_NILFSR,op.initLfsr);
-      chWrite(ch,i,WM_ADDR_NMASK,op.lfsrMask);
-      chWrite(ch,i,WM_ADDR_FILT0F,op.filter[0].f);
-      chWrite(ch,i,WM_ADDR_FILT0Q,op.filter[0].q);
-      chWrite(ch,i,WM_ADDR_FILT1F,op.filter[1].f);
-      chWrite(ch,i,WM_ADDR_FILT1Q,op.filter[1].q);
-      chWrite(ch,i,WM_ADDR_FILT2F,op.filter[2].f);
-      chWrite(ch,i,WM_ADDR_FILT2Q,op.filter[2].q);
-      chWrite(ch,i,WM_ADDR_FILT3F,op.filter[3].f);
-      chWrite(ch,i,WM_ADDR_FILT3Q,op.filter[3].q);
-      chWrite(ch,i,WM_ADDR_FILT4F,op.filter[4].f);
-      chWrite(ch,i,WM_ADDR_FILT4Q,op.filter[4].q);
-      chWrite(ch,i,WM_ADDR_FILT5F,op.filter[5].f);
-      chWrite(ch,i,WM_ADDR_FILT5Q,op.filter[5].q);
-      chWrite(ch,i,WM_ADDR_FILT6F,op.filter[6].f);
-      chWrite(ch,i,WM_ADDR_FILT6Q,op.filter[6].q);
-      chWrite(ch,i,WM_ADDR_FILT7F,op.filter[7].f);
-      chWrite(ch,i,WM_ADDR_FILT7Q,op.filter[7].q);
-      chWrite(ch,i,WM_ADDR_ENVAT,op.env.atkT);
-      chWrite(ch,i,WM_ADDR_ENVAR,op.env.atkR);
-      chWrite(ch,i,WM_ADDR_ENVDT,op.env.decT);
-      chWrite(ch,i,WM_ADDR_ENVDR,op.env.decR);
-      chWrite(ch,i,WM_ADDR_ENVST,op.env.susT);
-      chWrite(ch,i,WM_ADDR_ENVSR,op.env.susR);
-      chWrite(ch,i,WM_ADDR_ENVRR,op.env.relR);
-      chWrite(ch,i,WM_ADDR_ENVMUL,op.env.mul);
-      chWrite(ch,i,WM_ADDR_FLFOT,op.flfo.tgt);
-      chWrite(ch,i,WM_ADDR_FLFOL,op.flfo.rate);
-      chWrite(ch,i,WM_ADDR_FLFOMUL,op.flfo.mul);
-      chWrite(ch,i,WM_ADDR_FLFONP,op.flfo.noisePitch);
-      chWrite(ch,i,WM_ADDR_FLFONIL,op.flfo.initLfsr);
-      chWrite(ch,i,WM_ADDR_FLFONM,op.flfo.lfsrMask);
-      chWrite(ch,i,WM_ADDR_ALFOT,op.alfo.tgt);
-      chWrite(ch,i,WM_ADDR_ALFOL,op.alfo.rate);
-      chWrite(ch,i,WM_ADDR_ALFOMUL,op.alfo.mul);
-      chWrite(ch,i,WM_ADDR_ALFONP,op.alfo.noisePitch);
-      chWrite(ch,i,WM_ADDR_ALFONIL,op.alfo.initLfsr);
-      chWrite(ch,i,WM_ADDR_ALFONM,op.alfo.lfsrMask);
+      opWrite(ch,i,WM_ADDR_FILTEN1,enVal);
+      opWrite(ch,i,WM_ADDR_DUTY,op.duty);
+      opWrite(ch,i,WM_ADDR_FMINMUL,op.fmIn.mul);
+      opWrite(ch,i,WM_ADDR_PMINMUL,op.pmIn.mul);
+      opWrite(ch,i,WM_ADDR_AMINMUL,op.amIn.mul);
+      opWrite(ch,i,WM_ADDR_FMINMUL,op.fmOut.mul);
+      opWrite(ch,i,WM_ADDR_PMINMUL,op.pmOut.mul);
+      opWrite(ch,i,WM_ADDR_AMINMUL,op.amOut.mul);
+      opWrite(ch,i,WM_ADDR_FMFB,op.fmOut.fb);
+      opWrite(ch,i,WM_ADDR_PMFB,op.pmOut.fb);
+      opWrite(ch,i,WM_ADDR_AMFB,op.amOut.fb);
+      opWrite(ch,i,WM_ADDR_AMMAT,op.amOut.matrix<<8);
+      opWrite(ch,i,WM_ADDR_SOUTMVOL,op.spkrVol);
+      opWrite(ch,i,WM_ADDR_SOUTLVOL,op.spkrLvol);
+      opWrite(ch,i,WM_ADDR_SOUTRVOL,op.spkrRvol);
+      opWrite(ch,i,WM_ADDR_TL,op.tl);
+      opWrite(ch,i,WM_ADDR_NPITCH,op.noisePitch);
+      opWrite(ch,i,WM_ADDR_NILFSR,op.initLfsr);
+      opWrite(ch,i,WM_ADDR_NMASK,op.lfsrMask);
+      opWrite(ch,i,WM_ADDR_FILT0F,op.filter[0].f);
+      opWrite(ch,i,WM_ADDR_FILT0Q,op.filter[0].q);
+      opWrite(ch,i,WM_ADDR_FILT1F,op.filter[1].f);
+      opWrite(ch,i,WM_ADDR_FILT1Q,op.filter[1].q);
+      opWrite(ch,i,WM_ADDR_FILT2F,op.filter[2].f);
+      opWrite(ch,i,WM_ADDR_FILT2Q,op.filter[2].q);
+      opWrite(ch,i,WM_ADDR_FILT3F,op.filter[3].f);
+      opWrite(ch,i,WM_ADDR_FILT3Q,op.filter[3].q);
+      opWrite(ch,i,WM_ADDR_FILT4F,op.filter[4].f);
+      opWrite(ch,i,WM_ADDR_FILT4Q,op.filter[4].q);
+      opWrite(ch,i,WM_ADDR_FILT5F,op.filter[5].f);
+      opWrite(ch,i,WM_ADDR_FILT5Q,op.filter[5].q);
+      opWrite(ch,i,WM_ADDR_FILT6F,op.filter[6].f);
+      opWrite(ch,i,WM_ADDR_FILT6Q,op.filter[6].q);
+      opWrite(ch,i,WM_ADDR_FILT7F,op.filter[7].f);
+      opWrite(ch,i,WM_ADDR_FILT7Q,op.filter[7].q);
+      opWrite(ch,i,WM_ADDR_ENVAT,op.env.atkT);
+      opWrite(ch,i,WM_ADDR_ENVAR,op.env.atkR);
+      opWrite(ch,i,WM_ADDR_ENVDT,op.env.decT);
+      opWrite(ch,i,WM_ADDR_ENVDR,op.env.decR);
+      opWrite(ch,i,WM_ADDR_ENVST,op.env.susT);
+      opWrite(ch,i,WM_ADDR_ENVSR,op.env.susR);
+      opWrite(ch,i,WM_ADDR_ENVRR,op.env.relR);
+      opWrite(ch,i,WM_ADDR_ENVMUL,op.env.mul);
+      opWrite(ch,i,WM_ADDR_FLFOT,op.flfo.tgt);
+      opWrite(ch,i,WM_ADDR_FLFOL,op.flfo.rate);
+      opWrite(ch,i,WM_ADDR_FLFOMUL,op.flfo.mul);
+      opWrite(ch,i,WM_ADDR_FLFONP,op.flfo.noisePitch);
+      opWrite(ch,i,WM_ADDR_FLFONIL,op.flfo.initLfsr);
+      opWrite(ch,i,WM_ADDR_FLFONM,op.flfo.lfsrMask);
+      opWrite(ch,i,WM_ADDR_ALFOT,op.alfo.tgt);
+      opWrite(ch,i,WM_ADDR_ALFOL,op.alfo.rate);
+      opWrite(ch,i,WM_ADDR_ALFOMUL,op.alfo.mul);
+      opWrite(ch,i,WM_ADDR_ALFONP,op.alfo.noisePitch);
+      opWrite(ch,i,WM_ADDR_ALFONIL,op.alfo.initLfsr);
+      opWrite(ch,i,WM_ADDR_ALFONM,op.alfo.lfsrMask);
     }
   }
   if (chan[ch].insChanged) {
@@ -1123,7 +1136,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
       for (int o=0; o<8; o++) {
         if ((chan[c.chan].opWriteMask>>o)&1) {
           chan[c.chan].state.op[o].tl=(signed short)(((c.value&0xff)<<8)|(chan[c.chan].lowTemp));
-          chWrite(c.chan,o,WM_ADDR_TL,chan[c.chan].state.op[o].tl);
+          opWrite(c.chan,o,WM_ADDR_TL,chan[c.chan].state.op[o].tl);
         }
       }
       break;
@@ -1132,7 +1145,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
       for (int o=0; o<8; o++) {
         if ((chan[c.chan].opWriteMask>>o)&1) {
           chan[c.chan].state.op[o].env.atkR=((c.value&0xff)<<8)|(chan[c.chan].lowTemp);
-          chWrite(c.chan,o,WM_ADDR_ENVAR,chan[c.chan].state.op[o].env.atkR);
+          opWrite(c.chan,o,WM_ADDR_ENVAR,chan[c.chan].state.op[o].env.atkR);
         }
       }
       break;
@@ -1141,7 +1154,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
       for (int o=0; o<8; o++) {
         if ((chan[c.chan].opWriteMask>>o)&1) {
           chan[c.chan].state.op[o].env.decR=((c.value&0xff)<<8)|(chan[c.chan].lowTemp);
-          chWrite(c.chan,o,WM_ADDR_ENVDR,chan[c.chan].state.op[o].env.decR);
+          opWrite(c.chan,o,WM_ADDR_ENVDR,chan[c.chan].state.op[o].env.decR);
         }
       }
       break;
@@ -1150,7 +1163,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
       for (int o=0; o<8; o++) {
         if ((chan[c.chan].opWriteMask>>o)&1) {
           chan[c.chan].state.op[o].env.decT=(signed short)(((c.value&0xff)<<8)|(chan[c.chan].lowTemp));
-          chWrite(c.chan,o,WM_ADDR_ENVDT,chan[c.chan].state.op[o].env.decT);
+          opWrite(c.chan,o,WM_ADDR_ENVDT,chan[c.chan].state.op[o].env.decT);
         }
       }
       break;
@@ -1159,7 +1172,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
       for (int o=0; o<8; o++) {
         if ((chan[c.chan].opWriteMask>>o)&1) {
           chan[c.chan].state.op[o].env.susR=((c.value&0xff)<<8)|(chan[c.chan].lowTemp);
-          chWrite(c.chan,o,WM_ADDR_ENVSR,chan[c.chan].state.op[o].env.susR);
+          opWrite(c.chan,o,WM_ADDR_ENVSR,chan[c.chan].state.op[o].env.susR);
         }
       }
       break;
@@ -1168,7 +1181,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
       for (int o=0; o<8; o++) {
         if ((chan[c.chan].opWriteMask>>o)&1) {
           chan[c.chan].state.op[o].env.relR=((c.value&0xff)<<8)|(chan[c.chan].lowTemp);
-          chWrite(c.chan,o,WM_ADDR_ENVRR,chan[c.chan].state.op[o].env.relR);
+          opWrite(c.chan,o,WM_ADDR_ENVRR,chan[c.chan].state.op[o].env.relR);
         }
       }
       break;
@@ -1199,7 +1212,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
           DivInstrumentWM::WMOperator& op=chan[c.chan].state.op[o];
           op.wavBit=c.value&0xff;
           unsigned short wGenVal=((op.intWSize&0xf)<<12)|((op.extWSize&0xf)<<8)|(op.wavBit&0xff);
-          chWrite(c.chan,o,WM_ADDR_WGEN,wGenVal);
+          opWrite(c.chan,o,WM_ADDR_WGEN,wGenVal);
           chan[c.chan].opsState[o].waveUpdated=true;
         }
       }
@@ -1221,7 +1234,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
         if ((chan[c.chan].opWriteMask>>o)&1) {
           DivInstrumentWM::WMOperator& op=chan[c.chan].state.op[o];
           op.alfo.rate=((c.value&0xff)<<8)|(chan[c.chan].lowTemp);
-          chWrite(c.chan,o,WM_ADDR_ALFOL,op.alfo.rate);
+          opWrite(c.chan,o,WM_ADDR_ALFOL,op.alfo.rate);
         }
       }
       break;
@@ -1231,7 +1244,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
         if ((chan[c.chan].opWriteMask>>o)&1) {
           DivInstrumentWM::WMOperator& op=chan[c.chan].state.op[o];
           op.flfo.rate=((c.value&0xff)<<8)|(chan[c.chan].lowTemp);
-          chWrite(c.chan,o,WM_ADDR_FLFOMUL,op.flfo.rate);
+          opWrite(c.chan,o,WM_ADDR_FLFOMUL,op.flfo.rate);
         }
       }
       break;
@@ -1241,7 +1254,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
         if ((chan[c.chan].opWriteMask>>o)&1) {
           DivInstrumentWM::WMOperator& op=chan[c.chan].state.op[o];
           op.alfo.mul=(signed short)(((c.value&0xff)<<8)|(chan[c.chan].lowTemp));
-          chWrite(c.chan,o,WM_ADDR_ALFOMUL,op.alfo.mul);
+          opWrite(c.chan,o,WM_ADDR_ALFOMUL,op.alfo.mul);
         }
       }
       break;
@@ -1251,7 +1264,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
         if ((chan[c.chan].opWriteMask>>o)&1) {
           DivInstrumentWM::WMOperator& op=chan[c.chan].state.op[o];
           op.flfo.mul=(signed short)(((c.value&0xff)<<8)|(chan[c.chan].lowTemp));
-          chWrite(c.chan,o,WM_ADDR_ALFOMUL,op.flfo.mul);
+          opWrite(c.chan,o,WM_ADDR_ALFOMUL,op.flfo.mul);
         }
       }
       break;
@@ -1321,7 +1334,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
         if ((chan[c.chan].opWriteMask>>o)&1) {
           DivInstrumentWM::WMOperator& op=chan[c.chan].state.op[o];
           op.pmOut.fb=(signed short)(((c.value&0xff)<<8)|(chan[c.chan].lowTemp));
-          chWrite(c.chan,o,WM_ADDR_PMFB,op.pmOut.fb);
+          opWrite(c.chan,o,WM_ADDR_PMFB,op.pmOut.fb);
         }
       }
       break;
@@ -1332,11 +1345,11 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
           DivInstrumentWM::WMOperator& op=chan[c.chan].state.op[o];
           if (c.value&0x100) {
             op.spkrLvol=(signed short)(((c.value&0xff)<<8)|chan[c.chan].lowTemp);
-            chWrite(c.chan,o,WM_ADDR_SOUTLVOL,op.spkrLvol);
+            opWrite(c.chan,o,WM_ADDR_SOUTLVOL,op.spkrLvol);
           }
           if (c.value2&0x100) {
             op.spkrRvol=(signed short)(((c.value2&0xff)<<8)|chan[c.chan].lowTemp);
-            chWrite(c.chan,o,WM_ADDR_SOUTRVOL,op.spkrRvol);
+            opWrite(c.chan,o,WM_ADDR_SOUTRVOL,op.spkrRvol);
           }
         }
       }
@@ -1347,7 +1360,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
         if ((chan[c.chan].opWriteMask>>o)&1) {
           DivInstrumentWM::WMOperator& op=chan[c.chan].state.op[o];
           op.spkrVol=(signed short)(((c.value&0xff)<<8)|(chan[c.chan].lowTemp));
-          chWrite(c.chan,o,WM_ADDR_SOUTMVOL,op.spkrVol);
+          opWrite(c.chan,o,WM_ADDR_SOUTMVOL,op.spkrVol);
         }
       }
       break;
@@ -1357,7 +1370,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
         if ((chan[c.chan].opWriteMask>>o)&1) {
           DivInstrumentWM::WMOperator& op=chan[c.chan].state.op[o];
           op.pmIn.mul=(signed short)(((c.value&0xff)<<8)|(chan[c.chan].lowTemp));
-          chWrite(c.chan,o,WM_ADDR_PMINMUL,op.pmIn.mul);
+          opWrite(c.chan,o,WM_ADDR_PMINMUL,op.pmIn.mul);
         }
       }
       break;
@@ -1367,7 +1380,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
         if ((chan[c.chan].opWriteMask>>o)&1) {
           DivInstrumentWM::WMOperator& op=chan[c.chan].state.op[o];
           op.env.delR=((c.value&0xff)<<8)|(chan[c.chan].lowTemp);
-          chWrite(c.chan,o,WM_ADDR_ENVDL,op.env.delR);
+          opWrite(c.chan,o,WM_ADDR_ENVDL,op.env.delR);
         }
       }
       break;
@@ -1417,7 +1430,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
               if (op.filter[j].hpEnable) enVal|=(2<<(j<<2));
               if (op.filter[j].bpEnable) enVal|=(1<<(j<<2));
             }
-            chWrite(c.chan,o,WM_ADDR_FILTEN0,enVal);
+            opWrite(c.chan,o,WM_ADDR_FILTEN0,enVal);
           }
           if (writeFilt[1]) {
             unsigned short enVal=0;
@@ -1427,7 +1440,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
               if (op.filter[j].hpEnable) enVal|=(2<<(sv<<2));
               if (op.filter[j].bpEnable) enVal|=(1<<(sv<<2));
             }
-            chWrite(c.chan,o,WM_ADDR_FILTEN1,enVal);
+            opWrite(c.chan,o,WM_ADDR_FILTEN1,enVal);
           }
         }
       }
@@ -1441,7 +1454,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
             if ((chan[c.chan].filterWriteMask>>f)&1) {
               DivInstrumentWM::WMOperator::WMFilter& filt=op.filter[f];
               filt.f=((c.value&0xff)<<8)|(chan[c.chan].lowTemp);
-              chWrite(c.chan,o,WM_ADDR_FILT0F+(f<<1),filt.f);
+              opWrite(c.chan,o,WM_ADDR_FILT0F+(f<<1),filt.f);
             }
           }
         }
@@ -1456,7 +1469,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
             if ((chan[c.chan].filterWriteMask>>f)&1) {
               DivInstrumentWM::WMOperator::WMFilter& filt=op.filter[f];
               filt.q=((c.value&0xff)<<8)|(chan[c.chan].lowTemp);
-              chWrite(c.chan,o,WM_ADDR_FILT0Q+(f<<1),filt.f);
+              opWrite(c.chan,o,WM_ADDR_FILT0Q+(f<<1),filt.f);
             }
           }
         }
@@ -1494,13 +1507,13 @@ void DivPlatformJKMS16WM32O8::writeOutVol(int ch) {
   int outL=0;
   int outR=0;
   if (!isMuted[ch]) {
-    outL=(((chan[ch].outVol*chan[ch].globalLvolOut)/32767))/32767;
-    outR=(((chan[ch].outVol*chan[ch].globalRvolOut)/32767))/32767;
+    outL=(chan[ch].outVol*chan[ch].globalLvolOut)/32767;
+    outR=(chan[ch].outVol*chan[ch].globalRvolOut)/32767;
     if (chan[ch].invertL) outL=-outL;
     if (chan[ch].invertR) outR=-outR;
   }
-  chWrite(ch,curOp,WM_ADDR_LVOL,outL);
-  chWrite(ch,curOp,WM_ADDR_RVOL,outR);
+  chWrite(ch,WM_ADDR_LVOL,(outL&0xffff));
+  chWrite(ch,WM_ADDR_RVOL,(outR&0xffff));
 }
 
 void DivPlatformJKMS16WM32O8::writeCtrlVal(int ch, int o) {
@@ -1510,7 +1523,7 @@ void DivPlatformJKMS16WM32O8::writeCtrlVal(int ch, int o) {
     ((op.flfo.wave&3)<<10)|((op.alfo.wave&3)<<8)|(op.filtOut?0x80:0)|(op.dirOut?0x40:0)|
     (op.fmIn.enable?0x20:0)|(op.pmIn.enable?0x10:0)|(op.amIn.enable?0x8:0)|
     (op.fmOut.enable?0x4:0)|(op.pmOut.enable?0x2:0)|(op.amOut.enable?0x1:0);
-  chWrite(ch,o,WM_ADDR_ENVRR,ctrlVal);
+  opWrite(ch,o,WM_ADDR_CTRL,ctrlVal);
 }
 
 u16 DivPlatformJKMS16WM32O8::read_wave(u16 addr) {
@@ -1579,11 +1592,11 @@ void DivPlatformJKMS16WM32O8::reset() {
   for (int i=0; i<32; i++) {
     chan[i]=DivPlatformJKMS16WM32O8::Channel();
     chan[i].std.setEngine(parent);
-    chan[i].vol=0x7fff;
+    chan[i].vol=0xff;
     chan[i].outVol=0x7fff;
-    chan[i].globalLvol=0x7fff;
+    chan[i].globalLvol=0xff;
     chan[i].globalLvolOut=0x7fff;
-    chan[i].globalRvol=0x7fff;
+    chan[i].globalRvol=0xff;
     chan[i].globalRvolOut=0x7fff;
   }
 
@@ -1636,18 +1649,9 @@ void DivPlatformJKMS16WM32O8::poke(std::vector<DivRegWrite>& wlist) {
   for (DivRegWrite& i: wlist) rWrite(i.addr,i.val);
 }
 
-int DivPlatformJKMS16WM32O8::getClockRangeMin() {
-  return 1000000;
-}
-
-int DivPlatformJKMS16WM32O8::getClockRangeMax() {
-  return 600000000;
-}
-
 void DivPlatformJKMS16WM32O8::setFlags(const DivConfig& flags) {
-  chipClock=/*1<<28*/1<<24;
-  CHECK_CUSTOM_CLOCK;
-  rate=(int)((double)chipClock/256.0/*4096.0*/);
+  chipClock=1<<28;
+  rate=(int)((double)chipClock/4096.0);
   for (int i=0; i<32; i++) {
     oscBuf[i]->setRate(rate);
   }

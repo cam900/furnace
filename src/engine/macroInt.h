@@ -351,8 +351,8 @@ class DivMacroInt {
       ex9(DIV_MACRO_EX9),
       ex10(DIV_MACRO_EX10),
       hasRelease(false) {
-      memset(macroList,0,128*sizeof(void*));
-      memset(macroSource,0,128*sizeof(void*));
+      memset(macroList,0,4096*sizeof(void*));
+      memset(macroSource,0,4096*sizeof(void*));
     }
 };
 

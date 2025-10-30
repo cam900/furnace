@@ -97,9 +97,9 @@ class DivPlatformJKMS16WM32O8: public DivDispatch, public jkms16wm32o8_intf_t {
       freqL{0},
       freqH{0},
       hardReset(false),
-      globalLvol(32767),
+      globalLvol(255),
       globalRvol(32767),
-      globalLvolOut(32767),
+      globalLvolOut(255),
       globalRvolOut(32767),
       invertL(false),
       invertR(false),
@@ -160,8 +160,6 @@ class DivPlatformJKMS16WM32O8: public DivDispatch, public jkms16wm32o8_intf_t {
     virtual void notifyInsDeletion(void* ins) override;
     virtual void poke(unsigned int addr, unsigned short val) override;
     virtual void poke(std::vector<DivRegWrite>& wlist) override;
-    virtual int getClockRangeMin() override;
-    virtual int getClockRangeMax() override;
     virtual void setFlags(const DivConfig& flags) override;
     virtual int init(DivEngine* parent, int channels, int sugRate, const DivConfig& flags) override;
     virtual void quit() override;
