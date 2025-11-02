@@ -131,6 +131,8 @@ enum {
     } \
   }
 
+#define envTarget(t) (((t)<0)?((((unsigned short)(t)&0xffff)^0x7fff)+1):(t))
+
 #define CHIP_FREQBASE (1048576.0*4096.0)
 
 void DivPlatformJKMS16WM32O8::acquire(short** buf, size_t len) {
@@ -602,7 +604,7 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
       }
       if (m.envAtkT.had) {
         op.env.atkT=m.envAtkT.val;
-        opWrite(i,o,WM_ADDR_ENVAT,op.env.atkT);
+        opWrite(i,o,WM_ADDR_ENVAT,envTarget(op.env.atkT));
       }
       if (m.envAtkR.had) {
         op.env.atkR=m.envAtkR.val;
@@ -610,7 +612,7 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
       }
       if (m.envDecT.had) {
         op.env.decT=m.envDecT.val;
-        opWrite(i,o,WM_ADDR_ENVDT,op.env.decT);
+        opWrite(i,o,WM_ADDR_ENVDT,envTarget(op.env.decT));
       }
       if (m.envDecR.had) {
         op.env.decR=m.envDecR.val;
@@ -618,7 +620,7 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
       }
       if (m.envSusT.had) {
         op.env.susT=m.envSusT.val;
-        opWrite(i,o,WM_ADDR_ENVST,op.env.susT);
+        opWrite(i,o,WM_ADDR_ENVST,envTarget(op.env.susT));
       }
       if (m.envSusR.had) {
         op.env.susR=m.envSusR.val;
@@ -635,7 +637,7 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
 
       if (m.flfoT.had) {
         op.flfo.tgt=m.flfoT.val;
-        opWrite(i,o,WM_ADDR_FLFOT,op.flfo.tgt);
+        opWrite(i,o,WM_ADDR_FLFOT,envTarget(op.flfo.tgt));
       }
       if (m.flfoL.had) {
         op.flfo.rate=m.flfoL.val;
@@ -660,7 +662,7 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
 
       if (m.alfoT.had) {
         op.alfo.tgt=m.alfoT.val;
-        opWrite(i,o,WM_ADDR_ALFOT,op.alfo.tgt);
+        opWrite(i,o,WM_ADDR_ALFOT,envTarget(op.alfo.tgt));
       }
       if (m.alfoL.had) {
         op.alfo.rate=m.alfoL.val;
@@ -963,21 +965,25 @@ void DivPlatformJKMS16WM32O8::commitState(int ch, DivInstrument* ins) {
       opWrite(ch,i,WM_ADDR_FILT6Q,op.filter[6].q);
       opWrite(ch,i,WM_ADDR_FILT7F,op.filter[7].f);
       opWrite(ch,i,WM_ADDR_FILT7Q,op.filter[7].q);
-      opWrite(ch,i,WM_ADDR_ENVAT,op.env.atkT);
+      opWrite(ch,i,WM_ADDR_ENVDL,op.env.delR);
+      opWrite(ch,i,WM_ADDR_ENVIN,envTarget(op.env.initLv));
+      opWrite(ch,i,WM_ADDR_ENVAT,envTarget(op.env.atkT));
       opWrite(ch,i,WM_ADDR_ENVAR,op.env.atkR);
-      opWrite(ch,i,WM_ADDR_ENVDT,op.env.decT);
+      opWrite(ch,i,WM_ADDR_ENVDT,envTarget(op.env.decT));
       opWrite(ch,i,WM_ADDR_ENVDR,op.env.decR);
-      opWrite(ch,i,WM_ADDR_ENVST,op.env.susT);
+      opWrite(ch,i,WM_ADDR_ENVST,envTarget(op.env.susT));
       opWrite(ch,i,WM_ADDR_ENVSR,op.env.susR);
       opWrite(ch,i,WM_ADDR_ENVRR,op.env.relR);
       opWrite(ch,i,WM_ADDR_ENVMUL,op.env.mul);
-      opWrite(ch,i,WM_ADDR_FLFOT,op.flfo.tgt);
+      opWrite(ch,i,WM_ADDR_FLFODL,op.flfo.delR);
+      opWrite(ch,i,WM_ADDR_FLFOT,envTarget(op.flfo.tgt));
       opWrite(ch,i,WM_ADDR_FLFOL,op.flfo.rate);
       opWrite(ch,i,WM_ADDR_FLFOMUL,op.flfo.mul);
       opWrite(ch,i,WM_ADDR_FLFONP,op.flfo.noisePitch);
       opWrite(ch,i,WM_ADDR_FLFONIL,op.flfo.initLfsr);
       opWrite(ch,i,WM_ADDR_FLFONM,op.flfo.lfsrMask);
-      opWrite(ch,i,WM_ADDR_ALFOT,op.alfo.tgt);
+      opWrite(ch,i,WM_ADDR_ALFODL,op.alfo.delR);
+      opWrite(ch,i,WM_ADDR_ALFOT,envTarget(op.alfo.tgt));
       opWrite(ch,i,WM_ADDR_ALFOL,op.alfo.rate);
       opWrite(ch,i,WM_ADDR_ALFOMUL,op.alfo.mul);
       opWrite(ch,i,WM_ADDR_ALFONP,op.alfo.noisePitch);

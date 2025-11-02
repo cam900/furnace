@@ -318,7 +318,7 @@ namespace jkms16wm32o8
 											m_lfo_level = 0;
 											m_lfo_sign = 1;
 											m_lfo_out = 0;
-											m_delay_counter = get_target(m_delay_rate);
+											m_delay_counter = get_rate(m_delay_rate);
 											m_lfsr = m_initial_lfsr;
 										}
 									}
