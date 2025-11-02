@@ -554,6 +554,7 @@ set(ENGINE_SOURCES
 src/log.cpp
 src/baseutils.cpp
 src/fileutils.cpp
+src/timeutils.cpp
 src/utfutils.cpp
 
 extern/itcompress/compression.c
@@ -793,6 +794,7 @@ src/engine/export.cpp
 src/engine/exportDef.cpp
 src/engine/fileOpsIns.cpp
 src/engine/fileOpsSample.cpp
+src/engine/filePlayer.cpp
 src/engine/filter.cpp
 src/engine/instrument.cpp
 src/engine/macroInt.cpp
@@ -970,6 +972,7 @@ src/gui/about.cpp
 src/gui/channels.cpp
 src/gui/chanOsc.cpp
 src/gui/clock.cpp
+src/gui/commandPalette.cpp
 src/gui/compatFlags.cpp
 src/gui/csPlayer.cpp
 src/gui/cursor.cpp
@@ -989,14 +992,15 @@ src/gui/log.cpp
 src/gui/memory.cpp
 src/gui/mixer.cpp
 src/gui/midiMap.cpp
+src/gui/multiInsSetup.cpp
 src/gui/newSong.cpp
-src/gui/commandPalette.cpp
 src/gui/orders.cpp
 src/gui/osc.cpp
 src/gui/patManager.cpp
 src/gui/pattern.cpp
 src/gui/piano.cpp
 src/gui/presets.cpp
+src/gui/refPlayer.cpp
 src/gui/regView.cpp
 src/gui/sampleEdit.cpp
 src/gui/scaling.cpp
