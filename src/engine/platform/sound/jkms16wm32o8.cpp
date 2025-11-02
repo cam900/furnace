@@ -726,12 +726,23 @@ namespace jkms16wm32o8
 				break;
 			case 0x1e:
 			{
-				for (int f = 0; f < JKMS16WM32_MAX_FILTERS; f++)
+				for (int f = 0; f < 4; f++)
 				{
-					ret |= (op.filter(f).enable() ? (1 << (f << 2) | 3) : 0) |
-						(op.filter(f).lp_enable() ? (1 << (f << 2) | 2) : 0) |
-						(op.filter(f).hp_enable() ? (1 << (f << 2) | 1) : 0) |
-						(op.filter(f).bp_enable() ? (1 << (f << 2) | 0) : 0);
+					ret |= (op.filter(f).enable() ? (8 << (f << 2)) : 0) |
+						(op.filter(f).lp_enable() ? (4 << (f << 2)) : 0) |
+						(op.filter(f).hp_enable() ? (2 << (f << 2)) : 0) |
+						(op.filter(f).bp_enable() ? (1 << (f << 2)) : 0);
+				}
+				break;
+			}
+			case 0x1f:
+			{
+				for (int f = 4, b = 0; f < JKMS16WM32_MAX_FILTERS; f++, b++)
+				{
+					ret |= (op.filter(f).enable() ? (8 << (b << 2)) : 0) |
+						(op.filter(f).lp_enable() ? (4 << (b << 2)) : 0) |
+						(op.filter(f).hp_enable() ? (2 << (b << 2)) : 0) |
+						(op.filter(f).bp_enable() ? (1 << (b << 2)) : 0);
 				}
 				break;
 			}
@@ -967,13 +978,27 @@ namespace jkms16wm32o8
 				break;
 			case 0x1e:
 			{
-				for (int f = 0; f < JKMS16WM32_MAX_FILTERS; f++)
+				for (int f = 0; f < 4; f++)
 				{
 					const bool prev_filter_enable = op.filter(f).enable();
 					op.filter(f).set_enable(bitfield(data, (f << 2) | 3));
 					op.filter(f).set_lp_enable(bitfield(data, (f << 2) | 2));
 					op.filter(f).set_hp_enable(bitfield(data, (f << 2) | 1));
 					op.filter(f).set_bp_enable(bitfield(data, (f << 2) | 0));
+					if (op.is_keyon() && (!prev_filter_enable && op.filter(f).enable()))
+						op.filter(f).keyon();
+				}
+				break;
+			}
+			case 0x1f:
+			{
+				for (int f = 4, b = 0; f < JKMS16WM32_MAX_FILTERS; f++, b++)
+				{
+					const bool prev_filter_enable = op.filter(f).enable();
+					op.filter(f).set_enable(bitfield(data, (b << 2) | 3));
+					op.filter(f).set_lp_enable(bitfield(data, (b << 2) | 2));
+					op.filter(f).set_hp_enable(bitfield(data, (b << 2) | 1));
+					op.filter(f).set_bp_enable(bitfield(data, (b << 2) | 0));
 					if (op.is_keyon() && (!prev_filter_enable && op.filter(f).enable()))
 						op.filter(f).keyon();
 				}
