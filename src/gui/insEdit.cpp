@@ -7193,7 +7193,7 @@ void FurnaceGUI::insTabWM(DivInstrument* ins) {
               }
             }
             ImGui::TableNextColumn();
-            ImGui::TextUnformatted(_("FM output matrix"));
+            ImGui::TextUnformatted(_("FM output matrix (Op1 to 8)"));
             ImGui::EndDisabled();
 
             ImGui::BeginDisabled(!pmOut);
@@ -7225,7 +7225,7 @@ void FurnaceGUI::insTabWM(DivInstrument* ins) {
               }
             }
             ImGui::TableNextColumn();
-            ImGui::TextUnformatted(_("PM output matrix"));
+            ImGui::TextUnformatted(_("PM output matrix (Op1 to 8)"));
             ImGui::EndDisabled();
 
             ImGui::BeginDisabled(!amOut);
@@ -7257,7 +7257,7 @@ void FurnaceGUI::insTabWM(DivInstrument* ins) {
               }
             }
             ImGui::TableNextColumn();
-            ImGui::TextUnformatted(_("AM output matrix"));
+            ImGui::TextUnformatted(_("AM output matrix (Op1 to 8)"));
             ImGui::EndDisabled();
 
             ImGui::EndTable();
