@@ -1619,10 +1619,6 @@ bool DivPlatformJKMS16WM32O8::keyOffAffectsPorta(int ch) {
   return false;
 }
 
-bool DivPlatformJKMS16WM32O8::hasAcquireDirect() {
-  return true;
-}
-
 bool DivPlatformJKMS16WM32O8::getLegacyAlwaysSetVolume() {
   return false;
 }

@@ -153,7 +153,6 @@ class DivPlatformJKMS16WM32O8: public DivDispatch, public jkms16wm32o8_intf_t {
     virtual void muteChannel(int ch, bool mute) override;
     virtual bool keyOffAffectsArp(int ch) override;
     virtual bool keyOffAffectsPorta(int ch) override;
-    virtual bool hasAcquireDirect() override;
     virtual bool getLegacyAlwaysSetVolume() override;
     virtual void toggleRegisterDump(bool enable) override;
     virtual void notifyInsChange(int ins) override;
