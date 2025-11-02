@@ -36,7 +36,7 @@ Output rate: Input clock / 4096 (32 (sound channels) * 8 (operators) * 16 (tick 
 32 total sound channels:
 - 8 opetators per channel
   - Stereo output per operator
-  - Envelope, Frequency LFO, Amplitude LFO, 8 pole filters
+  - Envelope, Frequency LFO, Amplitude LFO, 8 pole Chamberlin State Variable Filters
   - Internal and external waveform support
     - Pulse, Sawtooth, Triangle internal wave support, can be accumulated simultaneously
 	- External waveform can be modified run-time - Mute, Horizontal/Vertical reverse/invert

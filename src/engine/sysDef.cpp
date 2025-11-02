@@ -2353,7 +2353,7 @@ void DivEngine::registerSystems() {
 
   sysDefs[DIV_SYSTEM_JKMS16WM32O8]=new DivSysDef(
     _("JKMS16WM32O8"), NULL, 0xfe/*placeholder*/, 0, 32, true, false, 0, false, 1<<DIV_SAMPLE_DEPTH_16BIT, 256, 256, 
-    _("fantasy sound chip created by cam900. it has FM, PM, AM, external/internal waveform generator."),
+    _("fantasy sound chip created by cam900. it has FM, PM, AM, external/internal waveform generator, filter, envelope and LFOs."),
     {_("Channel 1"), _("Channel 2"), _("Channel 3"), _("Channel 4"), _("Channel 5"), _("Channel 6"), _("Channel 7"), _("Channel 8"), _("Channel 9"), _("Channel 10"), _("Channel 11"), _("Channel 12"), _("Channel 13"), _("Channel 14"), _("Channel 15"), _("Channel 16"), _("Channel 17"), _("Channel 18"), _("Channel 19"), _("Channel 20"), _("Channel 21"), _("Channel 22"), _("Channel 23"), _("Channel 24"), _("Channel 25"), _("Channel 26"), _("Channel 27"), _("Channel 28"), _("Channel 29"), _("Channel 30"), _("Channel 31"), _("Channel 32")},
     {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32"},
     {DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM, DIV_CH_FM},
