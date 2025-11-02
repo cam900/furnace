@@ -7351,7 +7351,7 @@ void FurnaceGUI::insTabWM(DivInstrument* ins) {
             ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
             P(CWSliderScalar("##WMEnvMul",ImGuiDataType_S16,&op.env.mul,&_MINUS_THRTY_TWO_THOUSAND_SEVEN_HUNDRED_SIXTY_EIGHT,&_THRTY_TWO_THOUSAND_SEVEN_HUNDRED_SIXTY_SEVEN)); rightClickable
             ImGui::TableNextColumn();
-            ImGui::TextUnformatted(_("Envelope scale"));
+            ImGui::TextUnformatted(_("Envelope multipler"));
 
             ImGui::EndTable();
           }

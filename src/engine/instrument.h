@@ -762,7 +762,7 @@ struct DivInstrumentWM {
         atkT(0),
         decT(0),
         susT(0),
-        mul(0) {}
+        mul(0x7fff) {}
     } env;
 
     struct WMLfo {
@@ -792,7 +792,7 @@ struct DivInstrumentWM {
         initLfsr(0),
         lfsrMask(0),
         tgt(0),
-        mul(0) {}
+        mul(0x7fff) {}
     };
     WMLfo flfo, alfo;
 
@@ -878,7 +878,7 @@ struct DivInstrumentWM {
       extWSize(0),
       pitchMul(1),
       wavBase(0),
-      duty(0),
+      duty(0x8000),
       noisePitch(0),
       initLfsr(1),
       lfsrMask(0x8000),
@@ -888,7 +888,7 @@ struct DivInstrumentWM {
       spkrVol(32767),
       spkrLvol(32767),
       spkrRvol(32767),
-      initWave(0),
+      initWave(-1),
       initSample(-1),
       env(WMEnvelope()),
       flfo(WMLfo()),

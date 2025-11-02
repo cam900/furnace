@@ -384,32 +384,30 @@ namespace jkms16wm32o8
 			bool is_muted = false;
 			bool is_inverted = false;
 			const u32 internal_addr = (calculated_addr << (m_int_wave_size & 0xf)) & 0xffff;
-			u32 external_addr = (calculated_addr & 0xffff) >> (m_ext_wave_size & 0xf);
+			u32 external_addr = calculated_addr & (0xffff >> (m_ext_wave_size & 0xf));
 			if (m_mute.enable() && bitfield(calculated_addr, 16 - m_mute.bitpos()))
 				is_muted = true;
 			if (m_reverse.enable() && bitfield(calculated_addr, 16 - m_reverse.bitpos()))
 				external_addr ^= 0xffff >> (m_ext_wave_size & 0xf);
 			if (m_invert.enable() && bitfield(calculated_addr, 16 - m_invert.bitpos()))
 				is_inverted = true;
-			if (!is_muted)
-			{
-				if (bitfield(m_wave_bit, 0)) // pulse
-					m_wave_out += (internal_addr >= m_duty) ? -0x7fff : 0x7fff;
-				if (bitfield(m_wave_bit, 1)) // sawtooth
-					m_wave_out += s16(internal_addr);
-				if (bitfield(m_wave_bit, 2)) // triangle
-					m_wave_out += s16(((internal_addr & 0x8000) ? (0xffff - ((internal_addr & 0x7fff) << 1)) : ((internal_addr & 0x7fff) << 1)) ^ 0x8000);
-				if (bitfield(m_wave_bit, 3)) // noise
-					m_wave_out += (bitfield(m_lfsr, 0)) ? -0x7fff : 0x7fff;
-				if (bitfield(m_wave_bit, 4)) // inverted pulse
-					m_wave_out += (internal_addr <= m_duty) ? -0x7fff : 0x7fff;
-				if (bitfield(m_wave_bit, 5)) // inverted sawtooth
-					m_wave_out += s16(-internal_addr);
-				if (bitfield(m_wave_bit, 6)) // inverted triangle
-					m_wave_out += s16((((~internal_addr) & 0x8000) ? (0xffff - ((internal_addr & 0x7fff) << 1)) : ((internal_addr & 0x7fff) << 1)) ^ 0x8000);
-				if (bitfield(m_wave_bit, 7)) // external
-					m_wave_out += s16(m_host.m_host.m_intf.read_wave((m_wave_base + (external_addr ^ (is_inverted ? (0xffff >> (m_ext_wave_size & 0xf)) : 0))) & 0xffff));
-			}
+			if (bitfield(m_wave_bit, 0)) // pulse
+				m_wave_out += (internal_addr >= m_duty) ? -0x7fff : 0x7fff;
+			if (bitfield(m_wave_bit, 1)) // sawtooth
+				m_wave_out += s16(internal_addr);
+			if (bitfield(m_wave_bit, 2)) // triangle
+				m_wave_out += s16(((internal_addr & 0x8000) ? (0xffff - ((internal_addr & 0x7fff) << 1)) : ((internal_addr & 0x7fff) << 1)) ^ 0x8000);
+			if (bitfield(m_wave_bit, 3)) // noise
+				m_wave_out += (bitfield(m_lfsr, 0)) ? -0x7fff : 0x7fff;
+			if (bitfield(m_wave_bit, 4)) // inverted pulse
+				m_wave_out += (internal_addr <= m_duty) ? -0x7fff : 0x7fff;
+			if (bitfield(m_wave_bit, 5)) // inverted sawtooth
+				m_wave_out += s16(-internal_addr);
+			if (bitfield(m_wave_bit, 6)) // inverted triangle
+				m_wave_out += s16((((~internal_addr) & 0x8000) ? (0xffff - ((internal_addr & 0x7fff) << 1)) : ((internal_addr & 0x7fff) << 1)) ^ 0x8000);
+			if (bitfield(m_wave_bit, 7) && (!is_muted)) // external
+				m_wave_out += s16((m_host.m_host.m_intf.read_wave((m_wave_base + external_addr) & 0xffff) ^ (is_inverted ? 0xffff : 0)) - 0x8000);
+
 			if (m_filter_out)
 			{
 				s32 prev = m_wave_out;

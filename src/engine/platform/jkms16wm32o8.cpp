@@ -846,7 +846,7 @@ void DivPlatformJKMS16WM32O8::updateWave(int ch, int op, int wave, int pos, int 
         chip.host_w(4,1);
         for (int i=0; i<len; i++) {
           unsigned int addr=(i*s->length8)/len;
-          int data=s->data16[addr];
+          int data=(unsigned short)(s->data16[addr])^0x8000;
           chip.host_w(3,data&0xffff);
         }
       }
@@ -860,7 +860,7 @@ void DivPlatformJKMS16WM32O8::updateWave(int ch, int op, int wave, int pos, int 
         chip.host_w(4,1);
         for (int i=0; i<len; i++) {
           unsigned int addr=(i*wt->len)/len;
-          int data=(wt->data[addr]*65535)/wt->max;
+          int data=(unsigned short)((wt->data[addr]*65535)/wt->max)^0x8000;
           chip.host_w(3,data&0xffff);
         }
       }
@@ -870,7 +870,7 @@ void DivPlatformJKMS16WM32O8::updateWave(int ch, int op, int wave, int pos, int 
 
 void DivPlatformJKMS16WM32O8::updateWaveCh(int ch, int op) {
   if (ch>=0 && ch<=32) {
-    updateWave(ch,op,-1,(chan[ch].state.op[op].useSample)?chan[ch].state.op[op].initSample:chan[ch].state.op[op].initWave,chan[ch].state.op[op].extWSize);
+    updateWave(ch,op,(chan[ch].state.op[op].useSample)?chan[ch].state.op[op].initSample:chan[ch].state.op[op].initWave,chan[ch].state.op[op].wavBase,chan[ch].state.op[op].extWSize);
   }
 }
 
@@ -908,6 +908,7 @@ void DivPlatformJKMS16WM32O8::commitState(int ch, DivInstrument* ins) {
         opWrite(ch,i,WM_ADDR_WBIT,bPosval);
         unsigned short wGenVal=((op.intWSize&0xf)<<12)|((op.extWSize&0xf)<<8)|(op.wavBit&0xff);
         opWrite(ch,i,WM_ADDR_WGEN,wGenVal);
+        opWrite(ch,i,WM_ADDR_WADDR,op.wavBase);
         chan[ch].opsState[i].waveUpdated=true;
       }
     }
