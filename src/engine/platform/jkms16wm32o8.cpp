@@ -862,7 +862,7 @@ void DivPlatformJKMS16WM32O8::updateWave(int ch, int op, int wave, int pos, int 
         chip.host_w(4,1);
         for (int i=0; i<len; i++) {
           unsigned int addr=(i*wt->len)/len;
-          int data=(unsigned short)((wt->data[addr]*65535)/wt->max)^0x8000;
+          int data=(unsigned short)((wt->data[addr]*65535)/wt->max);
           chip.host_w(3,data&0xffff);
         }
       }
