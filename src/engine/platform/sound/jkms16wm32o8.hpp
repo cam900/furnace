@@ -323,7 +323,7 @@ namespace jkms16wm32o8
 										}
 									}
 
-									s64 result() const { return (s64(m_lfo_out) * s64(m_multiplier)) >> 15; }
+									s64 result() const { return (s64(m_lfo_out) * s64(m_multiplier)) >> 26; }
 
 									// getters
 									bool enable() const { return m_enable; }

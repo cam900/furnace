@@ -435,7 +435,7 @@ namespace jkms16wm32o8
 			if (m_env.enable())
 				m_op_out = (m_op_out * m_env.result()) >> 26;
 			if (m_alfo.enable())
-				m_op_out = clamp<s64>((m_op_out + m_alfo.result()) >> 26, -0x8000, 0x7fff);
+				m_op_out = clamp<s64>(m_op_out + m_alfo.result(), -0x8000, 0x7fff);
 
 			m_op_out = clamp((m_op_out * m_total_level) >> 15, -0x8000, 0x7fff);
 			if (m_speaker_out_enable)
@@ -445,9 +445,9 @@ namespace jkms16wm32o8
 				m_rout = clamp((out * m_speaker_rvol) >> 15, -0x8000, 0x7fff);
 			}
 
-			m_fm_in.reset();
-			m_pm_in.reset();
-			m_am_in.reset();
+			m_fm_in.reset_input();
+			m_pm_in.reset_input();
+			m_am_in.reset_input();
 			if (m_fm_out.enable())
 			{
 				for (int op = 0; op < JKMS16WM32_MAX_OPERATORS; op++)
@@ -504,9 +504,9 @@ namespace jkms16wm32o8
 		}
 		else
 		{
-			m_fm_in.reset();
-			m_pm_in.reset();
-			m_am_in.reset();
+			m_fm_in.reset_input();
+			m_pm_in.reset_input();
+			m_am_in.reset_input();
 		}
 	}
 
