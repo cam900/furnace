@@ -781,6 +781,8 @@ src/engine/platform/sound/sid2/wave.cc
 
 src/engine/platform/sound/sid3.c
 
+src/engine/platform/sound/jkms16m24/jkms16m24.cpp
+
 src/engine/platform/oplAInterface.cpp
 src/engine/platform/ym2608Interface.cpp
 src/engine/platform/ym2610Interface.cpp
