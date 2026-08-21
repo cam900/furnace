@@ -34,7 +34,7 @@ freely, subject to the following restrictions:
 JKMS16M24 Fantasy sound generator chip
 
 Recommend input clock: 98.304MHz
-Output rate: Input clock / 96 (24 groups / 4 operators)
+Output rate: Input clock / 384 (24 groups / 4 operators / 4 cycle)
 
 Features:
 - 24 operator groups (act as channels)
