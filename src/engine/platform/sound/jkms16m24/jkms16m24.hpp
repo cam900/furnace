@@ -1128,6 +1128,8 @@ namespace jkms16m24
 
 							GETTER(bool, keyon)
 
+							GETTER(u16, addr)
+
 							GETTER(s64, loutput)
 							GETTER(s64, routput)
 

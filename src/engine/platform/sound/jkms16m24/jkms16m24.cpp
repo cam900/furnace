@@ -148,6 +148,8 @@ namespace jkms16m24
 		0x2d     15-0  FM input scale (16 bit signed)
 		0x2e     15-0  AM input scale (16 bit signed)
 		0x2f     15-0  PM input scale (16 bit signed)
+		Status
+		9z30     15-0  Waveform address/phase (Read only)
 
 		* Envelope delay time/Envelope stage rate/LFO speed calculation:
 		- Exponent: Top 4 bit of register
@@ -378,6 +380,9 @@ namespace jkms16m24
 				break;
 			case 0x2f:
 				ret = group.op(m_operator_index).get_pm_input_scale();
+				break;
+			case 0x30:
+				ret = group.op(m_operator_index).get_addr();
 				break;
 		}
 		return ret;
