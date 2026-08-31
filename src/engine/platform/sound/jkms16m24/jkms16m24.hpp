@@ -1000,12 +1000,12 @@ namespace jkms16m24
 								if (!m_tremolo_sync)
 									m_tremolo.tick();
 
-								m_output = (m_wave_out * m_wave_scale) >> 15;
 								if (m_filter.get_enable())
 								{
-									m_filter.tick(m_output);
+									m_filter.tick(m_wave_out);
 									m_output = m_filter.get_output();
 								}
+								m_output = (m_output * m_wave_scale) >> 15;
 								if (m_envelope.get_enable())
 								{
 									const s64 env_out = s64(s64(m_envelope.get_output()) * s64(m_envelope_scale)) >> 15;
