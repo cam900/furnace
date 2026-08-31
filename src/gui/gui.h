@@ -388,6 +388,7 @@ enum FurnaceGUIColors {
   GUI_COLOR_INSTR_SUPERVISION,
   GUI_COLOR_INSTR_UPD1771C,
   GUI_COLOR_INSTR_SID3,
+  GUI_COLOR_INSTR_KLATTSCH,
   GUI_COLOR_INSTR_UNKNOWN,
 
   GUI_COLOR_CHANNEL_BG,
@@ -2067,6 +2068,7 @@ class FurnaceGUI {
     int opllCore;
     int ayCore;
     int swanCore;
+    int opzCore;
     int dsidQuality;
     int gbQuality;
     int pnQuality;
@@ -2088,6 +2090,7 @@ class FurnaceGUI {
     int opllCoreRender;
     int ayCoreRender;
     int swanCoreRender;
+    int opzCoreRender;
     int dsidQualityRender;
     int gbQualityRender;
     int pnQualityRender;
@@ -2319,6 +2322,7 @@ class FurnaceGUI {
       opllCore(0),
       ayCore(0),
       swanCore(0),
+      opzCore(0),
       dsidQuality(3),
       gbQuality(3),
       pnQuality(3),
@@ -2340,6 +2344,7 @@ class FurnaceGUI {
       opllCoreRender(0),
       ayCoreRender(0),
       swanCoreRender(0),
+      opzCoreRender(0),
       dsidQualityRender(3),
       gbQualityRender(3),
       pnQualityRender(3),
