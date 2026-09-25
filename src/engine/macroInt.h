@@ -119,9 +119,9 @@ class DivMacroInt {
   // the related instrument.
   DivInstrument* ins;
   // list of macros to run. populated during note on.
-  DivMacroStruct* macroList[4096];
+  DivMacroStruct** macroList;
   // sources of macros to run.
-  DivInstrumentMacro* macroSource[4096];
+  DivInstrumentMacro** macroSource;
   // number of macros to process.
   size_t macroListLen;
   // the current "sub-tick". in low-latency mode, this counts how many engine ticks remain until the next song tick.
@@ -167,7 +167,9 @@ class DivMacroInt {
         vib(DIV_MACRO_OP_VIB),
         ws(DIV_MACRO_OP_WS),
         ksr(DIV_MACRO_OP_KSR) {}
-    } op[4];
+    };
+
+    IntOp* op;
 
     // WM operator macro
     struct IntWm {
@@ -334,7 +336,9 @@ class DivMacroInt {
         alfoNPitch(DIV_MACRO_WM_ALFONPITCH),
         alfoNILfsr(DIV_MACRO_WM_ALFONILFSR),
         alfoNMask(DIV_MACRO_WM_ALFONMASK) {}
-    } wm[8];
+    };
+  
+    IntWm* wm;
 
     // state
     bool hasRelease;
@@ -416,8 +420,21 @@ class DivMacroInt {
       ex9(DIV_MACRO_EX9),
       ex10(DIV_MACRO_EX10),
       hasRelease(false) {
-      memset(macroList,0,4096*sizeof(void*));
-      memset(macroSource,0,4096*sizeof(void*));
+      macroList=new DivMacroStruct*[4096];
+      macroSource=new DivInstrumentMacro*[4096];
+      op=new IntOp[4];
+      wm=new IntWm[8];
+      for (int i=0; i<4096; i++) {
+        macroList[i]=NULL;
+        macroSource[i]=NULL;
+      }
+    }
+
+    virtual ~DivMacroInt() {
+      delete[] wm;
+      delete[] op;
+      delete[] macroSource;
+      delete[] macroList;
     }
 };
 
