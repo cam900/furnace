@@ -759,24 +759,27 @@ namespace jkms16wm32o8
 				public:
 					channel_t(jkms16wm32o8_t &host)
 						: m_host(host)
-						, m_op{
-								operator_t(*this), operator_t(*this),
-								operator_t(*this), operator_t(*this),
-								operator_t(*this), operator_t(*this),
-								operator_t(*this), operator_t(*this)
-							}
+						, m_op(nullptr)
 						, m_lout(0)
 						, m_rout(0)
 						, m_lvol(0)
 						, m_rvol(0)
 					{
+						m_op = new operator_t [JKMS16WM32_MAX_OPERATORS] {
+							*this, *this, *this, *this, *this, *this, *this, *this, 
+						};
+					}
+
+					virtual ~channel_t()
+					{
+						delete [] m_op;
 					}
 
 					void reset()
 					{
-						for (operator_t &op : m_op)
+						for (int i = 0; i < JKMS16WM32_MAX_OPERATORS; i++)
 						{
-							op.reset();
+							m_op[i].reset();
 						}
 						m_lout = 0;
 						m_rout = 0;
@@ -800,7 +803,7 @@ namespace jkms16wm32o8
 				private:
 					// classes / structs
 					jkms16wm32o8_t &m_host;
-					std::array<operator_t, JKMS16WM32_MAX_OPERATORS> m_op;
+					operator_t *m_op;
 					// internal states
 					s32 m_lout = 0;
 					s32 m_rout = 0;
@@ -811,21 +814,23 @@ namespace jkms16wm32o8
 		public:
 			jkms16wm32o8_t(jkms16wm32o8_intf_t &intf)
 				: m_intf(intf)
-				, m_channel{
-					channel_t(*this), channel_t(*this), channel_t(*this), channel_t(*this),
-					channel_t(*this), channel_t(*this), channel_t(*this), channel_t(*this),
-					channel_t(*this), channel_t(*this), channel_t(*this), channel_t(*this),
-					channel_t(*this), channel_t(*this), channel_t(*this), channel_t(*this),
-					channel_t(*this), channel_t(*this), channel_t(*this), channel_t(*this),
-					channel_t(*this), channel_t(*this), channel_t(*this), channel_t(*this),
-					channel_t(*this), channel_t(*this), channel_t(*this), channel_t(*this),
-					channel_t(*this), channel_t(*this), channel_t(*this), channel_t(*this),
-				}
+				, m_channel(nullptr)
 				, m_register_select(0)
 				, m_sound_enable(false)
 				, m_op_select(0)
 				, m_channel_select(0)
 			{
+				m_channel = new channel_t [JKMS16WM32_MAX_CHANNELS] {
+					*this, *this, *this, *this, *this, *this, *this, *this,
+					*this, *this, *this, *this, *this, *this, *this, *this,
+					*this, *this, *this, *this, *this, *this, *this, *this,
+					*this, *this, *this, *this, *this, *this, *this, *this
+				};
+			}
+
+			virtual ~jkms16wm32o8_t()
+			{
+				delete [] m_channel;
 			}
 
 			void reset();
@@ -845,7 +850,7 @@ namespace jkms16wm32o8
 
 			// classes / structs
 			jkms16wm32o8_intf_t &m_intf;
-			std::array<channel_t, JKMS16WM32_MAX_CHANNELS> m_channel;
+			channel_t *m_channel;
 			// internal states
 			s32 m_lout = 0;
 			s32 m_rout = 0;

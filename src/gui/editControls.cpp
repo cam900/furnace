@@ -1,6 +1,6 @@
 /**
  * Furnace Tracker - multi-system chiptune tracker
- * Copyright (C) 2021-2025 tildearrow and contributors
+ * Copyright (C) 2021-2026 tildearrow and contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -610,6 +610,10 @@ void FurnaceGUI::drawMobileControls() {
           userPresetsOpen=!userPresetsOpen;
         }
         ImGui::SameLine();
+        if (ImGui::Button(_("Backups"))) {
+          backupsManagerOpen=!backupsManagerOpen;
+        }
+        ImGui::SameLine();
         if (ImGui::Button(_("PatManager"))) {
           patManagerOpen=!patManagerOpen;
         }
@@ -650,6 +654,13 @@ void FurnaceGUI::drawMobileControls() {
         ImGui::SameLine();
         if (ImGui::Button(_("RefPlayer"))) {
           refPlayerOpen=!refPlayerOpen;
+        }
+        if (ImGui::Button(_("Tuner"))) {
+          tunerOpen=!tunerOpen;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(_("Spectrum"))) {
+          spectrumOpen=!spectrumOpen;
         }
         if (ImGui::Button(_("Switch to Desktop Mode"))) {
           toggleMobileUI(!mobileUI);

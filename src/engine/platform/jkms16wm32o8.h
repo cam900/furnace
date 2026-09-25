@@ -27,7 +27,7 @@ using namespace jkms16wm32o8;
 class DivPlatformJKMS16WM32O8: public DivDispatch, public jkms16wm32o8_intf_t {
   const unsigned int hardResetCycles=127;
 
-  struct Channel: public SharedChannel<int> {
+  struct Channel: public SharedChannel {
     DivInstrumentWM state;
     unsigned short freqL[8], freqH[8];
     bool hardReset;
@@ -91,9 +91,23 @@ class DivPlatformJKMS16WM32O8: public DivDispatch, public jkms16wm32o8_intf_t {
         opsState[o].hasOpPitch=false;
       }
     }
+  
+    int calcFreq(int pitchMult=1, bool arpOverride=false, int arpVal=0, bool pitch2Override=false, int pitch2Val=0) {
+      int tempPitch2=pitch2;
+      if (pitch2Override) tempPitch2=pitch2Val;
+      if (rawFreq) return baseFreq+tempPitch2;
+      if (pitchTable==NULL) return 0;
+      if (!pitchTable->linearity) {
+        return pitchTable->get(baseFreq,pitch*pitchMult,tempPitch2);
+      }
+      if (fixedArp) {
+        return pitchTable->get((arpOverride?arpVal:baseNoteOverride)<<7,pitch,tempPitch2);
+      }
+      return pitchTable->get(baseFreq+((arpOverride?arpVal:arpOff)<<7),pitch,tempPitch2);
+    }
 
-    Channel():
-      SharedChannel<int>(32767),
+    Channel(bool linear=true):
+      SharedChannel(32767,linear),
       freqL{0},
       freqH{0},
       hardReset(false),
@@ -114,9 +128,10 @@ class DivPlatformJKMS16WM32O8: public DivDispatch, public jkms16wm32o8_intf_t {
   };
   Channel chan[32];
   DivDispatchOscBuffer* oscBuf[32];
+  DivPitchTable pitchTable;
   bool isMuted[32];
   int curChan, curOp;
-  jkms16wm32o8_t chip;
+  jkms16wm32o8_t *chip;
   short oldOut[2];
   unsigned short *waveRAM;
 
@@ -139,7 +154,7 @@ class DivPlatformJKMS16WM32O8: public DivDispatch, public jkms16wm32o8_intf_t {
 
     virtual void acquire(short** buf, size_t len) override;
     virtual int dispatch(DivCommand c) override;
-    virtual void* getChanState(int chan) override;
+    virtual SharedChannel* getChanState(int chan) override;
     virtual DivMacroInt* getChanMacroInt(int ch) override;
     virtual unsigned short getPan(int ch) override;
     virtual DivDispatchOscBuffer* getOscBuffer(int chan) override;
@@ -154,17 +169,19 @@ class DivPlatformJKMS16WM32O8: public DivDispatch, public jkms16wm32o8_intf_t {
     virtual bool keyOffAffectsArp(int ch) override;
     virtual bool keyOffAffectsPorta(int ch) override;
     virtual bool getLegacyAlwaysSetVolume() override;
+    virtual bool hasSoftPan(int ch) override;
     virtual void toggleRegisterDump(bool enable) override;
     virtual void notifyInsChange(int ins) override;
     virtual void notifyInsDeletion(void* ins) override;
     virtual void poke(unsigned int addr, unsigned short val) override;
     virtual void poke(std::vector<DivRegWrite>& wlist) override;
+    virtual void notifyPitchTable(int sample=-1) override;
+    virtual unsigned int getMaxFreq(int ch) override;
     virtual void setFlags(const DivConfig& flags) override;
     virtual int init(DivEngine* parent, int channels, int sugRate, const DivConfig& flags) override;
     virtual void quit() override;
     DivPlatformJKMS16WM32O8():
       DivDispatch(),
-      jkms16wm32o8_intf_t(),
-      chip(*this) {}
+      jkms16wm32o8_intf_t() {}
     ~DivPlatformJKMS16WM32O8();
 };

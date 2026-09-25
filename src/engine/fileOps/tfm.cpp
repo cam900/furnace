@@ -1,6 +1,6 @@
 /**
  * Furnace Tracker - multi-system chiptune tracker
- * Copyright (C) 2021-2025 tildearrow and contributors
+ * Copyright (C) 2021-2026 tildearrow and contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ public:
       //logD("one char RLE decompressed, tag left: %d, char: %d",tagLenLeft,tagChar);
       return tagChar;
     }
-    if (curSeek>len) throw TFMEndOfFileException(this,len);
+    if (curSeek>=len) throw TFMEndOfFileException(this,len);
 
     unsigned char ret=buf[curSeek++];
 
@@ -94,6 +94,7 @@ public:
     // TFM music maker actually uses double 0x80 to escape the 0x80
     // for example: 0xDA 0x80 0x80 0x00 0x23 = 0xDA 0x80 0x00 0x23)
     if (ret==0x80) {
+      if (curSeek<2) throw TFMEndOfFileException(this,len);
       decodeRLE(buf[curSeek-2]);
       tagLenLeft--;
       return tagChar;
@@ -102,7 +103,7 @@ public:
   }
 
   signed char readCNoRLE() {
-    if (curSeek>len) throw TFMEndOfFileException(this,len);
+    if (curSeek>=len) throw TFMEndOfFileException(this,len);
     return buf[curSeek++];
   }
 
@@ -118,8 +119,8 @@ public:
   void readNoRLE(unsigned char *b, size_t l) {
     int i=0;
     while (l--) {
+      if (curSeek>=len) throw TFMEndOfFileException(this,len);
       b[i++]=buf[curSeek++];
-      if (curSeek>len) throw TFMEndOfFileException(this,len);
     }
   }
 
@@ -244,7 +245,7 @@ void TFMParsePattern(struct TFMParsePatternInfo info) {
 
     logD("parsing pattern %d",i);
     for (int j=0; j<6; j++) {
-      DivPattern* pat = info.ds->subsong[0]->pat[j].data[i];
+      DivPattern* pat = info.ds->subsong[0]->pat[j].getPattern(i,true);
 
       // notes
       info.reader->read(patDataBuf,256);
@@ -463,7 +464,7 @@ void TFMParsePattern(struct TFMParsePatternInfo info) {
     }
     for (int j=0; j<6; j++) {
       for (int l=0; l<usedEffectsCol; l++) {
-        DivPattern* pat = info.ds->subsong[0]->pat[j].data[info.orderList[i]];
+        DivPattern* pat = info.ds->subsong[0]->pat[j].getPattern(info.orderList[i],true);
         unsigned char truePatLen=(info.patLens[info.orderList[i]]<info.ds->subsong[0]->patLen) ? info.patLens[info.orderList[i]] : info.ds->subsong[0]->patLen;
 
         // default instrument
@@ -515,6 +516,7 @@ void TFMParsePattern(struct TFMParsePatternInfo info) {
 
   if (lastPatSeen>1) {
     // clone the last pattern
+    // TODO: this is very error-prone. check for memory corruption.
     info.maxPat++;
     for (int i=0;i<6;i++) {
       int lastPatNum=info.ds->subsong[0]->orders.ord[i][info.ds->subsong[0]->ordersLen - 1];
@@ -551,7 +553,7 @@ bool DivEngine::loadTFMv1(unsigned char* file, size_t len) {
     ds.systemLen=1;
 
     ds.system[0]=DIV_SYSTEM_YM2612;
-    ds.loopModality=1;
+    ds.compatFlags.loopModality=1;
 
     unsigned char speed=reader.readCNoRLE();
     unsigned char interleaveFactor=reader.readCNoRLE();
@@ -704,13 +706,15 @@ bool DivEngine::loadTFMv1(unsigned char* file, size_t len) {
     info.loopPos=loopPos;
     TFMParsePattern(info);
 
+    ds.recalcChans();
+
     if (active) quitDispatch();
     BUSY_BEGIN_SOFT;
     saveLock.lock();
     song.unload();
     song=ds;
+    hasLoadedSomething=true;
     changeSong(0);
-    recalcChans();
     saveLock.unlock();
     BUSY_END;
     if (active) {
@@ -744,7 +748,7 @@ bool DivEngine::loadTFMv2(unsigned char* file, size_t len) {
     ds.systemLen=1;
 
     ds.system[0]=DIV_SYSTEM_YM2612;
-    ds.loopModality=1;
+    ds.compatFlags.loopModality=1;
 
     unsigned char magic[8]={0};
 
@@ -904,13 +908,16 @@ bool DivEngine::loadTFMv2(unsigned char* file, size_t len) {
     info.loopPos=loopPos;
     TFMParsePattern(info);
 
+    ds.initDefaultSystemChans();
+    ds.recalcChans();
+
     if (active) quitDispatch();
     BUSY_BEGIN_SOFT;
     saveLock.lock();
     song.unload();
     song=ds;
+    hasLoadedSomething=true;
     changeSong(0);
-    recalcChans();
     saveLock.unlock();
     BUSY_END;
     if (active) {

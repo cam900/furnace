@@ -1,6 +1,6 @@
 /**
  * Furnace Tracker - multi-system chiptune tracker
- * Copyright (C) 2021-2025 tildearrow and contributors
+ * Copyright (C) 2021-2026 tildearrow and contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -147,12 +147,12 @@ bool DivEngine::loadFC(unsigned char* file, size_t len) {
     DivSong ds;
     ds.tuning=436.0;
     ds.version=DIV_VERSION_FC;
-    //ds.linearPitch=0;
-    //ds.pitchMacroIsLinear=false;
-    //ds.noSlidesOnFirstTick=true;
-    //ds.rowResetsArpPos=true;
-    ds.pitchSlideSpeed=8;
-    ds.ignoreJumpAtEnd=false;
+    //ds.compatFlags.linearPitch=0;
+    //ds.compatFlags.pitchMacroIsLinear=false;
+    //ds.compatFlags.noSlidesOnFirstTick=true;
+    //ds.compatFlags.rowResetsArpPos=true;
+    ds.compatFlags.pitchSlideSpeed=8;
+    ds.compatFlags.ignoreJumpAtEnd=false;
 
     // load here
     if (!reader.seek(0,SEEK_SET)) {
@@ -664,13 +664,16 @@ bool DivEngine::loadFC(unsigned char* file, size_t len) {
     ds.subsong[0]->optimizePatterns();
     ds.subsong[0]->rearrangePatterns();
 
+    ds.initDefaultSystemChans();
+    ds.recalcChans();
+
     if (active) quitDispatch();
     BUSY_BEGIN_SOFT;
     saveLock.lock();
     song.unload();
     song=ds;
+    hasLoadedSomething=true;
     changeSong(0);
-    recalcChans();
     saveLock.unlock();
     BUSY_END;
     if (active) {

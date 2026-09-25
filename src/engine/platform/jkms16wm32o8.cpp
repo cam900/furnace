@@ -101,16 +101,16 @@ enum {
 #define rWrite(a,v) { \
     if (!skipRegisterWrites) { \
       regPool[((a)&0x7fff)]=(v)&0xffff; \
-      chip.host_w(0,((a)&0x7f)); \
-      chip.host_w(1,(v)); \
+      chip->host_w(0,((a)&0x7f)); \
+      chip->host_w(1,(v)); \
     } \
   }
 
 #define chWrite(c,a,v) { \
     if (!skipRegisterWrites) { \
       if (curChan!=(c)) { \
-        chip.host_w(0,WM_ADDR_CHSEL); \
-        chip.host_w(1,0x8000|(((c)&0x1f)<<3)|(curOp&7)); \
+        chip->host_w(0,WM_ADDR_CHSEL); \
+        chip->host_w(1,0x8000|(((c)&0x1f)<<3)|(curOp&7)); \
         curChan=(c); \
         regPool[0]=0x8000|(((c)&0x1f)<<3)|(curOp&7); \
       } \
@@ -121,8 +121,8 @@ enum {
 #define opWrite(c,o,a,v) { \
     if (!skipRegisterWrites) { \
       if (curChan!=(c) || curOp!=(o)) { \
-        chip.host_w(0,WM_ADDR_CHSEL); \
-        chip.host_w(1,0x8000|(((c)&0x1f)<<3)|((o)&7)); \
+        chip->host_w(0,WM_ADDR_CHSEL); \
+        chip->host_w(1,0x8000|(((c)&0x1f)<<3)|((o)&7)); \
         curChan=(c); \
         curOp=(o); \
         regPool[0]=0x8000|(((c)&0x1f)<<3)|((o)&7); \
@@ -140,15 +140,15 @@ void DivPlatformJKMS16WM32O8::acquire(short** buf, size_t len) {
     oscBuf[i]->begin(len);
   }
   for (size_t h=0; h<len; h++) {
-    chip.tick();
+    chip->tick();
     for (int c=0; c<32; c++) {
-      int chOut=(chip.channel(c).lout()+chip.channel(c).rout())>>1;
+      int chOut=(chip->channel(c).lout()+chip->channel(c).rout())>>1;
       oscBuf[c]->putSample(h,chOut);
     }
-    int lout=chip.lout();
+    int lout=chip->lout();
     if (lout<-32768) lout=-32768;
     if (lout>32767) lout=32767;
-    int rout=chip.rout();
+    int rout=chip->rout();
     if (rout<-32768) rout=-32768;
     if (rout>32767) rout=32767;
 
@@ -170,9 +170,9 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
 
     if (NEW_ARP_STRAT) {
       chan[i].handleArp();
-    } else if (chan[i].std.arp.had) {
+    } else if (chan[i].std.arp.had && chan[i].rawFreq) {
       if (!chan[i].inPorta) {
-        chan[i].baseFreq=NOTE_FREQUENCY(parent->calcArp(chan[i].note,chan[i].std.arp.val));
+        chan[i].baseFreq=chan[i].calcBaseFreq(parent->calcArp(chan[i].note,chan[i].std.arp.val));
       }
       chan[i].freqChanged=true;
     }
@@ -758,28 +758,31 @@ void DivPlatformJKMS16WM32O8::tick(bool sysTick) {
 
   for (int i=0; i<32; i++) {
     if (chan[i].freqChanged) {
-      chan[i].freq=parent->calcFreq(chan[i].baseFreq,chan[i].pitch,chan[i].fixedArp?chan[i].baseNoteOverride:chan[i].arpOff,chan[i].fixedArp,false,2,chan[i].pitch2,chipClock,CHIP_FREQBASE);
-      if (chan[i].freq<0x1000) chan[i].freq=0x1000;
-      if (chan[i].freq>0xfffffff) chan[i].freq=0xfffffff;
+      chan[i].freq=chan[i].calcFreq();
+      if (!chan[i].rawFreq) {
+        if (chan[i].freq<0x1000) chan[i].freq=0x1000;
+        if (chan[i].freq>0xfffffff) chan[i].freq=0xfffffff;
+      }
 
       for (int o=0; o<8; o++) {
         DivInstrumentWM::WMOperator& op=chan[i].state.op[o];
         int dt=(int)op.dt;
-        if (op.fixed && !op.pitchCtrl) {
+        if (chan[i].rawFreq) {
+          chan[i].freqL[o]=chan[i].freq&0xfff;
+          chan[i].freqH[o]=(chan[i].freq>>12)&0xf;
+        } else if (op.fixed && !op.pitchCtrl) {
           chan[i].freqL[o]=op.fixedFreq&0xfff;
           chan[i].freqH[o]=(op.fixedFreq>>12)&0xf;
         } else {
           int arp=chan[i].fixedArp?chan[i].baseNoteOverride:chan[i].arpOff;
           int pitch2=chan[i].pitch2+dt;
-          int fixedArp=chan[i].fixedArp;
           if(chan[i].opsState[o].hasOpArp) {
             arp=chan[i].opsState[o].fixedArp?chan[i].opsState[o].baseNoteOverride:chan[i].opsState[o].arpOff;
-            fixedArp=chan[i].opsState[o].fixedArp;
           }
           if(chan[i].opsState[o].hasOpPitch) {
             pitch2=chan[i].opsState[o].pitch2+dt;
           }
-          int opFreq=parent->calcFreq(chan[i].baseFreq,chan[i].pitch,arp,fixedArp,false,2,pitch2,chipClock,CHIP_FREQBASE);
+          int opFreq=chan[i].calcFreq(1,chan[i].opsState[o].hasOpArp,arp,chan[i].opsState[o].hasOpPitch,pitch2);
           opFreq=(opFreq*(op.pitchMul?op.pitchMul:1))>>((op.pitchMul)?0:1);
           if (opFreq<0x1000) opFreq=0x1000;
           chan[i].freqH[o]=0;
@@ -844,12 +847,12 @@ void DivPlatformJKMS16WM32O8::updateWave(int ch, int op, int wave, int pos, int 
     if (wave>=0 && wave<parent->song.sampleLen) {
       DivSample* s=parent->getSample(wave);
       if (s!=NULL) {
-        chip.host_w(2,pos);
-        chip.host_w(4,1);
+        chip->host_w(2,pos);
+        chip->host_w(4,1);
         for (int i=0; i<len; i++) {
           unsigned int addr=(i*s->length8)/len;
           int data=(unsigned short)(s->data16[addr])^0x8000;
-          chip.host_w(3,data&0xffff);
+          chip->host_w(3,data&0xffff);
         }
       }
     }
@@ -858,12 +861,12 @@ void DivPlatformJKMS16WM32O8::updateWave(int ch, int op, int wave, int pos, int 
       // load from waveform
       DivWavetable* wt=parent->getWave(wave);
       if (wt!=NULL) {
-        chip.host_w(2,pos);
-        chip.host_w(4,1);
+        chip->host_w(2,pos);
+        chip->host_w(4,1);
         for (int i=0; i<len; i++) {
           unsigned int addr=(i*wt->len)/len;
           int data=(unsigned short)((wt->data[addr]*65535)/wt->max);
-          chip.host_w(3,data&0xffff);
+          chip->host_w(3,data&0xffff);
         }
       }
     }
@@ -1016,7 +1019,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
       chan[c.chan].insChanged=false;
 
       if (c.value!=DIV_NOTE_NULL) {
-        chan[c.chan].baseFreq=NOTE_FREQUENCY(c.value);
+        chan[c.chan].baseFreq=chan[c.chan].calcBaseFreq(chan[c.chan].note);
         chan[c.chan].note=c.value;
         chan[c.chan].freqChanged=true;
       }
@@ -1081,7 +1084,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
       chan[c.chan].freqChanged=true;
       break;
     case DIV_CMD_NOTE_PORTA: {
-      int destFreq=NOTE_FREQUENCY(c.value2);
+      int destFreq=chan[c.chan].calcBaseFreq(c.value2);
       int newFreq;
       bool return2=false;
       if (destFreq>chan[c.chan].baseFreq) {
@@ -1111,7 +1114,7 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
         commitState(c.chan,ins);
         chan[c.chan].insChanged=false;
       }
-      chan[c.chan].baseFreq=NOTE_FREQUENCY(c.value);
+      chan[c.chan].baseFreq=chan[c.chan].calcBaseFreq(chan[c.chan].note);
       chan[c.chan].note=c.value;
       chan[c.chan].freqChanged=true;
       break;
@@ -1499,8 +1502,8 @@ int DivPlatformJKMS16WM32O8::dispatch(DivCommand c) {
       return 255;
       break;
     case DIV_CMD_PRE_PORTA:
-      if (!chan[c.chan].inPorta && c.value && !parent->song.brokenPortaArp && chan[c.chan].std.arp.will && !NEW_ARP_STRAT) {
-        chan[c.chan].baseFreq=NOTE_FREQUENCY(chan[c.chan].note);
+      if (!chan[c.chan].inPorta && c.value && !parent->song.compatFlags.brokenPortaArp && chan[c.chan].std.arp.will && !NEW_ARP_STRAT) {
+        chan[c.chan].baseFreq=chan[c.chan].calcBaseFreq(chan[c.chan].note);
       }
       chan[c.chan].inPorta=c.value;
       break;
@@ -1562,7 +1565,7 @@ void DivPlatformJKMS16WM32O8::toggleRegisterDump(bool enable) {
   DivDispatch::toggleRegisterDump(enable);
 }
 
-void* DivPlatformJKMS16WM32O8::getChanState(int ch) {
+SharedChannel* DivPlatformJKMS16WM32O8::getChanState(int ch) {
   return &chan[ch];
 }
 
@@ -1591,7 +1594,7 @@ int DivPlatformJKMS16WM32O8::getRegisterPoolDepth() {
 }
 
 void DivPlatformJKMS16WM32O8::reset() {
-  chip.reset();
+  chip->reset();
   for (int i=0; i<WM_REG_POOL_SIZE; i++) {
     regPool[i]=0;
   }
@@ -1630,6 +1633,10 @@ bool DivPlatformJKMS16WM32O8::getLegacyAlwaysSetVolume() {
   return false;
 }
 
+bool DivPlatformJKMS16WM32O8::hasSoftPan(int ch) {
+  return true;
+}
+
 void DivPlatformJKMS16WM32O8::notifyInsChange(int ins) {
   for (int i=0; i<32; i++) {
     if (chan[i].ins==ins) {
@@ -1652,18 +1659,28 @@ void DivPlatformJKMS16WM32O8::poke(std::vector<DivRegWrite>& wlist) {
   for (DivRegWrite& i: wlist) rWrite(i.addr,i.val);
 }
 
+void DivPlatformJKMS16WM32O8::notifyPitchTable(int sample) {
+  pitchTable.init(parent->song.tuning,chipClock,CHIP_FREQBASE,0xfffffff,false,parent->song.compatFlags.linearPitch);
+}
+
+unsigned int DivPlatformJKMS16WM32O8::getMaxFreq(int ch) {
+  return 0xffff;
+}
+
 void DivPlatformJKMS16WM32O8::setFlags(const DivConfig& flags) {
   chipClock=1<<28;
   rate=(int)((double)chipClock/4096.0);
   for (int i=0; i<32; i++) {
     oscBuf[i]->setRate(rate);
   }
+  notifyPitchTable();
 }
 
 int DivPlatformJKMS16WM32O8::init(DivEngine* p, int channels, int sugRate, const DivConfig& flags) {
   parent=p;
   dumpWrites=false;
   skipRegisterWrites=false;
+  chip=new jkms16wm32o8_t(*this);
   waveRAM=new unsigned short[0x10000];
   for (int i=0; i<32; i++) {
     isMuted[i]=false;
@@ -1680,6 +1697,7 @@ void DivPlatformJKMS16WM32O8::quit() {
   for (int i=0; i<32; i++) {
     delete oscBuf[i];
   }
+  delete chip;
 }
 
 DivPlatformJKMS16WM32O8::~DivPlatformJKMS16WM32O8() {

@@ -528,10 +528,8 @@ namespace jkms16wm32o8
 
 	void jkms16wm32o8_t::reset()
 	{
-		for (channel_t &channel : m_channel)
-		{
-			channel.reset();
-		}
+		for (int i = 0; i < JKMS16WM32_MAX_CHANNELS; i++)
+			m_channel[i].reset();
 		m_lout = 0;
 		m_rout = 0;
 		m_register_select = 0;

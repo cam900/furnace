@@ -1,6 +1,6 @@
 /**
  * Furnace Tracker - multi-system chiptune tracker
- * Copyright (C) 2021-2025 tildearrow and contributors
+ * Copyright (C) 2021-2026 tildearrow and contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,10 +26,6 @@
 #include <fmt/printf.h>
 #include <imgui.h>
 #include <imgui_internal.h>
-
-const char* sampleNote[12]={
-  "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
-};
 
 #define DIR_DRAG_SOURCE(_d,_a,_c) \
   if (ImGui::BeginDragDropSource()) { \
@@ -88,7 +84,7 @@ const char* sampleNote[12]={
         int target=i; \
         bool markModified=false; \
         if (_toMoveVar!=target) { \
-          if (ImGui::IsKeyDown(ImGuiKey_ModCtrl)) { \
+          if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) { \
             markModified=_swapFn(_toMoveVar,target); \
           } else { \
             while (_toMoveVar>target) { \
@@ -319,6 +315,9 @@ void FurnaceGUI::sampleListItem(int i, int dir, int asset) {
       nextWindow=GUI_WINDOW_SAMPLE_EDIT;
     }
   }
+  if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+    ImGui::OpenPopup("SampleRightMenu");
+  }
   if (sampleListDir || (settings.unifiedDataView && insListDir)) {
     DIR_DRAG_SOURCE(dir,asset,"FUR_SDIR");
     DIR_DRAG_TARGET(dir,asset,e->song.sampleDir,"FUR_SDIR");
@@ -338,7 +337,7 @@ void FurnaceGUI::sampleListItem(int i, int dir, int asset) {
     }
     ImGui::PopStyleColor();
   }
-  if (ImGui::BeginPopupContextItem("SampleRightMenu")) {
+  if (ImGui::BeginPopup("SampleRightMenu")) {
     curSample=i;
     samplePos=0;
     updateSampleTex=true;
@@ -745,7 +744,7 @@ void FurnaceGUI::drawInsList(bool asChild) {
         if (dirToDelete!=-1) {
           e->lockEngine([this,dirToDelete]() {
             e->song.insDir.erase(e->song.insDir.begin()+dirToDelete);
-            e->checkAssetDir(e->song.insDir,e->song.ins.size());
+            checkAssetDir(e->song.insDir,e->song.ins.size());
           });
         }
       } else {
@@ -1402,7 +1401,7 @@ void FurnaceGUI::actualWaveList() {
     if (dirToDelete!=-1) {
       e->lockEngine([this,dirToDelete]() {
         e->song.waveDir.erase(e->song.waveDir.begin()+dirToDelete);
-        e->checkAssetDir(e->song.waveDir,e->song.wave.size());
+        checkAssetDir(e->song.waveDir,e->song.wave.size());
       });
     }
   } else {
@@ -1457,7 +1456,7 @@ void FurnaceGUI::actualSampleList() {
     if (dirToDelete!=-1) {
       e->lockEngine([this,dirToDelete]() {
         e->song.sampleDir.erase(e->song.sampleDir.begin()+dirToDelete);
-        e->checkAssetDir(e->song.sampleDir,e->song.sample.size());
+        checkAssetDir(e->song.sampleDir,e->song.sample.size());
       });
     }
   } else {

@@ -1,6 +1,6 @@
 /**
  * Furnace Tracker - multi-system chiptune tracker
- * Copyright (C) 2021-2025 tildearrow and contributors
+ * Copyright (C) 2021-2026 tildearrow and contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -213,12 +213,10 @@ std::vector<DivSample*> DivEngine::sampleFromFile(const char* path) {
       }
 
       if (extS==".dmc") {
-        sample->rate=33144;
         sample->centerRate=33144;
         sample->depth=DIV_SAMPLE_DEPTH_1BIT_DPCM;
         sample->init(len*8);
       } else if (extS==".brr") {
-        sample->rate=32000;
         sample->centerRate=32000;
         sample->depth=DIV_SAMPLE_DEPTH_BRR;
         sample->init(16*(len/9));
@@ -400,9 +398,6 @@ std::vector<DivSample*> DivEngine::sampleFromFile(const char* path) {
     delete[] (float*)buf;
   }
 
-  sample->rate=si.samplerate;
-  if (sample->rate<4000) sample->rate=4000;
-  if (sample->rate>96000) sample->rate=96000;
   sample->centerRate=si.samplerate;
 
   SF_INSTRUMENT inst;
@@ -430,7 +425,6 @@ std::vector<DivSample*> DivEngine::sampleFromFile(const char* path) {
   }
 
   if (sample->centerRate<100) sample->centerRate=100;
-  if (sample->centerRate>384000) sample->centerRate=384000;
   sfWrap.doClose();
   BUSY_END;
   ret.push_back(sample);
@@ -563,7 +557,6 @@ DivSample* DivEngine::sampleFromFileRaw(const char* path, DivSampleDepth depth, 
     return NULL;
   }
 
-  sample->rate=rate;
   sample->centerRate=rate;
   sample->depth=depth;
   sample->init(samples);

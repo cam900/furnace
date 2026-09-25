@@ -1,6 +1,6 @@
 /**
  * Furnace Tracker - multi-system chiptune tracker
- * Copyright (C) 2021-2025 tildearrow and contributors
+ * Copyright (C) 2021-2026 tildearrow and contributors
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 #include "imgui.h"
 #include "guiConst.h"
 
-String disasmCmd(unsigned char* buf, size_t bufLen, unsigned int addr, unsigned char* speedDial) {
+String disasmCmd(unsigned char* buf, size_t bufLen, unsigned int addr, unsigned char* fastIns, unsigned char* fastVols, unsigned char* fastCmds) {
   if (addr>=bufLen) return "???";
 
   if (buf[addr]<0xb4) {
@@ -43,6 +43,18 @@ String disasmCmd(unsigned char* buf, size_t bufLen, unsigned int addr, unsigned 
     case 0xb8:
       if (addr+1>=bufLen) return "???";
       return fmt::sprintf("ins $%.2x",(int)buf[addr+1]);
+      break;
+    case 0xb9:
+      if (addr+4>=bufLen) return "???";
+      return fmt::sprintf("note raw $%.8x",(unsigned int)(buf[addr+1]|(buf[addr+2]<<8)|(buf[addr+3]<<16)|(buf[addr+4]<<24)));
+      break;
+    case 0xba:
+      if (addr+5>=bufLen) return "???";
+      return fmt::sprintf("porta raw $%.8x, %d",(unsigned int)(buf[addr+1]|(buf[addr+2]<<8)|(buf[addr+3]<<16)|(buf[addr+4]<<24)),(int)buf[addr+5]);
+      break;
+    case 0xbb:
+      if (addr+4>=bufLen) return "???";
+      return fmt::sprintf("legato raw $%.8x",(unsigned int)(buf[addr+1]|(buf[addr+2]<<8)|(buf[addr+3]<<16)|(buf[addr+4]<<24)));
       break;
     case 0xc0:
       if (addr+1>=bufLen) return "???";
@@ -104,14 +116,17 @@ String disasmCmd(unsigned char* buf, size_t bufLen, unsigned int addr, unsigned 
       if (addr+2>=bufLen) return "???";
       return fmt::sprintf("pan $%x, $%x",(int)buf[addr+1],(int)buf[addr+2]);
       break;
-    case 0xe0: case 0xe1: case 0xe2: case 0xe3:
-    case 0xe4: case 0xe5: case 0xe6: case 0xe7:
-    case 0xe8: case 0xe9: case 0xea: case 0xeb:
+    case 0xe0: case 0xe1: case 0xe2: case 0xe3: case 0xe4: case 0xe5:
+      return fmt::sprintf("qins%d $%.2x",buf[addr]-0xe0,fastIns[buf[addr]-0xe0]);
+      break;
+    case 0xe6: case 0xe7: case 0xe8: case 0xe9: case 0xea: case 0xeb:
+      return fmt::sprintf("qvol%d $%.2x",buf[addr]-0xe6,fastVols[buf[addr]-0xe6]);
+      break;
     case 0xec: case 0xed: case 0xee: case 0xef: {
-      unsigned char cmd=speedDial[buf[addr]&15];
+      unsigned char cmd=fastCmds[buf[addr]&3];
       int cmdLen=DivCS::getCmdLength(cmd);
       if ((addr+cmdLen)>=bufLen) return "???";
-      String ret=fmt::sprintf("qcmd%d %s",buf[addr]-0xd0,(cmd<DIV_CMD_MAX)?cmdName[cmd]:"INVALID");
+      String ret=fmt::sprintf("qcmd%d %s",buf[addr]-0xec,(cmd<DIV_CMD_MAX)?cmdName[cmd]:"INVALID");
       for (int i=0; i<cmdLen; i++) {
         ret+=fmt::sprintf(", %.2x",buf[addr+1+i]);
       }
@@ -230,7 +245,7 @@ void FurnaceGUI::drawCSPlayer() {
       if (ImGui::BeginTabBar("CSOptions")) {
         int chans=e->getTotalChannelCount();
         if (ImGui::BeginTabItem(_("Status"))) {
-          if (ImGui::BeginTable("CSStat",13,ImGuiTableFlags_SizingStretchSame|ImGuiTableFlags_ScrollX|ImGuiTableFlags_Borders)) {
+          if (ImGui::BeginTable("CSStat",13,ImGuiTableFlags_SizingFixedFit|ImGuiTableFlags_ScrollX|ImGuiTableFlags_Borders)) {
             ImGui::TableSetupScrollFreeze(1,1);
             ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
             ImGui::TableNextColumn();
@@ -325,7 +340,7 @@ void FurnaceGUI::drawCSPlayer() {
                 if (state->trace[j]==0) {
                   ImGui::TextUnformatted("...");
                 } else {
-                  String dis=disasmCmd(buf,bufSize,state->trace[j],cs->getFastCmds());
+                  String dis=disasmCmd(buf,bufSize,state->trace[j],cs->getFastIns(),cs->getFastVols(),cs->getFastCmds());
                   ImGui::Text("%.4x: %s",state->trace[j],dis.c_str());
                 }
               }
@@ -400,7 +415,7 @@ void FurnaceGUI::drawCSPlayer() {
                 }
 
                 ImGui::TableNextColumn();
-                String dis=disasmCmd(i.data,8,0,cs->getFastCmds());
+                String dis=disasmCmd(i.data,8,0,cs->getFastIns(),cs->getFastVols(),cs->getFastCmds());
                 ImGui::Text("%s",dis.c_str());
 
                 // jmp/ret separator
@@ -599,8 +614,18 @@ void FurnaceGUI::drawCSPlayer() {
             ImGui::SameLine();
             ImGui::Text("%d",cs->getFastDelays()[i]);
           }
+          ImGui::Text("preset instruments:");
+          for (int i=0; i<6; i++) {
+            ImGui::SameLine();
+            ImGui::Text("%d",cs->getFastIns()[i]);
+          }
+          ImGui::Text("preset volumes:");
+          for (int i=0; i<6; i++) {
+            ImGui::SameLine();
+            ImGui::Text("%d",cs->getFastVols()[i]);
+          }
           ImGui::Text("speed dial commands:");
-          for (int i=0; i<16; i++) {
+          for (int i=0; i<4; i++) {
             ImGui::SameLine();
             ImGui::Text("%d",cs->getFastCmds()[i]);
           }
